@@ -157,7 +157,6 @@ void gui_run(struct proc **procs)
 	struct procstat pst;
 	long last_update = 0;
 	int fin = 0;
-	int nprocs = 0;
 
 	do{
 		const long now = mstime();
@@ -167,6 +166,9 @@ void gui_run(struct proc **procs)
 			last_update = now;
 			proc_update(procs, &pst);
 		}
+
+		if(pos_y >= pst.count - 1)
+			pos_y = pst.count - 2;
 
 		showprocs(procs, &pst);
 
@@ -180,8 +182,14 @@ void gui_run(struct proc **procs)
 			switch(ch){
 				case 'q': fin = 1; break;
 
-				case 'k': if(pos_y >        0) pos_y--; break;
-				case 'j': if(pos_y < nprocs-1) pos_y++; break;
+				case 'k':
+					if(pos_y > 0)
+						pos_y--;
+					break;
+
+				case 'j':
+					pos_y++;
+					break;
 
 				case '/':
 					*search_str = '\0';
