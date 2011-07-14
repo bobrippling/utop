@@ -1,11 +1,21 @@
 #include <ncurses.h>
 #include <sys/types.h>
+#include <string.h>
+#include <ctype.h>
 
 #include "proc.h"
 #include "gui.h"
 #include "util.h"
 
-int pos_y = 0;
+#define HALF_DELAY_TIME 5
+#define WAIT_TIME (HALF_DELAY_TIME * 100)
+#define CTRL_AND(c) ((c) & 037)
+
+static int  pos_y  = 0;
+static int  search = 0;
+static int  search_idx = 0;
+static char search_str[32] = { 0 };
+static struct proc *search_proc = NULL;
 
 void gui_init()
 {
@@ -18,7 +28,7 @@ void gui_init()
 	intrflush(stdscr, FALSE);
 	keypad(stdscr, TRUE);
 
-	halfdelay(2); /* x/10s of a second wait */
+	halfdelay(HALF_DELAY_TIME); /* x/10s of a second wait */
 
 	if(has_colors()){
 		start_color();
@@ -39,49 +49,147 @@ void gui_term()
 	endwin();
 }
 
-void showprocs(struct proc **procs)
+void showproc(struct proc *proc, int *py, int indent)
 {
-	struct proc *p = proc_to_list(procs);
-	char buf[256];
-	int y;
+	struct proc *p;
+	int y = *py;
+	int i;
 
-	y = pos_y;
+	if(y > LINES)
+		return;
 
-	while(p->next && y --> 0)
-		p = p->next;
+	if(y > 0){
+		if(proc == search_proc)
+			attron(A_BOLD | COLOR_PAIR(COLOR_BLUE));
 
-	for(y = 0; y < LINES && p; y++, p = p->next){
-		snprintf(buf, sizeof buf, "%s - %d", p->cmd, p->pc_cpu);
-		mvaddnstr(y, 0, buf, COLS - 1);
+		mvprintw(y, 0, "% 7d % 7d", proc->pid, proc->ppid);
+		i = indent;
+		while(i -->= 0)
+			addstr("  ");
+		addnstr(proc->cmd, COLS - indent - 16);
+		clrtoeol();
+
+		if(proc == search_proc)
+			attroff(A_BOLD | COLOR_PAIR(COLOR_BLUE));
 	}
 
-	move(0, 0);
+	/*for(p = proc->*/
+
+	for(p = proc->child_first; p; p = p->child_next){
+		y++;
+		showproc(p, &y, indent + 1);
+	}
+
+	*py = y;
+}
+
+void showprocs(struct proc **procs, int n)
+{
+	int y = -pos_y + 1;
+
+	if(search){
+		mvprintw(0, 0, "/%s", search_str);
+
+		if(search_proc){
+			int found = 0;
+			int ty;
+
+			ty = proc_offset(search_proc, proc_get(procs, 1), &found);
+			if(found)
+				pos_y = ty;
+		}
+
+	}else{
+		mvprintw(0, 0, "%d processes", n);
+	}
+
+	showproc(proc_get(procs, 1), &y, 0);
+
+	while(y < LINES){
+		move(y++, 0);
+		clrtoeol();
+	}
+
+	if(search)
+		move(0, strlen(search_str) + 1);
+	else
+		move(0, 0);
+}
+
+void gui_search(int ch, struct proc **procs)
+{
+	switch(ch){
+		case CTRL_AND('['):
+			search = 0;
+			break;
+
+		case CTRL_AND('?'):
+		case CTRL_AND('H'):
+		case 263:
+		case 127:
+			if(search_idx > 0)
+				search_str[--search_idx] = '\0';
+			else
+				search = 0;
+			break;
+
+		case CTRL_AND('u'):
+			search_idx = 0;
+			*search_str = '\0';
+			break;
+
+		default:
+			if(isprint(ch) && search_idx < (signed)sizeof search_str - 2){
+				search_str[search_idx++] = ch;
+				search_str[search_idx  ] = '\0';
+			}
+			break;
+	}
+
+	if(search)
+		search_proc = proc_find(search_str, procs);
+	else
+		search_proc = NULL;
 }
 
 void gui_run(struct proc **procs)
 {
 	long last_update = 0;
 	int fin = 0;
+	int nprocs = 0;
 
 	do{
 		const long now = mstime();
-		int ch, nprocs;
+		int ch;
 
-		if(last_update + 500 < now){
+		if(last_update + WAIT_TIME < now){
 			last_update = now;
 			proc_update(procs, &nprocs);
-			fprintf(stderr, "proc_update: %d, pos_y: %d\n", nprocs, pos_y);
 		}
 
-		clear();
-		showprocs(procs);
+		showprocs(procs, nprocs);
 
 		ch = getch();
-		switch(ch){
-			case 'q': fin = 1; break;
+		if(ch == -1)
+			continue;
 
-			case 'k': if(pos_y >        0) pos_y--; break;
-			case 'j': if(pos_y < nprocs-1) pos_y++; break;
+		if(search){
+			gui_search(ch, procs);
+		}else{
+			switch(ch){
+				case 'q': fin = 1; break;
+
+				case 'k': if(pos_y >        0) pos_y--; break;
+				case 'j': if(pos_y < nprocs-1) pos_y++; break;
+
+				case '/':
+					*search_str = '\0';
+					search_idx = 0;
+					search = 1;
+					move(0, 0);
+					clrtoeol();
+					break;
+			}
 		}
 	}while(!fin);
 }

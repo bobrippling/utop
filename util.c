@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <errno.h>
+#include <string.h>
 
 #include "util.h"
 
@@ -11,16 +13,18 @@ long mstime()
 	return t.tv_sec * 1000 + t.tv_usec / 1000;
 }
 
-int fline(const char *path, char *buf, int len)
+char *fline(const char *path, char *buf, int len)
 {
 	FILE *f = fopen(path, "r");
-	int ret = 0;
+	char *ret = buf;
 
-	if(!f)
-		return 1;
+	if(!f){
+		fprintf(stderr, "open \"%s\": %s\n", path, strerror(errno));
+		return NULL;
+	}
 
 	if(fgets(buf, len, f) == NULL)
-		ret = 1;
+		ret = NULL;
 
 	fclose(f);
 	return ret;

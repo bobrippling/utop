@@ -9,24 +9,15 @@
 #include <alloca.h>
 
 #include "proc.h"
+#include "util.h"
+
+#define ITER_PROCS(i, p, ps) \
+	for(i = 0; i < NPROCS; i++) \
+		for(p = ps[i]; p; p = p->hash_next)
 
 /*#define PHONY 1*/
+void proc_update_single(struct proc *proc, struct proc **procs);
 
-struct proc *proc_to_list(struct proc **procs)
-{
-	struct proc *first, **next = &first;
-	int i;
-
-	for(i = 0; i < NPROCS; i++){
-		struct proc *p;
-		for(p = procs[i]; p; p = p->hash_next){
-			*next = p;
-			next = &p->next;
-		}
-	}
-	*next = NULL;
-	return first;
-}
 
 void proc_free(struct proc *p)
 {
@@ -36,7 +27,7 @@ void proc_free(struct proc *p)
 	free(p);
 }
 
-struct proc *proc_frompid(pid_t pid)
+struct proc *proc_new(pid_t pid)
 {
 	struct proc *this = NULL;
 	FILE *f;
@@ -47,9 +38,18 @@ struct proc *proc_frompid(pid_t pid)
 	f = fopen(cmdln, "r");
 	if(f){
 		char buffer[256];
+		size_t nr;
 
-		if(fgets(buffer, sizeof buffer, f)){
+		nr = fread(buffer, sizeof(char), sizeof buffer, f);
+
+		if(nr){
+			unsigned int i;
 			char *p;
+
+			for(i = 0; i < nr; i++)
+				if(!buffer[i])
+					buffer[i] = ' ';
+			buffer[nr] = '\0';
 
 			this = malloc(sizeof *this);
 			if(!this){
@@ -58,17 +58,20 @@ struct proc *proc_frompid(pid_t pid)
 			}
 			memset(this, 0, sizeof *this);
 
-			this->pid       = pid;
-			this->argv0     = strdup(buffer);
-			this->proc_path = strdup(cmdln);
-			this->cmd       = strdup(buffer);
+			*strrchr(cmdln, '/') = '\0';
 
-			if(!this->argv0 || !this->proc_path || !this->cmd){
+			this->pid       = pid;
+			this->proc_path = strdup(cmdln);
+			this->argv0     = strdup(buffer);
+			this->cmd       = strdup(buffer);
+			this->ppid      = -1;
+
+			if(!this->proc_path || !this->argv0 || !this->cmd){
 				perror("malloc()");
 				exit(1);
 			}
 
-			p = strchr(this->cmd, ' ');
+			p = strchr(this->argv0, ' ');
 			if(p)
 				*p = '\0';
 		}
@@ -79,28 +82,34 @@ struct proc *proc_frompid(pid_t pid)
 	return this;
 }
 
-int proc_listcontains(struct proc **list, pid_t pid)
+struct proc *proc_get(struct proc **procs, pid_t pid)
 {
 	struct proc *p;
 
-	for(p = list[pid % NPROCS]; p; p = p->hash_next)
-		if(p->pid == pid)
-			return 1;
+	if(pid >= 0)
+		for(p = procs[pid % NPROCS]; p; p = p->hash_next)
+			if(p->pid == pid)
+				return p;
 
-	return 0;
+	return NULL;
 }
 
-void proc_addto(struct proc **list, struct proc *p)
+int proc_listcontains(struct proc **procs, pid_t pid)
+{
+	return !!proc_get(procs, pid);
+}
+
+void proc_addto(struct proc **procs, struct proc *p)
 {
 	struct proc *last;
 
-	last = list[p->pid % NPROCS];
+	last = procs[p->pid % NPROCS];
 	if(last){
 		while(last->hash_next)
 			last = last->hash_next;
 		last->hash_next = p;
 	}else{
-		list[p->pid % NPROCS] = p;
+		procs[p->pid % NPROCS] = p;
 	}
 }
 
@@ -110,13 +119,13 @@ struct proc **proc_init()
 	struct proc **p = malloc(n);
 	memset(p, 0, n);
 #ifdef PHONY
-	p[0] = proc_frompid(1);
-	p[1 % NPROCS] = proc_frompid(getpid());
+	p[0] = proc_new(1);
+	p[1 % NPROCS] = proc_new(getpid());
 #endif
 	return p;
 }
 
-void proc_listall(struct proc **list, int *np)
+void proc_listall(struct proc **procs, int *np)
 {
 	/* TODO: kernel threads */
 	DIR *d = opendir("/proc");
@@ -132,11 +141,11 @@ void proc_listall(struct proc **list, int *np)
 	while((errno = 0, ent = readdir(d))){
 		int pid;
 
-		if(sscanf(ent->d_name, "%d", &pid) && !proc_listcontains(list, pid)){
-			struct proc *p = proc_frompid(pid);
+		if(sscanf(ent->d_name, "%d", &pid) && !proc_listcontains(procs, pid)){
+			struct proc *p = proc_new(pid);
 
 			if(p){
-				proc_addto(list, p);
+				proc_addto(procs, p);
 				n++;
 			}
 		}
@@ -151,24 +160,70 @@ void proc_listall(struct proc **list, int *np)
 	closedir(d);
 }
 
-void proc_update_single(struct proc *proc)
+const char *proc_str(struct proc *p)
 {
-	/*
+	static char buf[256];
+
+	snprintf(buf, sizeof buf,
+			"{ pid=%d, ppid=%d, cmd=\"%s\" }",
+			p->pid, p->ppid, p->cmd);
+
+	return buf;
+}
+
+void proc_update_single(struct proc *proc, struct proc **procs)
+{
 	char buf[256];
 	char path[32];
 
 	snprintf(path, sizeof path, "%s/stat", proc->proc_path);
-	if(!fline(path, buf, sizeof buf)){
+
+	if(fline(path, buf, sizeof buf)){
 		char *start = strrchr(buf, ')') + 2;
+		char *iter;
+		int i = 0;
+		pid_t oldppid = proc->ppid;
 
+		for(iter = strtok(start, " \t"); iter; iter = strtok(NULL, " \t")){
+#define INT(n, x) case n: sscanf(iter, "%d", &proc->x); break
+			switch(i++){
+				INT(0, state);
+				INT(1, ppid);
+				INT(4, tty);
+				INT(5, pgrp);
+#undef INT
+			}
+		}
 
+		if(proc->ppid && oldppid != proc->ppid){
+			struct proc *parent = proc_get(procs, proc->ppid);
+			struct proc *iter;
+
+			if(parent->child_first){
+				iter = parent->child_first;
+
+				while(iter->child_next)
+					iter = iter->child_next;
+
+				iter->child_next = proc;
+			}else{
+				parent->child_first = proc;
+			}
+		}
+
+	}else{
+		perror("fline()");
 	}
-	*/
+#if 0
+					cpu     = cpuusage(root);
+					mem     = int(head("%s/statm" % root).split(' ')[0]);
+					time    = self.time(stats[11]) # usermode time;
+#endif
 
-	proc->pc_cpu = rand();
+	proc->pc_cpu = 0;
 }
 
-void proc_update(struct proc **list, int *np)
+void proc_update(struct proc **procs, int *np)
 {
 	int i;
 	int n;
@@ -179,25 +234,92 @@ void proc_update(struct proc **list, int *np)
 #endif
 
 	for(i = n = 0; i < NPROCS; i++){
+		struct proc **changeme;
 		struct proc *p;
-		struct proc **changeme = &list[i];
 
-		for(p = list[i]; p; p = p->hash_next){
+		changeme = &procs[i];
+		for(p = procs[i]; p; ){
 			struct stat st;
 
 			if(stat(p->proc_path, &st)){
-				*changeme = p->hash_next;
+				struct proc *next = p->hash_next;
+				struct proc *parent = proc_get(procs, p->ppid);
 
+				if(parent){
+					struct proc *iter, **prev;
+
+					prev = &parent->child_first;
+					for(iter = parent->child_first; iter; iter = iter->child_next)
+						if(iter->pid == p->pid){
+							*prev = iter->child_next;
+							break;
+						}else{
+							prev = &iter->child_next;
+						}
+				}
+
+				*changeme = next;
 				proc_free(p);
+				p = next;
 			}else{
-				proc_update_single(p);
+				proc_update_single(p, procs);
 				n++;
-			}
 
-			changeme = &p->hash_next;
+				changeme = &p->hash_next;
+
+				p = p->hash_next;
+			}
 		}
 	}
 
 	*np = n;
-	proc_listall(list, np);
+	proc_listall(procs, np);
+}
+
+void proc_dump(struct proc **ps, FILE *f)
+{
+	struct proc *p;
+	int i;
+
+	ITER_PROCS(i, p, ps)
+		fprintf(f, "%s\n", proc_str(p));
+}
+
+struct proc *proc_find(const char *str, struct proc **ps)
+{
+	struct proc *p;
+	int i;
+
+	ITER_PROCS(i, p, ps)
+		if(strstr(p->cmd, str))
+			return p;
+
+	return NULL;
+}
+
+int proc_offset(struct proc *p, struct proc *parent, int *found)
+{
+	struct proc *iter;
+	int i = 0;
+
+	if(p == parent){
+		*found = 1;
+		return 0;
+	}
+
+	for(iter = parent->child_first; iter; iter = iter->child_next, i++){
+		int off;
+
+		if(p == iter){
+			*found = 1;
+			return i;
+		}
+
+		off = proc_offset(p, iter, found);
+		if(*found)
+			return off + i;
+		i += off;
+	}
+
+	return 0;
 }

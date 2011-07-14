@@ -7,10 +7,10 @@
 
 #define MS_TO_US(n) ((n) * 1000)
 
+static struct proc **proclist;
+
 int main(void)
 {
-	struct proc **proclist;
-
 	gui_init();
 
 	proclist = proc_init();
