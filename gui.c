@@ -55,7 +55,7 @@ void showproc(struct proc *proc, int *py, int indent)
 	int y = *py;
 	int i;
 
-	if(y > LINES)
+	if(y >= LINES)
 		return;
 
 	if(y > 0){
