@@ -62,11 +62,11 @@ void showproc(struct proc *proc, int *py, int indent)
 		if(proc == search_proc)
 			attron(A_BOLD | COLOR_PAIR(COLOR_BLUE));
 
-		mvprintw(y, 0, "% 7d % 7d", proc->pid, proc->ppid);
+		mvprintw(y, 0, "% 7d % 7d %c", proc->pid, proc->ppid, proc->state);
 		i = indent;
 		while(i -->= 0)
 			addstr("  ");
-		addnstr(proc->cmd, COLS - indent - 16);
+		addnstr(proc->cmd, COLS - indent - 18);
 		clrtoeol();
 
 		if(proc == search_proc)
@@ -83,7 +83,7 @@ void showproc(struct proc *proc, int *py, int indent)
 	*py = y;
 }
 
-void showprocs(struct proc **procs, int n)
+void showprocs(struct proc **procs, struct procstat *pst)
 {
 	int y = -pos_y + 1;
 
@@ -100,7 +100,7 @@ void showprocs(struct proc **procs, int n)
 		}
 
 	}else{
-		mvprintw(0, 0, "%d processes", n);
+		mvprintw(0, 0, "%d processes, %d running", pst->count, pst->running);
 	}
 
 	showproc(proc_get(procs, 1), &y, 0);
@@ -146,7 +146,7 @@ void gui_search(int ch, struct proc **procs)
 			break;
 	}
 
-	if(search)
+	if(search && *search_str && search_idx)
 		search_proc = proc_find(search_str, procs);
 	else
 		search_proc = NULL;
@@ -154,6 +154,7 @@ void gui_search(int ch, struct proc **procs)
 
 void gui_run(struct proc **procs)
 {
+	struct procstat pst;
 	long last_update = 0;
 	int fin = 0;
 	int nprocs = 0;
@@ -164,10 +165,10 @@ void gui_run(struct proc **procs)
 
 		if(last_update + WAIT_TIME < now){
 			last_update = now;
-			proc_update(procs, &nprocs);
+			proc_update(procs, &pst);
 		}
 
-		showprocs(procs, nprocs);
+		showprocs(procs, &pst);
 
 		ch = getch();
 		if(ch == -1)

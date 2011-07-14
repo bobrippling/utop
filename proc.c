@@ -15,7 +15,6 @@
 	for(i = 0; i < NPROCS; i++) \
 		for(p = ps[i]; p; p = p->hash_next)
 
-/*#define PHONY 1*/
 void proc_update_single(struct proc *proc, struct proc **procs);
 
 
@@ -118,19 +117,14 @@ struct proc **proc_init()
 	int n = sizeof(struct proc *) * NPROCS;
 	struct proc **p = malloc(n);
 	memset(p, 0, n);
-#ifdef PHONY
-	p[0] = proc_new(1);
-	p[1 % NPROCS] = proc_new(getpid());
-#endif
 	return p;
 }
 
-void proc_listall(struct proc **procs, int *np)
+void proc_listall(struct proc **procs, struct procstat *stat)
 {
 	/* TODO: kernel threads */
 	DIR *d = opendir("/proc");
 	struct dirent *ent;
-	int n = *np;
 
 	if(!d){
 		perror("opendir()");
@@ -146,7 +140,7 @@ void proc_listall(struct proc **procs, int *np)
 
 			if(p){
 				proc_addto(procs, p);
-				n++;
+				stat->count++;
 			}
 		}
 	}
@@ -156,7 +150,6 @@ void proc_listall(struct proc **procs, int *np)
 		exit(1);
 	}
 
-	*np = n;
 	closedir(d);
 }
 
@@ -165,8 +158,8 @@ const char *proc_str(struct proc *p)
 	static char buf[256];
 
 	snprintf(buf, sizeof buf,
-			"{ pid=%d, ppid=%d, cmd=\"%s\" }",
-			p->pid, p->ppid, p->cmd);
+			"{ pid=%d, ppid=%d, state=%c, cmd=\"%s\" }",
+			p->pid, p->ppid, p->state, p->cmd);
 
 	return buf;
 }
@@ -185,12 +178,12 @@ void proc_update_single(struct proc *proc, struct proc **procs)
 		pid_t oldppid = proc->ppid;
 
 		for(iter = strtok(start, " \t"); iter; iter = strtok(NULL, " \t")){
-#define INT(n, x) case n: sscanf(iter, "%d", &proc->x); break
+#define INT(n, fmt, x) case n: sscanf(iter, fmt, x); break
 			switch(i++){
-				INT(0, state);
-				INT(1, ppid);
-				INT(4, tty);
-				INT(5, pgrp);
+				INT(0, "%c", (char *)&proc->state);
+				INT(1, "%d", &proc->ppid);
+				INT(4, "%d", &proc->tty);
+				INT(5, "%d", &proc->pgrp);
 #undef INT
 			}
 		}
@@ -223,17 +216,14 @@ void proc_update_single(struct proc *proc, struct proc **procs)
 	proc->pc_cpu = 0;
 }
 
-void proc_update(struct proc **procs, int *np)
+void proc_update(struct proc **procs, struct procstat *pst)
 {
 	int i;
-	int n;
+	int count, running;
 
-#ifdef PHONY
-	*np = 2;
-	return;
-#endif
+	count = running = 0;
 
-	for(i = n = 0; i < NPROCS; i++){
+	for(i = 0; i < NPROCS; i++){
 		struct proc **changeme;
 		struct proc *p;
 
@@ -263,7 +253,9 @@ void proc_update(struct proc **procs, int *np)
 				p = next;
 			}else{
 				proc_update_single(p, procs);
-				n++;
+				count++;
+				if(p->state == 'R')
+					running++;
 
 				changeme = &p->hash_next;
 
@@ -272,8 +264,10 @@ void proc_update(struct proc **procs, int *np)
 		}
 	}
 
-	*np = n;
-	proc_listall(procs, np);
+	pst->count   = count;
+	pst->running = running;
+
+	proc_listall(procs, pst);
 }
 
 void proc_dump(struct proc **ps, FILE *f)

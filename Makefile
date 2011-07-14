@@ -11,5 +11,5 @@ clean:
 
 gui.o: gui.c proc.h gui.h util.h
 main.o: main.c proc.h gui.h
-proc.o: proc.c proc.h
-util.o: util.c
+proc.o: proc.c proc.h util.h
+util.o: util.c util.h

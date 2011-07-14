@@ -18,9 +18,14 @@ struct proc
 	struct proc *next;
 };
 
+struct procstat
+{
+	int count, running;
+};
+
 struct proc **proc_init();
-struct proc  *proc_get(   struct proc **list, pid_t);
-void          proc_update(struct proc **list, int *);
+struct proc  *proc_get(   struct proc **, pid_t);
+void          proc_update(struct proc **, struct procstat *);
 
 struct proc  *proc_to_list(struct proc **);
 struct proc  *proc_to_tree(struct proc **);
