@@ -59,14 +59,28 @@ void showproc(struct proc *proc, int *py, int indent)
 		return;
 
 	if(y > 0){
+		char buf[256];
+		int len = LINES;
+
 		if(proc == search_proc)
 			attron(A_BOLD | COLOR_PAIR(COLOR_BLUE));
 
-		mvprintw(y, 0, "% 7d % 7d %c", proc->pid, proc->ppid, proc->state);
+		move(y, 0);
+
+		len -= snprintf(buf, sizeof buf,
+				"% 7d % 7d %c %-8s %-8s",
+				proc->pid, proc->ppid, proc->state,
+				proc->unam, proc->gnam);
+		addstr(buf);
+
 		i = indent;
-		while(i -->= 0)
-			addstr("  ");
-		addnstr(proc->cmd, COLS - indent - 18);
+		while(i -->= 0){
+			addstr("  "); /* FIXME: cat onto buf */
+			len -= 2;
+		}
+
+		addnstr(proc->cmd, COLS - indent - len - 1);
+
 		clrtoeol();
 
 		if(proc == search_proc)

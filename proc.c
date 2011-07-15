@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <alloca.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include "proc.h"
 #include "util.h"
@@ -42,6 +44,7 @@ struct proc *proc_new(pid_t pid)
 		nr = fread(buffer, sizeof(char), sizeof buffer, f);
 
 		if(nr){
+			struct stat st;
 			unsigned int i;
 			char *p;
 
@@ -59,6 +62,28 @@ struct proc *proc_new(pid_t pid)
 
 			*strrchr(cmdln, '/') = '\0';
 
+			if(!stat(cmdln, &st)){
+				struct passwd *passwd;
+				struct group  *group;
+
+#define GETPW(var, truct, fn, member, id) \
+				truct = fn(id); \
+				if(truct){ \
+					var = strdup(truct->member); \
+				}else{ \
+					char buf[8]; \
+					snprintf(buf, sizeof buf, "%d", id); \
+					var = strdup(buf); \
+				} \
+				if(!var){ \
+					perror("malloc()"); \
+					exit(1); \
+				}
+
+				GETPW(this->unam, passwd, getpwuid, pw_name, st.st_uid)
+				GETPW(this->gnam,  group, getgrgid, gr_name, st.st_gid)
+			}
+
 			this->pid       = pid;
 			this->proc_path = strdup(cmdln);
 			this->argv0     = strdup(buffer);
@@ -73,6 +98,7 @@ struct proc *proc_new(pid_t pid)
 			p = strchr(this->argv0, ' ');
 			if(p)
 				*p = '\0';
+
 		}
 
 		fclose(f);
@@ -229,9 +255,7 @@ void proc_update(struct proc **procs, struct procstat *pst)
 
 		changeme = &procs[i];
 		for(p = procs[i]; p; ){
-			struct stat st;
-
-			if(stat(p->proc_path, &st)){
+			if(access(p->proc_path, F_OK)){
 				struct proc *next = p->hash_next;
 				struct proc *parent = proc_get(procs, p->ppid);
 

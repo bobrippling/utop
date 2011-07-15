@@ -6,6 +6,7 @@ struct proc
 	char *proc_path;
 	char *cmd, *argv0;
 	pid_t pid, ppid;
+	char *unam, *gnam;
 
 	int state, tty, pgrp;
 
