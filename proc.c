@@ -19,89 +19,78 @@
 
 void proc_update_single(struct proc *proc, struct proc **procs);
 
-
 void proc_free(struct proc *p)
 {
 	free(p->argv0);
 	free(p->proc_path);
 	free(p->cmd);
+	free(p->basename);
+	free(p->unam);
+	free(p->gnam);
 	free(p);
 }
 
 struct proc *proc_new(pid_t pid)
 {
 	struct proc *this = NULL;
-	FILE *f;
 	char cmdln[32];
+	int len;
+	char *buffer, *p;
 
 	snprintf(cmdln, sizeof cmdln, "/proc/%d/cmdline", pid);
 
-	f = fopen(cmdln, "r");
-	if(f){
-		char buffer[256];
-		size_t nr;
+	if(fline(cmdln, &buffer, &len)){
+		struct stat st;
+		int i;
 
-		nr = fread(buffer, sizeof(char), sizeof buffer, f);
+		this = umalloc(sizeof *this);
 
-		if(nr){
-			struct stat st;
-			unsigned int i;
-			char *p;
+		this->argv0     = ustrdup(buffer);
+		this->proc_path = ustrdup(cmdln);
+		*strrchr(this->proc_path, '/') = '\0';
 
-			for(i = 0; i < nr; i++)
-				if(!buffer[i])
-					buffer[i] = ' ';
-			buffer[nr] = '\0';
+		if((p = strchr(this->argv0, ':'))){
+			*p = '\0';
+			this->basename = ustrdup(this->argv0);
+			*p = ':';
+			this->basename_offset = 0;
+		}else{
+			this->basename = strrchr(this->argv0, '/');
+			if(!this->basename++)
+				this->basename = this->argv0;
+			this->basename_offset = this->basename - this->argv0;
 
-			this = malloc(sizeof *this);
-			if(!this){
-				perror("malloc()");
-				exit(1);
-			}
-			memset(this, 0, sizeof *this);
-
-			*strrchr(cmdln, '/') = '\0';
-
-			if(!stat(cmdln, &st)){
-				struct passwd *passwd;
-				struct group  *group;
-
-#define GETPW(var, truct, fn, member, id) \
-				truct = fn(id); \
-				if(truct){ \
-					var = strdup(truct->member); \
-				}else{ \
-					char buf[8]; \
-					snprintf(buf, sizeof buf, "%d", id); \
-					var = strdup(buf); \
-				} \
-				if(!var){ \
-					perror("malloc()"); \
-					exit(1); \
-				}
-
-				GETPW(this->unam, passwd, getpwuid, pw_name, st.st_uid)
-				GETPW(this->gnam,  group, getgrgid, gr_name, st.st_gid)
-			}
-
-			this->pid       = pid;
-			this->proc_path = strdup(cmdln);
-			this->argv0     = strdup(buffer);
-			this->cmd       = strdup(buffer);
-			this->ppid      = -1;
-
-			if(!this->proc_path || !this->argv0 || !this->cmd){
-				perror("malloc()");
-				exit(1);
-			}
-
-			p = strchr(this->argv0, ' ');
-			if(p)
-				*p = '\0';
-
+			this->basename = ustrdup(this->basename);
 		}
 
-		fclose(f);
+		if(!stat(cmdln, &st)){
+			struct passwd *passwd;
+			struct group  *group;
+
+#define GETPW(idvar, var, truct, fn, member, id) \
+			truct = fn(id); \
+			idvar = id; \
+			if(truct){ \
+				var = ustrdup(truct->member); \
+			}else{ \
+				char buf[8]; \
+				snprintf(buf, sizeof buf, "%d", id); \
+				var = ustrdup(buf); \
+			} \
+
+			GETPW(this->uid, this->unam, passwd, getpwuid, pw_name, st.st_uid)
+			GETPW(this->gid, this->gnam,  group, getgrgid, gr_name, st.st_gid)
+		}
+
+		for(i = 0; i < len; i++)
+			if(!buffer[i])
+				buffer[i] = ' ';
+		buffer[len] = '\0';
+
+		this->cmd       = buffer;
+
+		this->pid       = pid;
+		this->ppid      = -1;
 	}
 
 	return this;
@@ -141,7 +130,7 @@ void proc_addto(struct proc **procs, struct proc *p)
 struct proc **proc_init()
 {
 	int n = sizeof(struct proc *) * NPROCS;
-	struct proc **p = malloc(n);
+	struct proc **p = umalloc(n);
 	memset(p, 0, n);
 	return p;
 }
@@ -192,12 +181,12 @@ const char *proc_str(struct proc *p)
 
 void proc_update_single(struct proc *proc, struct proc **procs)
 {
-	char buf[256];
+	char *buf;
 	char path[32];
 
 	snprintf(path, sizeof path, "%s/stat", proc->proc_path);
 
-	if(fline(path, buf, sizeof buf)){
+	if(fline(path, &buf, NULL)){
 		char *start = strrchr(buf, ')') + 2;
 		char *iter;
 		int i = 0;
@@ -213,6 +202,8 @@ void proc_update_single(struct proc *proc, struct proc **procs)
 #undef INT
 			}
 		}
+
+		free(buf);
 
 		if(proc->ppid && oldppid != proc->ppid){
 			struct proc *parent = proc_get(procs, proc->ppid);

@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "proc.h"
 #include "gui.h"
@@ -10,12 +11,14 @@
 #define HALF_DELAY_TIME 5
 #define WAIT_TIME (HALF_DELAY_TIME * 100)
 #define CTRL_AND(c) ((c) & 037)
+#define INDENT "    "
 
 static int  pos_y  = 0;
 static int  search = 0;
 static int  search_idx = 0;
 static char search_str[32] = { 0 };
 static struct proc *search_proc = NULL;
+static int uid;
 
 void gui_init()
 {
@@ -33,7 +36,7 @@ void gui_init()
 	if(has_colors()){
 		start_color();
 		use_default_colors();
-		init_pair(COLOR_BLACK,   -1,            -1);
+		init_pair(COLOR_BLACK,   COLOR_BLACK,   -1);
 		init_pair(COLOR_GREEN,   COLOR_GREEN,   -1);
 		init_pair(COLOR_WHITE,   COLOR_WHITE,   -1);
 		init_pair(COLOR_RED,     COLOR_RED,     -1);
@@ -59,11 +62,14 @@ void showproc(struct proc *proc, int *py, int indent)
 		return;
 
 	if(y > 0){
+		const int owned = proc->uid == uid;
 		char buf[256];
 		int len = LINES;
 
 		if(proc == search_proc)
 			attron(A_BOLD | COLOR_PAIR(COLOR_BLUE));
+		else if(!owned)
+			attron(A_DIM);
 
 		move(y, 0);
 
@@ -75,16 +81,26 @@ void showproc(struct proc *proc, int *py, int indent)
 
 		i = indent;
 		while(i -->= 0){
-			addstr("  "); /* FIXME: cat onto buf */
+			addstr(INDENT);
 			len -= 2;
 		}
+
+		i = getcurx(stdscr) + proc->basename_offset;
 
 		addnstr(proc->cmd, COLS - indent - len - 1);
 
 		clrtoeol();
 
+		if(owned)
+			attron( A_BOLD | COLOR_PAIR(COLOR_CYAN));
+		mvaddnstr(y, i, proc->basename, COLS - indent - len - 1);
+		if(owned)
+			attroff(A_BOLD | COLOR_PAIR(COLOR_CYAN));
+
 		if(proc == search_proc)
 			attroff(A_BOLD | COLOR_PAIR(COLOR_BLUE));
+		else if(!owned)
+			attroff(A_DIM);
 	}
 
 	/*for(p = proc->*/
@@ -171,6 +187,8 @@ void gui_run(struct proc **procs)
 	struct procstat pst;
 	long last_update = 0;
 	int fin = 0;
+
+	uid = getuid();
 
 	do{
 		const long now = mstime();

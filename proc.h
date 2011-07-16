@@ -4,9 +4,13 @@
 struct proc
 {
 	char *proc_path;
-	char *cmd, *argv0;
 	pid_t pid, ppid;
+	int uid, gid;
 	char *unam, *gnam;
+
+	char *cmd;
+	char *argv0, *basename;
+	int basename_offset;
 
 	int state, tty, pgrp;
 
