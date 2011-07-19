@@ -50,10 +50,8 @@ char *fline(const char *path, char **pbuf, int *plen)
 	int i;
 
 	f = fopen(path, "r");
-	if(!f){
-		fprintf(stderr, "open \"%s\": %s\n", path, strerror(errno));
+	if(!f)
 		return NULL;
-	}
 
 	len = 64;
 	ret = umalloc(len + 1);

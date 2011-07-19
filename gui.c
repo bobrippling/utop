@@ -36,14 +36,15 @@ void gui_init()
 	if(has_colors()){
 		start_color();
 		use_default_colors();
-		init_pair(COLOR_BLACK,   COLOR_BLACK,   -1);
-		init_pair(COLOR_GREEN,   COLOR_GREEN,   -1);
-		init_pair(COLOR_WHITE,   COLOR_WHITE,   -1);
-		init_pair(COLOR_RED,     COLOR_RED,     -1);
-		init_pair(COLOR_CYAN,    COLOR_CYAN,    -1);
-		init_pair(COLOR_MAGENTA, COLOR_MAGENTA, -1);
-		init_pair(COLOR_BLUE,    COLOR_BLUE,    -1);
-		init_pair(COLOR_YELLOW,  COLOR_YELLOW,  -1);
+
+		init_pair(1 + COLOR_BLACK  , COLOR_BLACK  , -1);
+		init_pair(1 + COLOR_GREEN  , COLOR_GREEN  , -1);
+		init_pair(1 + COLOR_WHITE  , COLOR_WHITE  , -1);
+		init_pair(1 + COLOR_RED    , COLOR_RED    , -1);
+		init_pair(1 + COLOR_CYAN   , COLOR_CYAN   , -1);
+		init_pair(1 + COLOR_MAGENTA, COLOR_MAGENTA, -1);
+		init_pair(1 + COLOR_BLUE   , COLOR_BLUE   , -1);
+		init_pair(1 + COLOR_YELLOW , COLOR_YELLOW , -1);
 	}
 }
 
@@ -66,11 +67,6 @@ void showproc(struct proc *proc, int *py, int indent)
 		char buf[256];
 		int len = LINES;
 
-		if(proc == search_proc)
-			attron(A_BOLD | COLOR_PAIR(COLOR_BLUE));
-		else if(!owned)
-			attron(A_DIM);
-
 		move(y, 0);
 
 		len -= snprintf(buf, sizeof buf,
@@ -87,20 +83,29 @@ void showproc(struct proc *proc, int *py, int indent)
 
 		i = getcurx(stdscr) + proc->basename_offset;
 
-		addnstr(proc->cmd, COLS - indent - len - 1);
+#define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
+#define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
+#define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
 
+		if(proc == search_proc)
+			attron(ATTR_SEARCH);
+		else if(!owned)
+			attron(ATTR_NOT_OWNED);
+
+		addnstr(proc->cmd, COLS - indent - len - 1);
 		clrtoeol();
 
 		if(owned)
-			attron( A_BOLD | COLOR_PAIR(COLOR_CYAN));
+			attron(ATTR_BASENAME);
 		mvaddnstr(y, i, proc->basename, COLS - indent - len - 1);
-		if(owned)
-			attroff(A_BOLD | COLOR_PAIR(COLOR_CYAN));
 
 		if(proc == search_proc)
-			attroff(A_BOLD | COLOR_PAIR(COLOR_BLUE));
-		else if(!owned)
-			attroff(A_DIM);
+			attroff(ATTR_SEARCH);
+		else if(owned)
+			attroff(ATTR_BASENAME);
+		else
+			attroff(ATTR_NOT_OWNED);
+
 	}
 
 	/*for(p = proc->*/
@@ -212,7 +217,9 @@ void gui_run(struct proc **procs)
 			gui_search(ch, procs);
 		}else{
 			switch(ch){
-				case 'q': fin = 1; break;
+				case 'q':
+					fin = 1;
+					break;
 
 				case 'k':
 					if(pos_y > 0)
@@ -220,7 +227,7 @@ void gui_run(struct proc **procs)
 					break;
 
 				case 'j':
-					pos_y++;
+					pos_y++; /* checked above */
 					break;
 
 				case '/':

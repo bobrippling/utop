@@ -83,8 +83,12 @@ struct proc *proc_new(pid_t pid)
 		}
 
 		for(i = 0; i < len; i++)
-			if(!buffer[i])
-				buffer[i] = ' ';
+			switch(buffer[i]){
+				case '\0':
+				case '\n':
+					buffer[i] = ' ';
+					break;
+			}
 		buffer[len] = '\0';
 
 		this->cmd       = buffer;
@@ -220,17 +224,13 @@ void proc_update_single(struct proc *proc, struct proc **procs)
 				parent->child_first = proc;
 			}
 		}
-
-	}else{
-		perror("fline()");
 	}
 #if 0
 					cpu     = cpuusage(root);
 					mem     = int(head("%s/statm" % root).split(' ')[0]);
 					time    = self.time(stats[11]) # usermode time;
+					proc->pc_cpu = 0;
 #endif
-
-	proc->pc_cpu = 0;
 }
 
 void proc_update(struct proc **procs, struct procstat *pst)
