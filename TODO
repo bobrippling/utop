@@ -1,2 +1,5 @@
-Highlight basename
 Mem%, CPU%
+
+(confirm)
+'l' -> exec lsof -p $pid
+'s' -> strace -p $pid
