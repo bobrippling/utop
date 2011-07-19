@@ -237,6 +237,7 @@ void gui_run(struct proc **procs)
 	int fin = 0;
 
 	uid = getuid();
+	proc_update(procs, &pst);
 
 	do{
 		const long now = mstime();
