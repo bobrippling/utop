@@ -1,4 +1,4 @@
-CFLAGS  = -g -Wall -Wextra -pedantic
+CFLAGS  = -g -Wall -Wextra -pedantic -std=c99 -D_POSIX_SOURCE
 LDFLAGS = -g -lncurses
 
 .PHONY: clean

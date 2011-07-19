@@ -7,4 +7,6 @@ char *fline(const char *path, char **buf, int *len);
 void *umalloc(size_t l);
 char *ustrdup(const char *s);
 
+int str_to_sig(const char *);
+
 #endif

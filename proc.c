@@ -238,7 +238,8 @@ void proc_update(struct proc **procs, struct procstat *pst)
 	int i;
 	int count, running;
 
-	count = running = 0;
+	count = 1; /* init */
+	running = 0;
 
 	for(i = 0; i < NPROCS; i++){
 		struct proc **changeme;
@@ -267,13 +268,16 @@ void proc_update(struct proc **procs, struct procstat *pst)
 				proc_free(p);
 				p = next;
 			}else{
-				proc_update_single(p, procs);
-				count++;
-				if(p->state == 'R')
-					running++;
+				if(p){
+					proc_update_single(p, procs);
+					if(p->ppid != 0 && p->ppid != 2)
+						count++; /* else it's kthreadd or init */
+
+					if(p->state == 'R')
+						running++;
+				}
 
 				changeme = &p->hash_next;
-
 				p = p->hash_next;
 			}
 		}
@@ -306,29 +310,45 @@ struct proc *proc_find(const char *str, struct proc **ps)
 	return NULL;
 }
 
-int proc_offset(struct proc *p, struct proc *parent, int *found)
+int proc_offset(struct proc *p, struct proc *parent, int *py)
 {
 	struct proc *iter;
-	int i = 0;
+	int ret = 0;
+	int y;
 
-	if(p == parent){
-		*found = 1;
-		return 0;
-	}
+	if(p == parent)
+		return 1;
 
-	for(iter = parent->child_first; iter; iter = iter->child_next, i++){
-		int off;
-
-		if(p == iter){
-			*found = 1;
-			return i;
+	for(y = *py, iter = parent->child_first; iter; iter = iter->child_next, y++)
+		if(p == iter || proc_offset(p, iter, &y)){
+			ret = 1;
+			break;
 		}
 
-		off = proc_offset(p, iter, found);
-		if(*found)
-			return off + i;
-		i += off;
+	*py = y;
+	return ret;
+}
+
+struct proc *proc_from_idx(struct proc *parent, int *idx)
+{
+	struct proc *iter, *ret = NULL;
+	int i = *idx;
+#define RET(x) do{ ret = x; goto fin; }while(0)
+
+	if(i <= 0)
+		return parent;
+
+	for(iter = parent->child_first; iter; iter = iter->child_next){
+		if(--i <= 0){
+			RET(iter);
+		}else{
+			struct proc *p = proc_from_idx(iter, &i);
+			if(p)
+				RET(p);
+		}
 	}
 
-	return 0;
+fin:
+	*idx = i;
+	return ret;
 }
