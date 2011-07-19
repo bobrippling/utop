@@ -101,13 +101,29 @@ void showproc(struct proc *proc, int *py, int indent)
 		char buf[256];
 		int len = LINES;
 
+#define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
+#define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
+#define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
+
 		move(y, 0);
+
+		if(proc == search_proc)
+			attron(ATTR_SEARCH);
+		else if(!owned)
+			attron(ATTR_NOT_OWNED);
 
 		len -= snprintf(buf, sizeof buf,
 				"% 7d %c %-8s %-8s",
 				proc->pid, proc->state,
 				proc->unam, proc->gnam);
 		addstr(buf);
+
+		if(proc->state == 'R'){
+			int y, x;
+			getyx(stdscr, y, x);
+			mvchgat(y, x - 19, 1, 0, COLOR_GREEN + 1, NULL);
+			move(y, x);
+		}
 
 		i = indent;
 		while(i -->= 0){
@@ -116,15 +132,6 @@ void showproc(struct proc *proc, int *py, int indent)
 		}
 
 		i = getcurx(stdscr) + proc->basename_offset;
-
-#define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
-#define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
-#define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
-
-		if(proc == search_proc)
-			attron(ATTR_SEARCH);
-		else if(!owned)
-			attron(ATTR_NOT_OWNED);
 
 		addnstr(proc->cmd, COLS - indent - len - 1);
 		clrtoeol();
