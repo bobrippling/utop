@@ -237,6 +237,16 @@ struct proc *curproc(struct proc **procs)
 	return proc_from_idx(proc_get(procs, 1), &i);
 }
 
+void waitch(int y, int x)
+{
+	attron( COLOR_PAIR(1 + COLOR_RED));
+	STATUS(y, x, "any key to continue");
+	attroff(COLOR_PAIR(1 + COLOR_RED));
+	getch_delay(0);
+	getch();
+	getch_delay(1);
+}
+
 void gui_run(struct proc **procs)
 {
 	struct procstat pst;
@@ -304,6 +314,29 @@ void gui_run(struct proc **procs)
 					position(pos_top + LINES / 2, 0);
 					break;
 
+				case 'i':
+				{
+					struct proc *p = curproc(procs);
+					if(p){
+						clear();
+						mvprintw(0, 0,
+								"pid: %d, ppid: %d\n"
+								"uid: %d (%s), gid: %d (%s)\n"
+								"cmd: %-*s\n"
+								"state: %c\n"
+								"tty: %d, pgrp: %d\n"
+								,
+								p->pid, p->ppid,
+								p->uid, p->unam, p->gid, p->gnam,
+								COLS - 6, p->cmd,
+								p->state,
+								p->tty, p->pgrp);
+
+						waitch(6, 0);
+					}
+					break;
+				}
+
 				case 'd':
 				{
 					struct proc *p = curproc(procs);
@@ -348,14 +381,8 @@ void gui_run(struct proc **procs)
 							}
 						}
 
-						if(wait){
-							getch_delay(0);
-							attron( COLOR_PAIR(1 + COLOR_RED));
-							STATUS(1, 0, "any key to continue");
-							attroff(COLOR_PAIR(1 + COLOR_RED));
-							getch();
-							getch_delay(1);
-						}
+						if(wait)
+							waitch(1, 0);
 					}
 					break;
 				}
