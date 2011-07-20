@@ -12,7 +12,7 @@ void *umalloc(size_t l)
 	void *p = malloc(l);
 	if(!p){
 		perror("malloc()");
-		exit(1);
+		abort();
 	}
 	memset(p, 0, l);
 	return p;
@@ -23,7 +23,7 @@ void *urealloc(void *p, size_t l)
 	void *r = realloc(p, l);
 	if(!r){
 		perror("realloc()");
-		exit(1);
+		abort();
 	}
 	return r;
 }
@@ -70,7 +70,7 @@ char *fline(const char *path, char **pbuf, int *plen)
 
 	if(ferror(f)){
 		perror("read()");
-		exit(1);
+		abort();
 	}
 	fclose(f);
 

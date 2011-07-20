@@ -8,9 +8,13 @@
 
 #define MS_TO_US(n) ((n) * 1000)
 
+int global_uid;
+
 int main(void)
 {
 	static struct proc **proclist;
+
+	global_uid = getuid();
 
 	gui_init();
 

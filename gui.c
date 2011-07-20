@@ -25,7 +25,6 @@ static int  search = 0;
 static int  search_idx = 0;
 static char search_str[32] = { 0 };
 static struct proc *search_proc = NULL;
-static int uid;
 
 void getch_delay(int on)
 {
@@ -106,7 +105,8 @@ void showproc(struct proc *proc, int *py, int indent)
 		return;
 
 	if(y > 0){
-		const int owned = proc->uid == uid;
+		extern int global_uid;
+		const int owned = proc->uid == global_uid;
 		char buf[256];
 		int len = LINES;
 
@@ -183,7 +183,8 @@ void showprocs(struct proc **procs, struct procstat *pst)
 		}
 
 	}else{
-		STATUS(0, 0, "%d processes, %d running", pst->count, pst->running);
+		STATUS(0, 0, "%d processes, %d running, %d owned",
+			pst->count, pst->running, pst->owned);
 	}
 
 	showproc(proc_get(procs, 1), &y, 0);
@@ -390,7 +391,6 @@ void gui_run(struct proc **procs)
 	long last_update = 0;
 	int fin = 0;
 
-	uid = getuid();
 	proc_update(procs, &pst);
 
 	do{

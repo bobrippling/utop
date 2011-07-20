@@ -237,10 +237,10 @@ void proc_update_single(struct proc *proc, struct proc **procs)
 void proc_update(struct proc **procs, struct procstat *pst)
 {
 	int i;
-	int count, running;
+	int count, running, owned;
 
 	count = 1; /* init */
-	running = 0;
+	running = owned = 0;
 
 	for(i = 0; i < NPROCS; i++){
 		struct proc **changeme;
@@ -270,12 +270,16 @@ void proc_update(struct proc **procs, struct procstat *pst)
 				p = next;
 			}else{
 				if(p){
+					extern int global_uid;
+
 					proc_update_single(p, procs);
 					if(p->ppid != 0 && p->ppid != 2)
 						count++; /* else it's kthreadd or init */
 
 					if(p->state == 'R')
 						running++;
+					if(p->uid == global_uid)
+						owned++;
 				}
 
 				changeme = &p->hash_next;
@@ -286,6 +290,7 @@ void proc_update(struct proc **procs, struct procstat *pst)
 
 	pst->count   = count;
 	pst->running = running;
+	pst->owned   = owned;
 
 	proc_listall(procs, pst);
 }

@@ -25,7 +25,7 @@ struct proc
 
 struct procstat
 {
-	int count, running;
+	int count, running, owned;
 };
 
 struct proc **proc_init();
