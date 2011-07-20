@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include "proc.h"
 #include "gui.h"
@@ -36,29 +37,37 @@ void getch_delay(int on)
 
 void gui_init()
 {
-	initscr();
-	noecho();
-	cbreak();
-	raw();
+	static int init = 0;
 
-	nonl();
-	intrflush(stdscr, FALSE);
-	keypad(stdscr, TRUE);
+	if(init){
+		refresh();
+	}else{
+		init = 1;
 
-	getch_delay(1);
+		initscr();
+		noecho();
+		cbreak();
+		raw();
 
-	if(has_colors()){
-		start_color();
-		use_default_colors();
+		nonl();
+		intrflush(stdscr, FALSE);
+		keypad(stdscr, TRUE);
 
-		init_pair(1 + COLOR_BLACK  , COLOR_BLACK  , -1);
-		init_pair(1 + COLOR_GREEN  , COLOR_GREEN  , -1);
-		init_pair(1 + COLOR_WHITE  , COLOR_WHITE  , -1);
-		init_pair(1 + COLOR_RED    , COLOR_RED    , -1);
-		init_pair(1 + COLOR_CYAN   , COLOR_CYAN   , -1);
-		init_pair(1 + COLOR_MAGENTA, COLOR_MAGENTA, -1);
-		init_pair(1 + COLOR_BLUE   , COLOR_BLUE   , -1);
-		init_pair(1 + COLOR_YELLOW , COLOR_YELLOW , -1);
+		getch_delay(1);
+
+		if(has_colors()){
+			start_color();
+			use_default_colors();
+
+			init_pair(1 + COLOR_BLACK  , COLOR_BLACK  , -1);
+			init_pair(1 + COLOR_GREEN  , COLOR_GREEN  , -1);
+			init_pair(1 + COLOR_WHITE  , COLOR_WHITE  , -1);
+			init_pair(1 + COLOR_RED    , COLOR_RED    , -1);
+			init_pair(1 + COLOR_CYAN   , COLOR_CYAN   , -1);
+			init_pair(1 + COLOR_MAGENTA, COLOR_MAGENTA, -1);
+			init_pair(1 + COLOR_BLUE   , COLOR_BLUE   , -1);
+			init_pair(1 + COLOR_YELLOW , COLOR_YELLOW , -1);
+		}
 	}
 }
 
@@ -237,14 +246,142 @@ struct proc *curproc(struct proc **procs)
 	return proc_from_idx(proc_get(procs, 1), &i);
 }
 
+int waitgetch()
+{
+	int ret;
+	getch_delay(0);
+	ret = getch();
+	getch_delay(1);
+	return ret;
+}
+
 void waitch(int y, int x)
 {
 	attron( COLOR_PAIR(1 + COLOR_RED));
 	STATUS(y, x, "any key to continue");
 	attroff(COLOR_PAIR(1 + COLOR_RED));
-	getch_delay(0);
-	getch();
-	getch_delay(1);
+	waitgetch();
+}
+
+int confirm(const char *fmt, ...)
+{
+	va_list l;
+	int ch;
+
+	va_start(l, fmt);
+	move(0, 0);
+	vwprintw(stdscr, fmt, l);
+	va_end(l);
+
+	ch = waitgetch();
+	if(ch == 'y' || ch == 'Y')
+		return 1;
+	return 0;
+}
+
+void delete(struct proc *p)
+{
+	char sig[8];
+	int i, wait = 0;
+
+	STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->basename);
+	echo();
+	getnstr(sig, sizeof sig);
+	noecho();
+
+	if(!*sig)
+		return;
+
+	for(i = 0; i < (signed) strlen(sig); i++)
+		sig[i] = toupper(sig[i]);
+
+	if('0' <= *sig && *sig <= '9'){
+		if(sscanf(sig, "%d", &i) != 1){
+			STATUS(0, 0, "not a number");
+			wait = 1;
+			i = -1;
+		}
+	}else{
+		char *cmp = sig;
+
+		if(!strncmp(sig, "SIG", 3))
+			cmp += 3;
+
+		i = str_to_sig(cmp);
+		if(i == -1){
+			STATUS(0, 0, "not a signal");
+			wait = 1;
+		}
+	}
+
+	if(!wait && i != -1){
+		if(kill(p->pid, i)){
+			STATUS(0, 0, "kill: %s", strerror(errno));
+			wait = 1;
+		}
+	}
+
+	if(wait)
+		waitch(1, 0);
+}
+
+void external(const char *cmd, struct proc *p)
+{
+	char buf[16];
+
+	gui_term();
+
+	snprintf(buf, sizeof buf, "%s -p %d", cmd, p->pid);
+	system(buf);
+	fputs("return to continue...", stdout);
+	fflush(stdout);
+	getchar();
+
+	gui_init();
+}
+
+void strace(struct proc *p)
+{
+	external("strace", p);
+}
+
+void lsof(struct proc *p)
+{
+	external("lsof", p);
+}
+
+void info(struct proc *p)
+{
+	int y, x;
+
+	clear();
+	mvprintw(0, 0,
+			"pid: %d, ppid: %d\n"
+			"uid: %d (%s), gid: %d (%s)\n"
+			"cmd: %-*s\n"
+			"state: %c\n"
+			"tty: %d, pgrp: %d\n"
+			,
+			p->pid, p->ppid,
+			p->uid, p->unam, p->gid, p->gnam,
+			COLS - 6, p->cmd,
+			p->state,
+			p->tty, p->pgrp);
+
+	getyx(stdscr, y, x);
+	(void)x;
+
+	waitch(y + 1, 0);
+}
+
+void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc **procs)
+{
+	struct proc *p = curproc(procs);
+	if(p){
+		if(ask && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->basename))
+			return;
+		f(p);
+	}
 }
 
 void gui_run(struct proc **procs)
@@ -303,6 +440,12 @@ void gui_run(struct proc **procs)
 				case CTRL_AND('d'):
 					position(pos_y + LINES / 2, 0);
 					break;
+				case CTRL_AND('b'):
+					position(pos_y - LINES, 0);
+					break;
+				case CTRL_AND('f'):
+					position(pos_y + LINES, 0);
+					break;
 
 				case 'L':
 					position(pos_top + LINES - 2, 0);
@@ -315,77 +458,17 @@ void gui_run(struct proc **procs)
 					break;
 
 				case 'i':
-				{
-					struct proc *p = curproc(procs);
-					if(p){
-						clear();
-						mvprintw(0, 0,
-								"pid: %d, ppid: %d\n"
-								"uid: %d (%s), gid: %d (%s)\n"
-								"cmd: %-*s\n"
-								"state: %c\n"
-								"tty: %d, pgrp: %d\n"
-								,
-								p->pid, p->ppid,
-								p->uid, p->unam, p->gid, p->gnam,
-								COLS - 6, p->cmd,
-								p->state,
-								p->tty, p->pgrp);
-
-						waitch(6, 0);
-					}
+					on_curproc("info", info, 0, procs);
 					break;
-				}
-
 				case 'd':
-				{
-					struct proc *p = curproc(procs);
-					if(p){
-						char sig[8];
-						int i, wait = 0;
-
-						STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->basename);
-						echo();
-						getnstr(sig, sizeof sig);
-						noecho();
-
-						if(!*sig)
-							break;
-
-						for(i = 0; i < (signed) strlen(sig); i++)
-							sig[i] = toupper(sig[i]);
-
-						if('0' <= *sig && *sig <= '9'){
-							if(sscanf(sig, "%d", &i) != 1){
-								STATUS(0, 0, "not a number");
-								wait = 1;
-								i = -1;
-							}
-						}else{
-							char *cmp = sig;
-
-							if(!strncmp(sig, "SIG", 3))
-								cmp += 3;
-
-							i = str_to_sig(cmp);
-							if(i == -1){
-								STATUS(0, 0, "not a signal");
-								wait = 1;
-							}
-						}
-
-						if(!wait && i != -1){
-							if(kill(p->pid, i)){
-								STATUS(0, 0, "kill: %s", strerror(errno));
-								wait = 1;
-							}
-						}
-
-						if(wait)
-							waitch(1, 0);
-					}
+					on_curproc("delete", delete, 0, procs);
 					break;
-				}
+				case 'l':
+					on_curproc("lsof", lsof, 1, procs);
+					break;
+				case 's':
+					on_curproc("strace", strace, 1, procs);
+					break;
 
 				case '/':
 					*search_str = '\0';
