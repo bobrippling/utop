@@ -63,6 +63,7 @@ struct proc *proc_new(pid_t pid)
 			this->basename = ustrdup(this->basename);
 		}
 
+		snprintf(cmdln, sizeof cmdln, "/proc/%d/task/%d/", pid, pid);
 		if(!stat(cmdln, &st)){
 			struct passwd *passwd;
 			struct group  *group;
