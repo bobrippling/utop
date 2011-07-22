@@ -69,8 +69,12 @@ char *fline(const char *path, char **pbuf, int *plen)
 	}
 
 	if(ferror(f)){
-		perror("read()");
-		abort();
+		/* process exited while we were reading, for e.g. */
+		/*perror("read()");*/
+		/*abort();*/
+		free(ret);
+		ret = NULL;
+		i = 0;
 	}
 	fclose(f);
 
