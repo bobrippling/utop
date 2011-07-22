@@ -273,6 +273,7 @@ int confirm(const char *fmt, ...)
 	move(0, 0);
 	vwprintw(stdscr, fmt, l);
 	va_end(l);
+	clrtoeol();
 
 	ch = waitgetch();
 	if(ch == 'y' || ch == 'Y')
