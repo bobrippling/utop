@@ -448,6 +448,21 @@ void gui_run(struct proc **procs)
 					position(pos_y + LINES, 0);
 					break;
 
+				case CTRL_AND('e'):
+					if(pos_top < pst.count - 1){
+						pos_top++;
+						if(pos_y < pos_top)
+							pos_y = pos_top;
+					}
+					break;
+				case CTRL_AND('y'):
+					if(pos_top > 0){
+						pos_top--;
+						if(pos_y > pos_top + LINES - 2)
+							pos_y = pos_top + LINES - 2;
+					}
+					break;
+
 				case 'L':
 					position(pos_top + LINES - 2, 0);
 					break;
