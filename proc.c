@@ -316,7 +316,7 @@ struct proc *proc_find(const char *str, struct proc **ps)
 	return NULL;
 }
 
-int proc_offset(struct proc *p, struct proc *parent, int *py)
+int proc_to_idx(struct proc *p, struct proc *parent, int *py)
 {
 	struct proc *iter;
 	int ret = 0;
@@ -325,8 +325,9 @@ int proc_offset(struct proc *p, struct proc *parent, int *py)
 	if(p == parent)
 		return 1;
 
-	for(y = *py, iter = parent->child_first; iter; iter = iter->child_next, y++)
-		if(p == iter || proc_offset(p, iter, &y)){
+	y = *py;
+	for(iter = parent->child_first; iter; iter = iter->child_next)
+		if(p == iter || (++y, proc_to_idx(p, iter, &y))){
 			ret = 1;
 			break;
 		}

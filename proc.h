@@ -36,7 +36,7 @@ struct proc  *proc_to_list(struct proc **);
 struct proc  *proc_to_tree(struct proc **);
 struct proc  *proc_find(const char *, struct proc **);
 const char   *proc_str(struct proc *p);
-int           proc_offset(struct proc *p, struct proc *parent, int *y);
+int           proc_to_idx(struct proc *p, struct proc *parent, int *y);
 struct proc  *proc_from_idx(struct proc *parent, int *idx);
 
 void proc_dump(struct proc **ps, FILE *f);

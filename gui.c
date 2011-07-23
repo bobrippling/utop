@@ -75,9 +75,13 @@ void gui_term()
 	endwin();
 }
 
-int search_proc_offset(int *found, struct proc **procs)
+int search_proc_to_idx(int *y, struct proc **procs)
 {
-	return proc_offset(search_proc, proc_get(procs, 1), found);
+	struct proc *init = proc_get(procs, 1);
+	if(search_proc == init)
+		return 0;
+	*y = 1;
+	return proc_to_idx(search_proc, init, y);
 }
 
 void position(int newy, int newx)
@@ -174,8 +178,8 @@ void showprocs(struct proc **procs, struct procstat *pst)
 		mvprintw(0, 0, "/%s", search_str);
 
 		if(search_proc){
-			int ty = 1;
-			if(search_proc_offset(&ty, procs)){
+			int ty;
+			if(search_proc_to_idx(&ty, procs)){
 				pos_top = ty - LINES / 2;
 				if(pos_top < 0)
 					pos_top = 0;
@@ -204,13 +208,16 @@ void gui_search(int ch, struct proc **procs)
 	switch(ch){
 		case '\r':
 		{
-			int y = 1;
-			if(search_proc_offset(&y, procs))
+			int y;
+			if(search_proc_to_idx(&y, procs))
 				position(y, 0);
-		} /* fall */
+
+			/* fall */
+
 		case CTRL_AND('['):
 			search = 0;
 			break;
+		}
 
 		case CTRL_AND('?'):
 		case CTRL_AND('H'):
