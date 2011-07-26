@@ -306,11 +306,16 @@ void proc_dump(struct proc **ps, FILE *f)
 
 struct proc *proc_find(const char *str, struct proc **ps)
 {
+	return proc_find_n(str, ps, 0);
+}
+
+struct proc *proc_find_n(const char *str, struct proc **ps, int n)
+{
 	struct proc *p;
 	int i;
 
 	ITER_PROCS(i, p, ps)
-		if(strstr(p->cmd, str))
+		if(strstr(p->cmd, str) && n-- <= 0)
 			return p;
 
 	return NULL;

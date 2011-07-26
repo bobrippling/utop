@@ -34,7 +34,8 @@ void          proc_update(struct proc **, struct procstat *);
 
 struct proc  *proc_to_list(struct proc **);
 struct proc  *proc_to_tree(struct proc **);
-struct proc  *proc_find(const char *, struct proc **);
+struct proc  *proc_find(  const char *, struct proc **);
+struct proc  *proc_find_n(const char *, struct proc **, int);
 const char   *proc_str(struct proc *p);
 int           proc_to_idx(struct proc *p, struct proc *parent, int *y);
 struct proc  *proc_from_idx(struct proc *parent, int *idx);

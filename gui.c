@@ -22,7 +22,7 @@ static int pos_top = 0, pos_y = 0;
 
 
 static int  search = 0;
-static int  search_idx = 0;
+static int  search_idx = 0, search_offset = 0;
 static char search_str[32] = { 0 };
 static struct proc *search_proc = NULL;
 
@@ -219,7 +219,7 @@ void gui_search(int ch, struct proc **procs)
 			/* fall */
 
 		case CTRL_AND('['):
-			search = 0;
+			search = search_offset = 0;
 			break;
 		}
 
@@ -247,7 +247,7 @@ void gui_search(int ch, struct proc **procs)
 	}
 
 	if(search && *search_str && search_idx)
-		search_proc = proc_find(search_str, procs);
+		search_proc = proc_find_n(search_str, procs, search_offset);
 	else
 		search_proc = NULL;
 }
@@ -481,7 +481,7 @@ void gui_run(struct proc **procs)
 					position(pos_top, 0);
 					break;
 				case 'M':
-					position(pos_top + LINES / 2, 0);
+					position(pos_top + (pst.count > LINES ? LINES : pst.count) / 2, 0);
 					break;
 
 				case 'i':
