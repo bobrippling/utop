@@ -366,20 +366,22 @@ void lsof(struct proc *p)
 void info(struct proc *p)
 {
 	int y, x;
+	int i;
 
 	clear();
 	mvprintw(0, 0,
 			"pid: %d, ppid: %d\n"
 			"uid: %d (%s), gid: %d (%s)\n"
-			"cmd: %-*s\n"
 			"state: %c\n"
 			"tty: %d, pgrp: %d\n"
 			,
 			p->pid, p->ppid,
 			p->uid, p->unam, p->gid, p->gnam,
-			COLS - 6, p->cmd,
 			p->state,
 			p->tty, p->pgrp);
+
+	for(i = 0; p->argv[i]; i++)
+		printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
 
 	getyx(stdscr, y, x);
 	(void)x;

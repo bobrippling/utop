@@ -9,7 +9,8 @@ struct proc
 	char *unam, *gnam;
 
 	char *cmd;
-	char *argv0, *basename;
+	char *basename;
+	char **argv;
 	int basename_offset;
 
 	int state, tty, pgrp;

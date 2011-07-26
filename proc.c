@@ -21,7 +21,10 @@ void proc_update_single(struct proc *proc, struct proc **procs);
 
 void proc_free(struct proc *p)
 {
-	free(p->argv0);
+	char **iter;
+	for(iter = p->argv; *iter; iter++)
+		free(*iter);
+	free(p->argv);
 	free(p->proc_path);
 	free(p->cmd);
 	free(p->basename);
@@ -41,24 +44,41 @@ struct proc *proc_new(pid_t pid)
 
 	if(fline(cmdln, &buffer, &len)){
 		struct stat st;
+		int argc;
 		int i;
 
 		this = umalloc(sizeof *this);
 
-		this->argv0     = ustrdup(buffer);
+		for(i = 0, argc = 1; i < len; i++)
+			if(!buffer[i])
+				argc++;
+
+		this->argv = umalloc((argc + 1) * sizeof *this->argv);
+		for(p = buffer, i = argc = 0; i < len; i++)
+			if(!buffer[i]){
+				this->argv[argc++] = ustrdup(p);
+				p = buffer + i + 1;
+			}
+		if(!argc){
+			this->argv[argc] = umalloc(8);
+			snprintf(this->argv[argc++], 8, "%d", pid);
+		}
+
+		this->argv[argc] = NULL;
+
 		this->proc_path = ustrdup(cmdln);
 		*strrchr(this->proc_path, '/') = '\0';
 
-		if((p = strchr(this->argv0, ':'))){
+		if((p = strchr(this->argv[0], ':'))){
 			*p = '\0';
-			this->basename = ustrdup(this->argv0);
+			this->basename = ustrdup(this->argv[0]);
 			*p = ':';
 			this->basename_offset = 0;
 		}else{
-			this->basename = strrchr(this->argv0, '/');
+			this->basename = strrchr(this->argv[0], '/');
 			if(!this->basename++)
-				this->basename = this->argv0;
-			this->basename_offset = this->basename - this->argv0;
+				this->basename = this->argv[0];
+			this->basename_offset = this->basename - this->argv[0];
 
 			this->basename = ustrdup(this->basename);
 		}
