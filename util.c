@@ -93,15 +93,21 @@ int str_to_sig(const char *s)
 		const char *nam;
 		int sig;
 	} sigs[] = {
-		SIG(HUP),     SIG(INT),   SIG(QUIT),   SIG(ILL),   SIG(TRAP),
-		SIG(ABRT),    SIG(BUS),   SIG(FPE),    SIG(KILL),  SIG(USR1),
-		SIG(SEGV),    SIG(USR2),  SIG(PIPE),   SIG(ALRM),  SIG(TERM),
-		SIG(STKFLT),  SIG(CHLD),  SIG(CONT),   SIG(STOP),  SIG(TSTP),
-		SIG(TTIN),    SIG(TTOU),  SIG(URG),    SIG(XCPU),  SIG(XFSZ),
-		SIG(VTALRM),  SIG(PROF),  SIG(WINCH),  SIG(POLL),  SIG(PWR),
-		SIG(SYS)
+		SIG(HUP),   SIG(INT),   SIG(QUIT),  SIG(ILL),
+		SIG(ABRT),  SIG(FPE),   SIG(KILL),  SIG(USR1),
+		SIG(SEGV),  SIG(USR2),  SIG(PIPE),  SIG(ALRM),
+		SIG(TERM),  SIG(CHLD),  SIG(CONT),  SIG(STOP),
+		SIG(TSTP),  SIG(TTIN),  SIG(TTOU),
+#ifndef __FreeBSD__
+		SIG(PWR),   SIG(SYS),   SIG(POLL),  SIG(WINCH),
+		SIG(PROF),  SIG(TRAP),  SIG(BUS),   SIG(STKFLT),
+		SIG(URG),   SIG(XCPU),  SIG(XFSZ),  SIG(VTALRM),
+#endif
+
 	};
 	unsigned int i;
+
+
 
 	for(i = 0; i < sizeof(sigs)/sizeof(sigs[0]); i++)
 		if(!strcmp(sigs[i].nam, s))

@@ -1,11 +1,12 @@
 CFLAGS  = -g -Wall -Wextra -pedantic -std=c99 -D_POSIX_SOURCE
 LDFLAGS = -g -lncurses
 PREFIX  = /usr
+OBJ     = main.o proc.o gui.o util.o
 
 .PHONY: clean install uninstall
 
-utop: main.o proc.o gui.o util.o
-	${CC} ${LDFLAGS} -o $@ $^
+utop: ${OBJ}
+	${CC} ${LDFLAGS} -o $@ ${OBJ}
 
 clean:
 	@rm -f *.o utop
