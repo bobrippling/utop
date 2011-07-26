@@ -175,7 +175,11 @@ void showprocs(struct proc **procs, struct procstat *pst)
 	int y = -pos_top + 1;
 
 	if(search){
+		if(!search_proc)
+			attron(COLOR_PAIR(1 + COLOR_RED));
 		mvprintw(0, 0, "/%s", search_str);
+		if(!search_proc)
+			attroff(COLOR_PAIR(1 + COLOR_RED));
 
 		if(search_proc){
 			int ty;
