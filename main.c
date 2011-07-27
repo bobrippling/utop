@@ -10,9 +10,14 @@
 
 int global_uid;
 
-int main(void)
+int main(int argc, char **argv)
 {
 	static struct proc **proclist;
+
+	if(argc != 1){
+		fprintf(stderr, "Usage: %s\n", *argv);
+		return 1;
+	}
 
 	global_uid = getuid();
 
