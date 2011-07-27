@@ -37,7 +37,7 @@ struct proc *proc_new(pid_t pid)
 	struct proc *this = NULL;
 	char cmdln[32];
 	int len;
-	char *buffer, *p;
+	char *buffer, *p, *argv0end = NULL;
 
 	snprintf(cmdln, sizeof cmdln, "/proc/%d/cmdline", pid);
 
@@ -48,39 +48,8 @@ struct proc *proc_new(pid_t pid)
 
 		this = umalloc(sizeof *this);
 
-		for(i = 0, argc = 1; i < len; i++)
-			if(!buffer[i])
-				argc++;
-
-		this->argv = umalloc((argc + 1) * sizeof *this->argv);
-		for(p = buffer, i = argc = 0; i < len; i++)
-			if(!buffer[i]){
-				this->argv[argc++] = ustrdup(p);
-				p = buffer + i + 1;
-			}
-		if(!argc){
-			this->argv[argc] = umalloc(8);
-			snprintf(this->argv[argc++], 8, "%d", pid);
-		}
-
-		this->argv[argc] = NULL;
-
 		this->proc_path = ustrdup(cmdln);
 		*strrchr(this->proc_path, '/') = '\0';
-
-		if((p = strchr(this->argv[0], ':'))){
-			*p = '\0';
-			this->basename = ustrdup(this->argv[0]);
-			*p = ':';
-			this->basename_offset = 0;
-		}else{
-			this->basename = strrchr(this->argv[0], '/');
-			if(!this->basename++)
-				this->basename = this->argv[0];
-			this->basename_offset = this->basename - this->argv[0];
-
-			this->basename = ustrdup(this->basename);
-		}
 
 		snprintf(cmdln, sizeof cmdln, "/proc/%d/task/%d/", pid, pid);
 		if(!stat(cmdln, &st)){
@@ -102,14 +71,48 @@ struct proc *proc_new(pid_t pid)
 			GETPW(this->gid, this->gnam,  group, getgrgid, gr_name, st.st_gid)
 		}
 
-		for(i = 0; i < len; i++)
+		for(i = 0, argc = 1; i < len; i++)
+			if(!buffer[i])
+				argc++;
+
+		this->argv = umalloc((argc + 1) * sizeof *this->argv);
+		for(p = buffer, i = argc = 0; i < len; i++)
 			switch(buffer[i]){
 				case '\0':
+					if(!argv0end)
+						argv0end = buffer + i;
+
+					this->argv[argc++] = ustrdup(p);
+					p = buffer + i + 1;
 				case '\n':
 					buffer[i] = ' ';
-					break;
 			}
 		buffer[len] = '\0';
+
+		if(argv0end){
+			*argv0end = '\0';
+			if((p = strchr(buffer, ':'))){
+				*p = '\0';
+				this->basename = ustrdup(buffer);
+				*p = ':';
+				this->basename_offset = 0;
+			}else{
+				this->basename = strrchr(buffer, '/');
+				if(!this->basename++)
+					this->basename = buffer;
+				this->basename_offset = this->basename - buffer;
+
+				this->basename = ustrdup(this->basename);
+			}
+			*argv0end = ' ';
+		}else{
+			this->basename = ustrdup(buffer);
+		}
+
+		if(!argc)
+			this->argv[argc++] = ustrdup(this->basename);
+		this->argv[argc] = NULL;
+
 
 		this->cmd       = buffer;
 
