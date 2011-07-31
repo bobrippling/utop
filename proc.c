@@ -22,8 +22,9 @@ void proc_handle_rename(struct proc *p);
 void proc_free(struct proc *p)
 {
 	char **iter;
-	for(iter = p->argv; *iter; iter++)
-		free(*iter);
+	if(p->argv)
+		for(iter = p->argv; *iter; iter++)
+			free(*iter);
 	free(p->argv);
 	free(p->proc_path);
 	free(p->cmd);
@@ -283,10 +284,10 @@ void proc_update(struct proc **procs, struct procstat *pst)
 	running = owned = 0;
 
 	for(i = 0; i < NPROCS; i++){
-		struct proc **changeme;
+		struct proc **change_me;
 		struct proc *p;
 
-		changeme = &procs[i];
+		change_me = &procs[i];
 		for(p = procs[i]; p; ){
 			if(access(p->proc_path, F_OK)){
 				struct proc *next = p->hash_next;
@@ -305,7 +306,7 @@ void proc_update(struct proc **procs, struct procstat *pst)
 						}
 				}
 
-				*changeme = next;
+				*change_me = next;
 				proc_free(p);
 				p = next;
 			}else{
@@ -322,7 +323,7 @@ void proc_update(struct proc **procs, struct procstat *pst)
 						owned++;
 				}
 
-				changeme = &p->hash_next;
+				change_me = &p->hash_next;
 				p = p->hash_next;
 			}
 		}
