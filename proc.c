@@ -17,6 +17,7 @@
 		for(p = ps[i]; p; p = p->hash_next)
 
 void proc_update_single(struct proc *proc, struct proc **procs);
+void proc_handle_rename(struct proc *p);
 
 void proc_free(struct proc *p)
 {
@@ -36,89 +37,39 @@ struct proc *proc_new(pid_t pid)
 {
 	struct proc *this = NULL;
 	char cmdln[32];
-	int len;
-	char *buffer, *p, *argv0end = NULL;
+	struct stat st;
 
 	snprintf(cmdln, sizeof cmdln, "/proc/%d/cmdline", pid);
 
-	if(fline(cmdln, &buffer, &len)){
-		struct stat st;
-		int argc;
-		int i;
+	this = umalloc(sizeof *this);
 
-		this = umalloc(sizeof *this);
+	this->proc_path = ustrdup(cmdln);
+	*strrchr(this->proc_path, '/') = '\0';
 
-		this->proc_path = ustrdup(cmdln);
-		*strrchr(this->proc_path, '/') = '\0';
-
-		snprintf(cmdln, sizeof cmdln, "/proc/%d/task/%d/", pid, pid);
-		if(!stat(cmdln, &st)){
-			struct passwd *passwd;
-			struct group  *group;
+	snprintf(cmdln, sizeof cmdln, "/proc/%d/task/%d/", pid, pid);
+	if(!stat(cmdln, &st)){
+		struct passwd *passwd;
+		struct group  *group;
 
 #define GETPW(idvar, var, truct, fn, member, id) \
-			truct = fn(id); \
-			idvar = id; \
-			if(truct){ \
-				var = ustrdup(truct->member); \
-			}else{ \
-				char buf[8]; \
-				snprintf(buf, sizeof buf, "%d", id); \
-				var = ustrdup(buf); \
-			} \
+		truct = fn(id); \
+		idvar = id; \
+		if(truct){ \
+			var = ustrdup(truct->member); \
+		}else{ \
+			char buf[8]; \
+			snprintf(buf, sizeof buf, "%d", id); \
+			var = ustrdup(buf); \
+		} \
 
-			GETPW(this->uid, this->unam, passwd, getpwuid, pw_name, st.st_uid)
-			GETPW(this->gid, this->gnam,  group, getgrgid, gr_name, st.st_gid)
-		}
-
-		for(i = 0, argc = 1; i < len; i++)
-			if(!buffer[i])
-				argc++;
-
-		this->argv = umalloc((argc + 1) * sizeof *this->argv);
-		for(p = buffer, i = argc = 0; i < len; i++)
-			switch(buffer[i]){
-				case '\0':
-					if(!argv0end)
-						argv0end = buffer + i;
-
-					this->argv[argc++] = ustrdup(p);
-					p = buffer + i + 1;
-				case '\n':
-					buffer[i] = ' ';
-			}
-		buffer[len] = '\0';
-
-		if(argv0end){
-			*argv0end = '\0';
-			if((p = strchr(buffer, ':'))){
-				*p = '\0';
-				this->basename = ustrdup(buffer);
-				*p = ':';
-				this->basename_offset = 0;
-			}else{
-				this->basename = strrchr(buffer, '/');
-				if(!this->basename++)
-					this->basename = buffer;
-				this->basename_offset = this->basename - buffer;
-
-				this->basename = ustrdup(this->basename);
-			}
-			*argv0end = ' ';
-		}else{
-			this->basename = ustrdup(buffer);
-		}
-
-		if(!argc)
-			this->argv[argc++] = ustrdup(this->basename);
-		this->argv[argc] = NULL;
-
-
-		this->cmd       = buffer;
-
-		this->pid       = pid;
-		this->ppid      = -1;
+		GETPW(this->uid, this->unam, passwd, getpwuid, pw_name, st.st_uid)
+		GETPW(this->gid, this->gnam,  group, getgrgid, gr_name, st.st_gid)
 	}
+
+	this->pid       = pid;
+	this->ppid      = -1;
+
+	proc_handle_rename(this);
 
 	return this;
 }
@@ -204,6 +155,73 @@ const char *proc_str(struct proc *p)
 			p->pid, p->ppid, p->state, p->cmd);
 
 	return buf;
+}
+
+void proc_handle_rename(struct proc *this)
+{
+	char cmdln[32];
+	char *buffer, *p, *argv0end;
+	int len, i, argc;
+
+	buffer = argv0end = NULL;
+	len = 0;
+
+	snprintf(cmdln, sizeof cmdln, "/proc/%d/cmdline", this->pid);
+
+	if(fline(cmdln, &buffer, &len)){
+		argc = 0;
+		for(i = 0, argc = 1; i < len; i++)
+			if(!buffer[i])
+				argc++;
+
+		if(this->argv){
+			for(i = 0; this->argv[i]; i++)
+				free(this->argv[i]);
+			free(this->argv);
+		}
+
+		this->argv = umalloc((argc + 1) * sizeof *this->argv);
+		for(p = buffer, i = argc = 0; i < len; i++)
+			switch(buffer[i]){
+				case '\0':
+					if(!argv0end)
+						argv0end = buffer + i;
+
+					this->argv[argc++] = ustrdup(p);
+					p = buffer + i + 1;
+				case '\n':
+					buffer[i] = ' ';
+			}
+		buffer[len] = '\0';
+
+		free(this->basename);
+		if(argv0end){
+			*argv0end = '\0';
+			if((p = strchr(buffer, ':'))){
+				*p = '\0';
+				this->basename = ustrdup(buffer);
+				*p = ':';
+				this->basename_offset = 0;
+			}else{
+				this->basename = strrchr(buffer, '/');
+				if(!this->basename++)
+					this->basename = buffer;
+				this->basename_offset = this->basename - buffer;
+
+				this->basename = ustrdup(this->basename);
+			}
+			*argv0end = ' ';
+		}else{
+			this->basename = ustrdup(buffer);
+		}
+
+		if(!argc)
+			this->argv[argc++] = ustrdup(this->basename);
+		this->argv[argc] = NULL;
+
+		free(this->cmd);
+		this->cmd       = buffer;
+	}
 }
 
 void proc_update_single(struct proc *proc, struct proc **procs)
@@ -315,6 +333,15 @@ void proc_update(struct proc **procs, struct procstat *pst)
 	pst->owned   = owned;
 
 	proc_listall(procs, pst);
+}
+
+void proc_handle_renames(struct proc **ps)
+{
+	struct proc *p;
+	int i;
+
+	ITER_PROCS(i, p, ps)
+		proc_handle_rename(p);
 }
 
 void proc_dump(struct proc **ps, FILE *f)

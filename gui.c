@@ -13,7 +13,12 @@
 #include "util.h"
 
 #define HALF_DELAY_TIME 5
+
+/* 500ms */
 #define WAIT_TIME (HALF_DELAY_TIME * 100)
+/* 30s */
+#define FULL_WAIT_TIME (WAIT_TIME * 60)
+
 #define CTRL_AND(c) ((c) & 037)
 #define INDENT "    "
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
@@ -402,17 +407,22 @@ void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc
 void gui_run(struct proc **procs)
 {
 	struct procstat pst;
-	long last_update = 0;
+	long last_update = 0, last_full_refresh;
 	int fin = 0;
 
 	proc_update(procs, &pst);
 
+	last_full_refresh = mstime();
 	do{
 		const long now = mstime();
 		int ch;
 
 		if(last_update + WAIT_TIME < now){
 			last_update = now;
+			if(last_full_refresh + FULL_WAIT_TIME < now){
+				last_full_refresh = now;
+				proc_handle_renames(procs);
+			}
 			proc_update(procs, &pst);
 		}
 
