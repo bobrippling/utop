@@ -401,8 +401,10 @@ void info(struct proc *p)
 void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc **procs)
 {
 	struct proc *p = curproc(procs);
+	extern int global_force;
+
 	if(p){
-		if(ask && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->basename))
+		if(ask && !global_force && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->basename))
 			return;
 		f(p);
 	}
