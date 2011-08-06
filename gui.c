@@ -179,12 +179,17 @@ void showprocs(struct proc **procs, struct procstat *pst)
 {
 	int y = -pos_top + 1;
 
+	showproc(proc_get(procs, 1), &y, 0);
+
+	clrtobot();
+
 	if(search){
 		if(!search_proc)
 			attron(COLOR_PAIR(1 + COLOR_RED));
-		mvprintw(0, 0, "/%s", search_str);
+		mvprintw(0, 0, "%d /%s", search_offset, search_str);
 		if(!search_proc)
 			attroff(COLOR_PAIR(1 + COLOR_RED));
+		clrtoeol();
 
 		if(search_proc){
 			int ty;
@@ -198,15 +203,8 @@ void showprocs(struct proc **procs, struct procstat *pst)
 	}else{
 		STATUS(0, 0, "%d processes, %d running, %d owned",
 			pst->count, pst->running, pst->owned);
-	}
+		clrtoeol();
 
-	showproc(proc_get(procs, 1), &y, 0);
-
-	clrtobot();
-
-	if(search){
-		move(0, strlen(search_str) + 1);
-	}else{
 		move(1 + pos_y - pos_top, 0);
 		mvchgat(1 + pos_y - pos_top, 0, -1, A_UNDERLINE, /* color pair index */ 0, NULL);
 	}
@@ -227,6 +225,12 @@ void gui_search(int ch, struct proc **procs)
 			search = search_offset = 0;
 			break;
 		}
+
+		case CTRL_AND('n'): search_offset++; break;
+		case CTRL_AND('p'):
+			if(search_offset > 0)
+				search_offset--;
+			break;
 
 		case CTRL_AND('?'):
 		case CTRL_AND('H'):
