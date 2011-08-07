@@ -345,6 +345,7 @@ void delete(struct proc *p)
 
 	if(wait)
 		waitch(1, 0);
+	getch_delay(1);
 }
 
 void external(const char *cmd, struct proc *p)
