@@ -196,25 +196,24 @@ void proc_handle_rename(struct proc *this)
 		buffer[len] = '\0';
 
 		free(this->basename);
-		if(argv0end){
-			*argv0end = '\0';
-			if((p = strchr(buffer, ':'))){
-				*p = '\0';
-				this->basename = ustrdup(buffer);
-				*p = ':';
-				this->basename_offset = 0;
-			}else{
-				this->basename = strrchr(buffer, '/');
-				if(!this->basename++)
-					this->basename = buffer;
-				this->basename_offset = this->basename - buffer;
+		if(!argv0end)
+			argv0end = buffer + len;
 
-				this->basename = ustrdup(this->basename);
-			}
-			*argv0end = ' ';
-		}else{
+		*argv0end = '\0';
+		if((p = strchr(buffer, ':'))){
+			*p = '\0';
 			this->basename = ustrdup(buffer);
+			*p = ':';
+			this->basename_offset = 0;
+		}else{
+			this->basename = strrchr(buffer, '/');
+			if(!this->basename++)
+				this->basename = buffer;
+			this->basename_offset = this->basename - buffer;
+
+			this->basename = ustrdup(this->basename);
 		}
+		*argv0end = ' ';
 
 		if(!argc)
 			this->argv[argc++] = ustrdup(this->basename);
