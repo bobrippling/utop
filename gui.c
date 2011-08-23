@@ -184,10 +184,12 @@ void showprocs(struct proc **procs, struct procstat *pst)
 	clrtobot();
 
 	if(search){
-		if(!search_proc)
+		const int red = !search_proc && *search_str;;
+
+		if(red)
 			attron(COLOR_PAIR(1 + COLOR_RED));
 		mvprintw(0, 0, "%d /%s", search_offset, search_str);
-		if(!search_proc)
+		if(red)
 			attroff(COLOR_PAIR(1 + COLOR_RED));
 		clrtoeol();
 
@@ -255,7 +257,7 @@ void gui_search(int ch, struct proc **procs)
 			break;
 	}
 
-	if(search && *search_str && search_idx)
+	if(search && *search_str)
 		search_proc = proc_find_n(search_str, procs, search_offset);
 	else
 		search_proc = NULL;
@@ -336,12 +338,11 @@ void delete(struct proc *p)
 		}
 	}
 
-	if(!wait && i != -1){
+	if(!wait && i != -1)
 		if(kill(p->pid, i)){
 			STATUS(0, 0, "kill: %s", strerror(errno));
 			wait = 1;
 		}
-	}
 
 	if(wait)
 		waitch(1, 0);
