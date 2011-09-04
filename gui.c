@@ -212,57 +212,6 @@ void showprocs(struct proc **procs, struct procstat *pst)
 	}
 }
 
-void gui_search(int ch, struct proc **procs)
-{
-	switch(ch){
-		case '\r':
-		{
-			int y;
-			if(search_proc_to_idx(&y, procs))
-				position(y, 0);
-
-			/* fall */
-
-		case CTRL_AND('['):
-			search = search_offset = 0;
-			break;
-		}
-
-		case CTRL_AND('n'): search_offset++; break;
-		case CTRL_AND('p'):
-			if(search_offset > 0)
-				search_offset--;
-			break;
-
-		case CTRL_AND('?'):
-		case CTRL_AND('H'):
-		case 263:
-		case 127:
-			if(search_idx > 0)
-				search_str[--search_idx] = '\0';
-			else
-				search = 0;
-			break;
-
-		case CTRL_AND('u'):
-			search_idx = 0;
-			*search_str = '\0';
-			break;
-
-		default:
-			if(isprint(ch) && search_idx < (signed)sizeof search_str - 2){
-				search_str[search_idx++] = ch;
-				search_str[search_idx  ] = '\0';
-			}
-			break;
-	}
-
-	if(search && *search_str)
-		search_proc = proc_find_n(search_str, procs, search_offset);
-	else
-		search_proc = NULL;
-}
-
 struct proc *curproc(struct proc **procs)
 {
 	int i = pos_y;
@@ -400,16 +349,121 @@ void info(struct proc *p)
 	waitch(y + 1, 0);
 }
 
-void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc **procs)
+void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc **procs, struct proc *p)
 {
-	struct proc *p = curproc(procs);
 	extern int global_force;
+
+	if(!p)
+		p = curproc(procs);
 
 	if(p){
 		if(ask && !global_force && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->basename))
 			return;
 		f(p);
 	}
+}
+
+void help()
+{
+#define HELP(c, s) addstr(c ":\t" s "\n")
+#define TITLE(s)   addstr("--- " s " ---\n")
+
+	move(0, 0);
+
+	TITLE("Navigation");
+
+	HELP("q",  "quit");
+
+	HELP("k",  "up");
+	HELP("j",  "down");
+	HELP("g",  "start");
+	HELP("G",  "end");
+
+	HELP("^b", "page up");
+	HELP("^f", "page down");
+	HELP("^u", "page half up");
+	HELP("^d", "page half down");
+	HELP("^y", "scroll up");
+	HELP("^e", "scroll down");
+	HELP("L",  "screen bottom");
+	HELP("H",  "screen top");
+	HELP("M",  "screen centre");
+
+	HELP("i",  "info");
+	HELP("d",  "kill");
+	HELP("l",  "lsof");
+	HELP("s",  "strace");
+	HELP("/",  "search");
+
+	addch('\n');
+	TITLE("Searching");
+
+	HELP("enter", "return and select");
+	HELP("esc",   "finish");
+	HELP("^n",    "next search result");
+	HELP("^p",    "prev search result");
+	HELP("^d",    "kill selected process");
+	HELP("^u",    "clear search");
+	clrtobot();
+	waitgetch();
+#undef TITLE
+#undef HELP
+}
+
+void gui_search(int ch, struct proc **procs)
+{
+	switch(ch){
+		case '\r':
+		{
+			int y;
+			if(search_proc_to_idx(&y, procs))
+				position(y, 0);
+
+			/* fall */
+
+		case CTRL_AND('['):
+			search = search_offset = 0;
+			break;
+		}
+
+		case CTRL_AND('n'): search_offset++; break;
+		case CTRL_AND('p'):
+			if(search_offset > 0)
+				search_offset--;
+			break;
+
+		case CTRL_AND('?'):
+		case CTRL_AND('H'):
+		case 263:
+		case 127:
+			if(search_idx > 0)
+				search_str[--search_idx] = '\0';
+			else
+				search = 0;
+			break;
+
+		case CTRL_AND('d'):
+			if(search_proc)
+				on_curproc("delete", delete, 0, procs, search_proc);
+			break;
+
+		case CTRL_AND('u'):
+			search_idx = 0;
+			*search_str = '\0';
+			break;
+
+		default:
+			if(isprint(ch) && search_idx < (signed)sizeof search_str - 2){
+				search_str[search_idx++] = ch;
+				search_str[search_idx  ] = '\0';
+			}
+			break;
+	}
+
+	if(search && *search_str)
+		search_proc = proc_find_n(search_str, procs, search_offset);
+	else
+		search_proc = NULL;
 }
 
 void gui_run(struct proc **procs)
@@ -505,16 +559,16 @@ void gui_run(struct proc **procs)
 					break;
 
 				case 'i':
-					on_curproc("info", info, 0, procs);
+					on_curproc("info", info, 0, procs, NULL);
 					break;
 				case 'd':
-					on_curproc("delete", delete, 0, procs);
+					on_curproc("delete", delete, 0, procs, NULL);
 					break;
 				case 'l':
-					on_curproc("lsof", lsof, 1, procs);
+					on_curproc("lsof", lsof, 1, procs, NULL);
 					break;
 				case 's':
-					on_curproc("strace", strace, 1, procs);
+					on_curproc("strace", strace, 1, procs, NULL);
 					break;
 
 				case '/':
@@ -523,6 +577,10 @@ void gui_run(struct proc **procs)
 					search = 1;
 					move(0, 0);
 					clrtoeol();
+					break;
+
+				case 'h':
+					help();
 					break;
 			}
 		}
