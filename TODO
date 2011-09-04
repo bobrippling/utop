@@ -5,3 +5,5 @@ Mem%, CPU%
 's' -> strace -p $pid
 
 show threads (/proc/%d/task/*)
+
+bug - bottom most process (at LINES-1, 0) only has its basename displayed
