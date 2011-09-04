@@ -12,11 +12,11 @@
 #include "gui.h"
 #include "util.h"
 
-#define HALF_DELAY_TIME 5
+#define HALF_DELAY_TIME 10
 
-/* 500ms */
+/* 1000ms */
 #define WAIT_TIME (HALF_DELAY_TIME * 100)
-/* 30s */
+/* 60s */
 #define FULL_WAIT_TIME (WAIT_TIME * 60)
 
 #define CTRL_AND(c) ((c) & 037)
@@ -131,9 +131,14 @@ void showproc(struct proc *proc, int *py, int indent)
 			attron(ATTR_NOT_OWNED);
 
 		len -= snprintf(buf, sizeof buf,
-				"% 7d %c %-8s %-8s",
+				"% 7d %c "
+				"%-8s %-8s "
+				"% 4d"
+				,
 				proc->pid, proc->state,
-				proc->unam, proc->gnam);
+				proc->unam, proc->gnam,
+				proc->pc_cpu
+				);
 		addstr(buf);
 
 		if(proc->state == 'R'){
@@ -417,6 +422,8 @@ void gui_run(struct proc **procs)
 	struct procstat pst;
 	long last_update = 0, last_full_refresh;
 	int fin = 0;
+
+	memset(&pst, 0, sizeof pst);
 
 	proc_update(procs, &pst);
 

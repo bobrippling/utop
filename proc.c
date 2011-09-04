@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
+#include <time.h>
 
 #include "proc.h"
 #include "util.h"
@@ -16,8 +17,8 @@
 	for(i = 0; i < NPROCS; i++) \
 		for(p = ps[i]; p; p = p->hash_next)
 
-void proc_update_single(struct proc *proc, struct proc **procs);
-void proc_handle_rename(struct proc *p);
+static void proc_update_single(struct proc *proc, struct proc **procs, struct procstat *pst);
+static void proc_handle_rename(struct proc *p);
 
 void proc_free(struct proc *p)
 {
@@ -34,6 +35,58 @@ void proc_free(struct proc *p)
 	free(p);
 }
 
+static void getprocstat(struct procstat *pst)
+{
+	static time_t last;
+	time_t now;
+
+	if(last + 3 < (now = time(NULL))){
+		FILE *f;
+		char buf[1024];
+		unsigned long usertime, nicetime, systemtime, irq, sirq, idletime, iowait, steal, guest;
+
+		last = now;
+
+		if((f = fopen("/proc/stat", "r"))){
+			for(;;){
+				unsigned long totaltime, totalperiod;
+
+				if(!fgets(buf, sizeof buf - 1, f))
+					break;
+
+				if(sscanf(buf, "cpu %lu %lu %lu %lu %lu %lu %lu %lu %lu",
+							&usertime, &nicetime, &systemtime, &idletime, &iowait,
+							&irq, &sirq, &steal, &guest) == 10){
+
+					totaltime =
+						usertime +
+						nicetime +
+						systemtime +
+						irq +
+						sirq +
+						idletime +
+						iowait +
+						steal +
+						guest;
+
+					totalperiod = totaltime - pst->cputime_total;
+
+					pst->cputime_total  = totaltime;
+					pst->cputime_period = totalperiod;
+
+					break;
+				}
+			}
+			fclose(f);
+		}
+	}
+
+#define NIL(x) if(!x) x = 1
+	NIL(pst->cputime_total);
+	NIL(pst->cputime_period);
+#undef NIL
+}
+
 struct proc *proc_new(pid_t pid)
 {
 	struct proc *this = NULL;
@@ -43,6 +96,7 @@ struct proc *proc_new(pid_t pid)
 	snprintf(cmdln, sizeof cmdln, "/proc/%d/cmdline", pid);
 
 	this = umalloc(sizeof *this);
+	memset(this, 0, sizeof *this);
 
 	this->proc_path = ustrdup(cmdln);
 	*strrchr(this->proc_path, '/') = '\0';
@@ -125,7 +179,6 @@ void proc_listall(struct proc **procs, struct procstat *stat)
 		exit(1);
 	}
 
-	errno = 0;
 	while((errno = 0, ent = readdir(d))){
 		int pid;
 
@@ -158,7 +211,7 @@ const char *proc_str(struct proc *p)
 	return buf;
 }
 
-void proc_handle_rename(struct proc *this)
+static void proc_handle_rename(struct proc *this)
 {
 	char cmdln[32];
 	char *buffer, *p, *argv0end;
@@ -224,7 +277,7 @@ void proc_handle_rename(struct proc *this)
 	}
 }
 
-void proc_update_single(struct proc *proc, struct proc **procs)
+static void proc_update_single(struct proc *proc, struct proc **procs, struct procstat *pst)
 {
 	char *buf;
 	char path[32];
@@ -235,18 +288,44 @@ void proc_update_single(struct proc *proc, struct proc **procs)
 		char *start = strrchr(buf, ')') + 2;
 		char *iter;
 		int i = 0;
+		unsigned long prevtime;
 		pid_t oldppid = proc->ppid;
+
+		prevtime = proc->utime + proc->stime;
 
 		for(iter = strtok(start, " \t"); iter; iter = strtok(NULL, " \t")){
 #define INT(n, fmt, x) case n: sscanf(iter, fmt, x); break
 			switch(i++){
-				INT(0, "%c", (char *)&proc->state);
-				INT(1, "%d", &proc->ppid);
-				INT(4, "%d", &proc->tty);
-				INT(5, "%d", &proc->pgrp);
+				INT(0,  "%c", (char *)&proc->state);
+				INT(1,  "%d", &proc->ppid);
+				INT(4,  "%d", &proc->tty);
+				INT(5,  "%d", &proc->pgrp);
+
+				INT(11, "%lu", &proc->utime);
+				INT(12, "%lu", &proc->stime);
+				INT(13, "%lu", &proc->cutime);
+				INT(14, "%lu", &proc->cstime);
 #undef INT
 			}
 		}
+
+		proc->pc_cpu =
+			(proc->utime + proc->stime - prevtime) /
+			pst->cputime_period * 100.f;
+
+#if 0
+		fprintf(stderr, "proc[%d]->cpu = (%lu + %lu - %lu) / %lu = %d\n",
+				proc->pid,
+				proc->utime, proc->stime, prevtime,
+				pst->cputime_total, proc->pc_cpu);
+#endif
+
+#if 0
+		cpu     = cpuusage(root);
+		mem     = int(head("%s/statm" % root).split(' ')[0]);
+		time    = self.time(stats[11]) # usermode time;
+		proc->pc_cpu = 0;
+#endif
 
 		free(buf);
 
@@ -266,18 +345,14 @@ void proc_update_single(struct proc *proc, struct proc **procs)
 			}
 		}
 	}
-#if 0
-					cpu     = cpuusage(root);
-					mem     = int(head("%s/statm" % root).split(' ')[0]);
-					time    = self.time(stats[11]) # usermode time;
-					proc->pc_cpu = 0;
-#endif
 }
 
 void proc_update(struct proc **procs, struct procstat *pst)
 {
 	int i;
 	int count, running, owned;
+
+	getprocstat(pst);
 
 	count = 1; /* init */
 	running = owned = 0;
@@ -312,7 +387,7 @@ void proc_update(struct proc **procs, struct procstat *pst)
 				if(p){
 					extern int global_uid;
 
-					proc_update_single(p, procs);
+					proc_update_single(p, procs, pst);
 					if(p->ppid != 0 && p->ppid != 2)
 						count++; /* else it's kthreadd or init */
 

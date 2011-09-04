@@ -16,6 +16,7 @@ struct proc
 	int state, tty, pgrp;
 
 	int pc_cpu;
+	unsigned long utime, stime, cutime, cstime;
 
 	struct proc *hash_next; /* important */
 
@@ -27,6 +28,8 @@ struct proc
 struct procstat
 {
 	int count, running, owned;
+
+	unsigned long cputime_total, cputime_period;
 };
 
 struct proc **proc_init();
