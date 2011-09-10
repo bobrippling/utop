@@ -139,7 +139,7 @@ void showproc(struct proc *proc, int *py, int indent)
 		if(proc->state == 'R'){
 			int y, x;
 			getyx(stdscr, y, x);
-			mvchgat(y, x - 19, 1, 0, COLOR_GREEN + 1, NULL);
+			mvchgat(y, 8, 1, 0, COLOR_GREEN + 1, NULL);
 			move(y, x);
 		}
 
