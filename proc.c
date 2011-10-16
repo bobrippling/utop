@@ -37,6 +37,7 @@ void proc_free(struct proc *p)
 
 static void getprocstat(struct procstat *pst)
 {
+#ifdef CPU_PERCENTAGE
 	static time_t last;
 	time_t now;
 
@@ -80,6 +81,7 @@ static void getprocstat(struct procstat *pst)
 			fclose(f);
 		}
 	}
+#endif
 
 #define NIL(x) if(!x) x = 1
 	NIL(pst->cputime_total);
@@ -284,14 +286,16 @@ static void proc_update_single(struct proc *proc, struct proc **procs, struct pr
 
 	snprintf(path, sizeof path, "%s/stat", proc->proc_path);
 
+	(void)pst;
+
 	if(fline(path, &buf, NULL)){
 		char *start = strrchr(buf, ')') + 2;
 		char *iter;
 		int i = 0;
-		unsigned long prevtime;
+		/*unsigned long prevtime;*/
 		pid_t oldppid = proc->ppid;
 
-		prevtime = proc->utime + proc->stime;
+		/*prevtime = proc->utime + proc->stime;*/
 
 		for(iter = strtok(start, " \t"); iter; iter = strtok(NULL, " \t")){
 #define INT(n, fmt, x) case n: sscanf(iter, fmt, x); break
@@ -309,9 +313,11 @@ static void proc_update_single(struct proc *proc, struct proc **procs, struct pr
 			}
 		}
 
+#ifdef CPU_PERCENTAGE
 		proc->pc_cpu =
 			(proc->utime + proc->stime - prevtime) /
 			pst->cputime_period * 100.f;
+#endif
 
 #if 0
 		fprintf(stderr, "proc[%d]->cpu = (%lu + %lu - %lu) / %lu = %d\n",

@@ -27,7 +27,7 @@ static int pos_top = 0, pos_y = 0;
 
 
 static int  search = 0;
-static int  search_idx = 0, search_offset = 0;
+static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
 static struct proc *search_proc = NULL;
 
@@ -89,10 +89,8 @@ int search_proc_to_idx(int *y, struct proc **procs)
 	return proc_to_idx(search_proc, init, y);
 }
 
-void position(int newy, int newx)
+void position(int newy)
 {
-	(void)newx;
-
 	pos_y = newy; /* checked above */
 
 	if(pos_y < 0)
@@ -102,6 +100,18 @@ void position(int newy, int newx)
 		pos_top = pos_y - LINES + 2;
 	if(pos_y < pos_top)
 		pos_top = pos_y;
+}
+
+void goto_proc(struct proc **procs, struct proc *p)
+{
+	int y = 1;
+	proc_to_idx(p, proc_get(procs, 1), &y);
+	position(y);
+}
+
+void goto_me(struct proc **procs)
+{
+	goto_proc(procs, proc_get(procs, getpid()));
 }
 
 void showproc(struct proc *proc, int *py, int indent)
@@ -193,7 +203,7 @@ void showprocs(struct proc **procs, struct procstat *pst)
 
 		if(red)
 			attron(COLOR_PAIR(1 + COLOR_RED));
-		mvprintw(0, 0, "%d /%s", search_offset, search_str);
+		mvprintw(0, 0, "%d %c%s", search_offset, "/?"[search_pid], search_str);
 		if(red)
 			attroff(COLOR_PAIR(1 + COLOR_RED));
 		clrtoeol();
@@ -417,58 +427,71 @@ void help()
 
 void gui_search(int ch, struct proc **procs)
 {
-	switch(ch){
-		case '\r':
-		{
-			int y;
-			if(search_proc_to_idx(&y, procs))
-				position(y, 0);
+	if(search_pid){
+		if('0' <= ch && ch <= '9')
+			goto ins_char;
+		search_offset = search = 0;
+	}else{
+		switch(ch){
+			default:
+ins_char:
+				if(isprint(ch) && search_idx < (signed)sizeof search_str - 2){
+					search_str[search_idx++] = ch;
+					search_str[search_idx  ] = '\0';
+				}
+				break;
 
-			/* fall */
+			case '\r':
+			{
+				int y;
+				if(search_proc_to_idx(&y, procs))
+					position(y);
 
-		case CTRL_AND('['):
-			search = search_offset = 0;
-			break;
+				/* fall */
+
+			case CTRL_AND('['):
+				search = search_offset = 0;
+				break;
+			}
+
+			case CTRL_AND('n'): search_offset++; break;
+			case CTRL_AND('p'):
+				if(search_offset > 0)
+					search_offset--;
+				break;
+
+			case CTRL_AND('?'):
+			case CTRL_AND('H'):
+			case 263:
+			case 127:
+				if(search_idx > 0)
+					search_str[--search_idx] = '\0';
+				else
+					search = 0;
+				break;
+
+			case CTRL_AND('d'):
+				if(search_proc)
+					on_curproc("delete", delete, 0, procs, search_proc);
+				break;
+
+			case CTRL_AND('u'):
+				search_idx = 0;
+				*search_str = '\0';
+				break;
 		}
 
-		case CTRL_AND('n'): search_offset++; break;
-		case CTRL_AND('p'):
-			if(search_offset > 0)
-				search_offset--;
-			break;
-
-		case CTRL_AND('?'):
-		case CTRL_AND('H'):
-		case 263:
-		case 127:
-			if(search_idx > 0)
-				search_str[--search_idx] = '\0';
-			else
-				search = 0;
-			break;
-
-		case CTRL_AND('d'):
-			if(search_proc)
-				on_curproc("delete", delete, 0, procs, search_proc);
-			break;
-
-		case CTRL_AND('u'):
-			search_idx = 0;
-			*search_str = '\0';
-			break;
-
-		default:
-			if(isprint(ch) && search_idx < (signed)sizeof search_str - 2){
-				search_str[search_idx++] = ch;
-				search_str[search_idx  ] = '\0';
-			}
-			break;
+		if(search && *search_str)
+			search_proc = proc_find_n(search_str, procs, search_offset);
+		else
+			search_proc = NULL;
 	}
 
-	if(search && *search_str)
-		search_proc = proc_find_n(search_str, procs, search_offset);
-	else
-		search_proc = NULL;
+	if(search && search_pid && *search_str){
+		int pid;
+		sscanf(search_str, "%d", &pid);
+		search_proc = proc_get(procs, pid);
+	}
 }
 
 void gui_run(struct proc **procs)
@@ -496,7 +519,7 @@ void gui_run(struct proc **procs)
 		}
 
 		if(pos_y > pst.count - 1)
-			position(pst.count - 1, 0);
+			position(pst.count - 1);
 
 		showprocs(procs, &pst);
 
@@ -514,30 +537,30 @@ void gui_run(struct proc **procs)
 
 				case 'k':
 					if(pos_y > 0)
-						position(pos_y - 1, 0);
+						position(pos_y - 1);
 					break;
 				case 'j':
-					position(pos_y + 1, 0);
+					position(pos_y + 1);
 					break;
 
 				case 'g':
-					position(0, 0);
+					position(0);
 					break;
 				case 'G':
-					position(pst.count, 0);
+					position(pst.count);
 					break;
 
 				case CTRL_AND('u'):
-					position(pos_y - LINES / 2, 0);
+					position(pos_y - LINES / 2);
 					break;
 				case CTRL_AND('d'):
-					position(pos_y + LINES / 2, 0);
+					position(pos_y + LINES / 2);
 					break;
 				case CTRL_AND('b'):
-					position(pos_y - LINES, 0);
+					position(pos_y - LINES);
 					break;
 				case CTRL_AND('f'):
-					position(pos_y + LINES, 0);
+					position(pos_y + LINES);
 					break;
 
 				case CTRL_AND('e'):
@@ -556,13 +579,13 @@ void gui_run(struct proc **procs)
 					break;
 
 				case 'L':
-					position(pos_top + LINES - 2, 0);
+					position(pos_top + LINES - 2);
 					break;
 				case 'H':
-					position(pos_top, 0);
+					position(pos_top);
 					break;
 				case 'M':
-					position(pos_top + (pst.count > LINES ? LINES : pst.count) / 2, 0);
+					position(pos_top + (pst.count > LINES ? LINES : pst.count) / 2);
 					break;
 
 				case 'i':
@@ -578,9 +601,16 @@ void gui_run(struct proc **procs)
 					on_curproc("strace", strace, 1, procs, NULL);
 					break;
 
+				case 'o':
+					/* goto $$ */
+					goto_me(procs);
+					break;
+
+				case '?':
 				case '/':
 					*search_str = '\0';
 					search_idx = 0;
+					search_pid = ch == '?';
 					search = 1;
 					move(0, 0);
 					clrtoeol();
