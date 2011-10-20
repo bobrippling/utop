@@ -427,6 +427,12 @@ void help()
 
 void gui_search(int ch, struct proc **procs)
 {
+	if(ch == CTRL_AND('?') ||
+		ch == CTRL_AND('H') ||
+		ch == 263 ||
+		ch == 127)
+		goto backspace;
+
 	if(search_pid){
 		if('0' <= ch && ch <= '9')
 			goto ins_char;
@@ -460,10 +466,7 @@ ins_char:
 					search_offset--;
 				break;
 
-			case CTRL_AND('?'):
-			case CTRL_AND('H'):
-			case 263:
-			case 127:
+backspace:
 				if(search_idx > 0)
 					search_str[--search_idx] = '\0';
 				else
