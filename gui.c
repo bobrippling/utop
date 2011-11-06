@@ -397,53 +397,6 @@ void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc
 	}
 }
 
-void help()
-{
-#define HELP(c, s) addstr(c ":\t" s "\n")
-#define TITLE(s)   addstr("--- " s " ---\n")
-
-	move(0, 0);
-
-	TITLE("Navigation");
-
-	HELP("q",  "quit");
-
-	HELP("k",  "up");
-	HELP("j",  "down");
-	HELP("g",  "start");
-	HELP("G",  "end");
-
-	HELP("^b", "page up");
-	HELP("^f", "page down");
-	HELP("^u", "page half up");
-	HELP("^d", "page half down");
-	HELP("^y", "scroll up");
-	HELP("^e", "scroll down");
-	HELP("L",  "screen bottom");
-	HELP("H",  "screen top");
-	HELP("M",  "screen centre");
-
-	HELP("i",  "info");
-	HELP("d",  "kill");
-	HELP("l",  "lsof");
-	HELP("s",  "strace");
-	HELP("/",  "search");
-
-	addch('\n');
-	TITLE("Searching");
-
-	HELP("enter", "return and select");
-	HELP("esc",   "finish");
-	HELP("^n",    "next search result");
-	HELP("^p",    "prev search result");
-	HELP("^d",    "kill selected process");
-	HELP("^u",    "clear search");
-	clrtobot();
-	waitgetch();
-#undef TITLE
-#undef HELP
-}
-
 void lock_to(struct proc *p)
 {
 	if(p){
@@ -651,10 +604,10 @@ void gui_run(struct proc **procs)
 					on_curproc("strace", strace, 1, procs);
 					break;
 
-				case 'O':
+				case 'o':
 					goto_lock(procs);
 					break;
-				case 'o':
+				case 'O':
 					/* goto $$ */
 					goto_me(procs);
 					break;
@@ -672,10 +625,6 @@ void gui_run(struct proc **procs)
 					search = 1;
 					move(0, 0);
 					clrtoeol();
-					break;
-
-				case 'h':
-					help();
 					break;
 			}
 		}

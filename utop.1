@@ -1,0 +1,57 @@
+.IX Title UTOP
+.TH UTOP 0.9
+.nh
+.SH "utop"
+.IX Header "utop"
+utop \- process control
+.SH "SYNOPSIS"
+.IX Header "SYNOPSIS"
+utop [\-f]
+.SH "DESCRIPTION"
+.IX Header "DESCRIPTION"
+.SS "Normal Modes Keys"
+.IX Subsection "Normal Modes Keys"
+/ - enter search
+.PP
+? - enter pid search
+.PP
+g - goto top
+.PP
+G - goto bottom
+.PP
+j, k, H, M, L, ^E, ^Y, ^U, ^D, ^F, ^B - see vi (1)
+.PP
+q - exit
+.PP
+^L - lock to process
+.PP
+d - kill selected process
+.PP
+l - lsof selected process
+.PP
+i - info on selected process
+.PP
+s - strace selected process
+.PP
+o - goto locked process
+.PP
+O - goto $$
+.PP
+Note: the "selected process" is overridden by the locked process
+.SS "Search Mode Keys"
+.IX Subsection "Search Mode Keys"
+^l - lock to current search target
+.PP
+^p, ^n - next/prev search
+.PP
+.SH "OPTIONS"
+.IX Header "OPTIONS"
+\fB\-f\fR
+Don't prompt for lsof, strace and kill
+.PP
+.SH "NOTES"
+.IX Header "NOTES"
+Bugless software!
+.SH "SEE ALSO"
+.IX Header "SEE ALSO"
+top (1), htop (1)
