@@ -92,6 +92,12 @@ int search_proc_to_idx(int *y, struct proc **procs)
 	return proc_to_idx(search_proc, init, y);
 }
 
+struct proc *curproc(struct proc **procs)
+{
+	int i = pos_y;
+	return proc_from_idx(proc_get(procs, 1), &i);
+}
+
 void position(int newy)
 {
 	pos_y = newy; /* checked above */
@@ -235,19 +241,17 @@ void showprocs(struct proc **procs, struct procstat *pst)
 		}
 
 	}else{
+		int y;
+
 		STATUS(0, 0, "%d processes, %d running, %d owned",
 			pst->count, pst->running, pst->owned);
 		clrtoeol();
 
-		move(1 + pos_y - pos_top, 0);
-		mvchgat(1 + pos_y - pos_top, 0, -1, A_UNDERLINE, /* color pair index */ 0, NULL);
-	}
-}
+		y = 1 + pos_y - pos_top;
 
-struct proc *curproc(struct proc **procs)
-{
-	int i = pos_y;
-	return proc_from_idx(proc_get(procs, 1), &i);
+		mvchgat(y, 0, 36, A_UNDERLINE, 0, NULL);
+		move(y, 35);
+	}
 }
 
 int waitgetch()
