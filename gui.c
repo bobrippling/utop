@@ -22,6 +22,7 @@
 #define CTRL_AND(c) ((c) & 037)
 #define INDENT "    "
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
+#define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
 
 static int pos_top = 0, pos_y = 0;
 
@@ -30,6 +31,8 @@ static int  search = 0;
 static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
 static struct proc *search_proc = NULL;
+
+static pid_t lock_proc_pid = -1;
 
 void getch_delay(int on)
 {
@@ -114,6 +117,14 @@ void goto_me(struct proc **procs)
 	goto_proc(procs, proc_get(procs, getpid()));
 }
 
+void goto_lock(struct proc **procs)
+{
+	if(lock_proc_pid == -1)
+		WAIT_STATUS("no process locked on");
+	else
+		goto_proc(procs, proc_get(procs, lock_proc_pid));
+}
+
 void showproc(struct proc *proc, int *py, int indent)
 {
 	struct proc *p;
@@ -128,14 +139,18 @@ void showproc(struct proc *proc, int *py, int indent)
 		const int owned = proc->uid == global_uid;
 		char buf[256];
 		int len = LINES;
+		int lock = proc->pid == lock_proc_pid;
 
 #define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
 #define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
 #define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
+#define ATTR_LOCK      A_BOLD | COLOR_PAIR(1 + COLOR_YELLOW)
 
 		move(y, 0);
 
-		if(proc == search_proc)
+		if(lock)
+			attron(ATTR_LOCK);
+		else if(proc == search_proc)
 			attron(ATTR_SEARCH);
 		else if(!owned)
 			attron(ATTR_NOT_OWNED);
@@ -169,11 +184,13 @@ void showproc(struct proc *proc, int *py, int indent)
 		addnstr(proc->cmd, COLS - indent - len - 1);
 		clrtoeol();
 
-		if(owned)
+		if(owned && !lock)
 			attron(ATTR_BASENAME);
 		mvaddnstr(y, i, proc->basename, COLS - indent - len - 1);
 
-		if(proc == search_proc)
+		if(lock)
+			attroff(ATTR_LOCK);
+		else if(proc == search_proc)
 			attroff(ATTR_SEARCH);
 		else if(owned)
 			attroff(ATTR_BASENAME);
@@ -364,11 +381,13 @@ void info(struct proc *p)
 	waitch(y + 1, 0);
 }
 
-void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc **procs, struct proc *p)
+void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc **procs)
 {
 	extern int global_force;
 
-	if(!p)
+	struct proc *p;
+
+	if(lock_proc_pid == -1 || !(p = proc_get(procs, lock_proc_pid)))
 		p = curproc(procs);
 
 	if(p){
@@ -425,8 +444,30 @@ void help()
 #undef HELP
 }
 
+void lock_to(struct proc *p)
+{
+	if(p){
+		if(lock_proc_pid == p->pid){
+			goto unlock;
+		}else{
+			lock_proc_pid = p->pid;
+			WAIT_STATUS("locked to process %d", lock_proc_pid);
+		}
+	}else{
+		if(lock_proc_pid == -1){
+			WAIT_STATUS("no process to lock to");
+		}else{
+unlock:
+			WAIT_STATUS("unlocked from process %d", lock_proc_pid);
+			lock_proc_pid = -1;
+		}
+	}
+}
+
 void gui_search(int ch, struct proc **procs)
 {
+	int do_lock = 0;
+
 	if(ch == CTRL_AND('?') ||
 		ch == CTRL_AND('H') ||
 		ch == 263 ||
@@ -436,6 +477,9 @@ void gui_search(int ch, struct proc **procs)
 	if(search_pid){
 		if('0' <= ch && ch <= '9')
 			goto ins_char;
+		else if(ch == CTRL_AND('l'))
+			goto lock_proc;
+
 		search_offset = search = 0;
 	}else{
 		switch(ch){
@@ -460,6 +504,11 @@ ins_char:
 				break;
 			}
 
+			case CTRL_AND('l'):
+lock_proc:
+				do_lock = 1;
+				break;
+
 			case CTRL_AND('n'): search_offset++; break;
 			case CTRL_AND('p'):
 				if(search_offset > 0)
@@ -471,11 +520,6 @@ backspace:
 					search_str[--search_idx] = '\0';
 				else
 					search = 0;
-				break;
-
-			case CTRL_AND('d'):
-				if(search_proc)
-					on_curproc("delete", delete, 0, procs, search_proc);
 				break;
 
 			case CTRL_AND('u'):
@@ -495,6 +539,9 @@ backspace:
 		sscanf(search_str, "%d", &pid);
 		search_proc = proc_get(procs, pid);
 	}
+
+	if(do_lock)
+		lock_to(search_proc);
 }
 
 void gui_run(struct proc **procs)
@@ -592,22 +639,30 @@ void gui_run(struct proc **procs)
 					break;
 
 				case 'i':
-					on_curproc("info", info, 0, procs, NULL);
+					on_curproc("info", info, 0, procs);
 					break;
 				case 'd':
-					on_curproc("delete", delete, 0, procs, NULL);
+					on_curproc("delete", delete, 0, procs);
 					break;
 				case 'l':
-					on_curproc("lsof", lsof, 1, procs, NULL);
+					on_curproc("lsof", lsof, 1, procs);
 					break;
 				case 's':
-					on_curproc("strace", strace, 1, procs, NULL);
+					on_curproc("strace", strace, 1, procs);
 					break;
 
+				case 'O':
+					goto_lock(procs);
+					break;
 				case 'o':
 					/* goto $$ */
 					goto_me(procs);
 					break;
+
+				case CTRL_AND('l'):
+					lock_to(curproc(procs));
+					break;
+
 
 				case '?':
 				case '/':
