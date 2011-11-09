@@ -19,6 +19,8 @@
 /* 60s */
 #define FULL_WAIT_TIME (WAIT_TIME * 60)
 
+#define LOCK_CHAR CTRL_AND('k')
+
 #define CTRL_AND(c) ((c) & 037)
 #define INDENT "    "
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
@@ -434,7 +436,7 @@ void gui_search(int ch, struct proc **procs)
 	if(search_pid){
 		if('0' <= ch && ch <= '9')
 			goto ins_char;
-		else if(ch == CTRL_AND('l'))
+		else if(ch == LOCK_CHAR)
 			goto lock_proc;
 
 		search_offset = search = 0;
@@ -461,7 +463,7 @@ ins_char:
 				break;
 			}
 
-			case CTRL_AND('l'):
+			case LOCK_CHAR:
 lock_proc:
 				do_lock = 1;
 				break;
@@ -617,6 +619,11 @@ void gui_run(struct proc **procs)
 					break;
 
 				case CTRL_AND('l'):
+					/* redraw */
+					clear();
+					break;
+
+				case LOCK_CHAR:
 					lock_to(curproc(procs));
 					break;
 
