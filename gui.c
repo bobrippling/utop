@@ -618,6 +618,27 @@ void gui_run(struct proc **procs)
 					goto_me(procs);
 					break;
 
+				case 'z':
+					ch = getch();
+					switch(ch){
+						case 't':
+							pos_top = pos_y;
+							break;
+
+						case 'b':
+							pos_top = pos_y - LINES + 2;
+							break;
+
+						case 'z':
+							pos_top = pos_y - LINES / 2 - 1;
+							break;
+
+					}
+					if(pos_top < 0)
+						pos_top = 0;
+					break;
+
+
 				case CTRL_AND('l'):
 					/* redraw */
 					clear();
