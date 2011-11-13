@@ -393,8 +393,14 @@ void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc
 
 	struct proc *p;
 
-	if(lock_proc_pid == -1 || !(p = proc_get(procs, lock_proc_pid)))
+	if(lock_proc_pid == -1 || !(p = proc_get(procs, lock_proc_pid))){
 		p = curproc(procs);
+	}else{
+		STATUS(0, 0, "using locked process %d, \"%s\", any key to continue", p->pid, p->basename);
+		getch_delay(0);
+		getch();
+		getch_delay(1);
+	}
 
 	if(p){
 		if(ask && !global_force && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->basename))
