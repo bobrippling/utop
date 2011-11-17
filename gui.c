@@ -394,7 +394,7 @@ void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc
 	struct proc *p;
 
 	if(lock_proc_pid == -1 || !(p = proc_get(procs, lock_proc_pid))){
-		p = curproc(procs);
+		p = search_proc ? search_proc : curproc(procs);
 	}else{
 		STATUS(0, 0, "using locked process %d, \"%s\", any key to continue", p->pid, p->basename);
 		getch_delay(0);
@@ -468,6 +468,10 @@ ins_char:
 				search = search_offset = 0;
 				break;
 			}
+
+			case CTRL_AND('d'):
+				on_curproc("delete", delete, 0, procs);
+				break;
 
 			case LOCK_CHAR:
 lock_proc:

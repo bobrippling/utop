@@ -1,8 +1,6 @@
 Mem%, CPU%
 
-(confirm)
-'l' -> exec lsof -p $pid
-'s' -> strace -p $pid
+configurable keys
 
 show threads (/proc/%d/task/*)
 
