@@ -275,7 +275,9 @@ static void proc_handle_rename(struct proc *this)
 		this->argv[argc] = NULL;
 
 		free(this->cmd);
-		this->cmd       = buffer;
+		this->cmd = buffer;
+	}else{
+		this->cmd = ustrdup("");
 	}
 }
 

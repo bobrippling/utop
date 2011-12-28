@@ -127,10 +127,13 @@ void goto_me(struct proc **procs)
 
 void goto_lock(struct proc **procs)
 {
-	if(lock_proc_pid == -1)
+	if(lock_proc_pid == -1){
+		attron( COLOR_PAIR(1 + COLOR_RED));
 		WAIT_STATUS("no process locked on");
-	else
+		attroff(COLOR_PAIR(1 + COLOR_RED));
+	}else{
 		goto_proc(procs, proc_get(procs, lock_proc_pid));
+	}
 }
 
 void showproc(struct proc *proc, int *py, int indent)
