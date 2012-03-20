@@ -445,7 +445,7 @@ struct proc *proc_find_n(const char *str, struct proc **ps, int n)
 	int i;
 
 	ITER_PROCS(i, p, ps)
-		if(strstr(p->cmd, str) && n-- <= 0)
+		if(p->cmd && strstr(p->cmd, str) && n-- <= 0)
 			return p;
 
 	return NULL;
