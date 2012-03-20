@@ -28,7 +28,6 @@
 
 static int pos_top = 0, pos_y = 0;
 
-
 static int  search = 0;
 static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
@@ -147,6 +146,8 @@ void showproc(struct proc *proc, int *py, int indent)
 
 	if(y > 0){
 		extern int global_uid;
+		extern int max_unam_len, max_gnam_len;
+
 		const int owned = proc->uid == global_uid;
 		char buf[256];
 		int len = LINES;
@@ -168,11 +169,12 @@ void showproc(struct proc *proc, int *py, int indent)
 
 		len -= snprintf(buf, sizeof buf,
 				"% 7d %c "
-				"%-8s %-8s "
+				"%-*s %-*s "
 				"% 4d"
 				,
 				proc->pid, proc->state,
-				proc->unam, proc->gnam,
+				max_unam_len, proc->unam,
+				max_gnam_len, proc->gnam,
 				proc->pc_cpu
 				);
 		addstr(buf);

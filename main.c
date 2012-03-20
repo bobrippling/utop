@@ -6,11 +6,23 @@
 
 #include "proc.h"
 #include "gui.h"
+#include "util.h"
 
 #define MS_TO_US(n) ((n) * 1000)
 
 int global_uid   = 0;
 int global_force = 0;
+
+int max_unam_len, max_gnam_len;
+
+void extra_init()
+{
+	global_uid = getuid();
+
+	/* for layout - username length */
+	max_unam_len = longest_passwd_line("/etc/passwd");
+	max_gnam_len = longest_passwd_line("/etc/group");
+}
 
 int main(int argc, char **argv)
 {
@@ -28,8 +40,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-	global_uid = getuid();
-
+	extra_init();
 	gui_init();
 
 	proclist = proc_init();

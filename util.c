@@ -114,3 +114,26 @@ int str_to_sig(const char *s)
 			return sigs[i].sig;
 	return -1;
 }
+
+int longest_passwd_line(const char *fname)
+{
+	FILE *f = fopen(fname, "r");
+	int max = 8; /* default */
+	char buf[128];
+
+	if(!f)
+		return max;
+
+	while(fgets(buf, sizeof buf, f)){
+		char *colon = strchr(buf, ':');
+		if(colon){
+			int len = colon - buf;
+			if(len > max)
+				max = len;
+		}
+	}
+
+	fclose(f);
+
+	return max;
+}

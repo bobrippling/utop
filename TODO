@@ -7,3 +7,5 @@ show threads (/proc/%d/task/*)
 bug - bottom most process (at LINES-1, 0) only has its basename displayed
 
 fix shell-detach bug (SIGHUP?)
+
+option for clipping usernames, instead of expanding to the longest

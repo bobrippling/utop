@@ -9,4 +9,6 @@ char *ustrdup(const char *s);
 
 int str_to_sig(const char *);
 
+int longest_passwd_line(const char *fname);
+
 #endif
