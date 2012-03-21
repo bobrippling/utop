@@ -19,7 +19,7 @@ install: utop
 uninstall:
 	rm -f ${PREFIX}/bin/utop ${PREFIX}/share/man/man1/
 
-gui.o: gui.c proc.h gui.h util.h
+gui.o: gui.c proc.h gui.h util.h config.h
 main.o: main.c proc.h gui.h
 proc.o: proc.c proc.h util.h
 util.o: util.c util.h
