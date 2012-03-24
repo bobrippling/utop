@@ -13,15 +13,36 @@
 #include "util.h"
 #include "config.h"
 
+
+// TODO:
+// rewrite exposed functions from proc.c:
+// [x] proc_get
+// [x] proc_to_idx
+// [x] prox_from_idx
+// [x] proc_find_n
+// [x] proc_update
+
+#define HALF_DELAY_TIME 10
+
+/* 1000ms */
+#define WAIT_TIME (HALF_DELAY_TIME * 100)
+/* 60s */
+#define FULL_WAIT_TIME (WAIT_TIME * 60)
+
+#define LOCK_CHAR CTRL_AND('k')
+
+#define CTRL_AND(c) ((c) & 037)
+#define INDENT "    "
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
 
 static int pos_top = 0, pos_y = 0;
 
+
 static int  search = 0;
 static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
-static struct proc *search_proc = NULL;
+static struct myproc *search_proc = NULL;
 
 static pid_t lock_proc_pid = -1;
 
@@ -74,19 +95,29 @@ void gui_term()
 	endwin();
 }
 
-int search_proc_to_idx(int *y, struct proc **procs)
+struct myproc *gui_proc_first(struct myproc **procs)
 {
-	struct proc *init = proc_get(procs, 1);
+	struct myproc *init = proc_get(procs, 1);
+
+	if(!init)
+		return proc_any(procs);
+
+	return init;
+}
+
+int search_proc_to_idx(int *y, struct myproc **procs)
+{
+	struct myproc *init = gui_proc_first(procs);
 	if(search_proc == init)
 		return 0;
 	*y = 1;
 	return proc_to_idx(search_proc, init, y);
 }
 
-struct proc *curproc(struct proc **procs)
+struct myproc *curproc(struct myproc **procs)
 {
 	int i = pos_y;
-	return proc_from_idx(proc_get(procs, 1), &i);
+	return proc_from_idx(gui_proc_first(procs), &i);
 }
 
 void position(int newy)
@@ -102,19 +133,19 @@ void position(int newy)
 		pos_top = pos_y;
 }
 
-void goto_proc(struct proc **procs, struct proc *p)
+void goto_proc(struct myproc **procs, struct myproc *p)
 {
 	int y = 1;
-	proc_to_idx(p, proc_get(procs, 1), &y);
+	proc_to_idx(p, gui_proc_first(procs), &y);
 	position(y);
 }
 
-void goto_me(struct proc **procs)
+void goto_me(struct myproc **procs)
 {
 	goto_proc(procs, proc_get(procs, getpid()));
 }
 
-void goto_lock(struct proc **procs)
+void goto_lock(struct myproc **procs)
 {
 	if(lock_proc_pid == -1){
 		attron( COLOR_PAIR(1 + COLOR_RED));
@@ -125,23 +156,30 @@ void goto_lock(struct proc **procs)
 	}
 }
 
-void showproc(struct proc *proc, int *py, int indent)
+void showproc(struct myproc *proc, int *py, int indent)
 {
-	struct proc *p;
+	struct myproc *p;
 	int y = *py;
 	int i;
 
+	proc->displayed = 1;
+
 	if(y >= LINES)
-		return;
+		return; /* FIXME */
 
 	if(y > 0){
 		extern int global_uid;
+		const int owned = proc->uid == (unsigned)global_uid;
 		extern int max_unam_len, max_gnam_len;
 
-		const int owned = proc->uid == global_uid;
 		char buf[256];
 		int len = LINES;
 		int lock = proc->pid == lock_proc_pid;
+
+#define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
+#define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
+#define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
+#define ATTR_LOCK      A_BOLD | COLOR_PAIR(1 + COLOR_YELLOW)
 
 		move(y, 0);
 
@@ -153,7 +191,7 @@ void showproc(struct proc *proc, int *py, int indent)
 			attron(ATTR_NOT_OWNED);
 
 		len -= snprintf(buf, sizeof buf,
-				"% 7d %c "
+				"% 7d %-7s "
 				"%-*s %-*s "
 				"% 4d"
 				,
@@ -164,12 +202,12 @@ void showproc(struct proc *proc, int *py, int indent)
 				);
 		addstr(buf);
 
-		if(proc->state == 'R'){
-			int y, x;
-			getyx(stdscr, y, x);
-			mvchgat(y, 8, 1, 0, COLOR_GREEN + 1, NULL);
-			move(y, x);
-		}
+		/* if(proc->state == 'R'){ */
+		/* 	int y, x; */
+		/* 	getyx(stdscr, y, x); */
+		/* 	mvchgat(y, 8, 1, 0, COLOR_GREEN + 1, NULL); */
+		/* 	move(y, x); */
+		/* } */
 
 		i = indent;
 		while(i -->= 0){
@@ -177,14 +215,14 @@ void showproc(struct proc *proc, int *py, int indent)
 			len -= 2;
 		}
 
-		i = getcurx(stdscr) + proc->basename_offset;
+		i = getcurx(stdscr); /* + proc->basename_offset; */
 
 		addnstr(proc->cmd, COLS - indent - len - 1);
 		clrtoeol();
 
 		if(owned && !lock)
 			attron(ATTR_BASENAME);
-		mvaddnstr(y, i, proc->basename, COLS - indent - len - 1);
+		mvaddnstr(y, i, proc->cmd, COLS - indent - len - 1);
 
 		if(lock)
 			attroff(ATTR_LOCK);
@@ -205,11 +243,15 @@ void showproc(struct proc *proc, int *py, int indent)
 	*py = y;
 }
 
-void showprocs(struct proc **procs, struct procstat *pst)
+void showprocs(struct myproc **procs, struct procstat *pst)
 {
 	int y = -pos_top + 1;
+	struct myproc *topproc;
 
-	showproc(proc_get(procs, 1), &y, 0);
+	procs_mark_undisplayed(procs);
+
+	for(topproc = gui_proc_first(procs); topproc; topproc = proc_undisplayed(procs))
+		showproc(topproc, &y, 0);
 
 	clrtobot();
 
@@ -235,8 +277,8 @@ void showprocs(struct proc **procs, struct procstat *pst)
 	}else{
 		int y;
 
-		STATUS(0, 0, "%d processes, %d running, %d owned",
-			pst->count, pst->running, pst->owned);
+		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, %d lastpid",
+           pst->count, pst->running, pst->owned, pst->zombies, pst->lastpid);
 		clrtoeol();
 
 		y = 1 + pos_y - pos_top;
@@ -280,7 +322,7 @@ int confirm(const char *fmt, ...)
 	return 0;
 }
 
-void delete(struct proc *p)
+void delete(struct myproc *p)
 {
 	char sig[8];
 	int i, wait = 0;
@@ -326,7 +368,7 @@ void delete(struct proc *p)
 	getch_delay(1);
 }
 
-void external(const char *cmd, struct proc *p)
+void external(const char *cmd, struct myproc *p)
 {
 	char buf[16];
 
@@ -341,17 +383,26 @@ void external(const char *cmd, struct proc *p)
 	gui_init();
 }
 
-void strace(struct proc *p)
+
+void ktrace(struct myproc *p)
 {
-	external("strace", p);
+	external("ktrace -ti -p", p);
 }
 
-void lsof(struct proc *p)
+void lsof(struct myproc *p)
 {
 	external("lsof", p);
 }
 
-void info(struct proc *p)
+void gdb(struct myproc *p)
+{
+  // Attach to a running process: gdb <name> <pid>
+  char cmd[256];
+  snprintf(cmd, sizeof cmd, "gdb %s", p->basename);
+  external(cmd, p);
+}
+
+void info(struct myproc *p)
 {
 	int y, x;
 	int i;
@@ -360,13 +411,13 @@ void info(struct proc *p)
 	mvprintw(0, 0,
 			"pid: %d, ppid: %d\n"
 			"uid: %d (%s), gid: %d (%s)\n"
-			"state: %c\n"
-			"tty: %d, pgrp: %d\n"
+			"state: %s\n"
+           "tty: %s\n"
 			,
 			p->pid, p->ppid,
 			p->uid, p->unam, p->gid, p->gnam,
 			p->state,
-			p->tty, p->pgrp);
+			p->tty);
 
 	for(i = 0; p->argv[i]; i++)
 		printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
@@ -377,11 +428,11 @@ void info(struct proc *p)
 	waitch(y + 1, 0);
 }
 
-void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc **procs)
+void on_curproc(const char *fstr, void (*f)(struct myproc *), int ask, struct myproc **procs)
 {
 	extern int global_force;
 
-	struct proc *p;
+	struct myproc *p;
 
 	if(lock_proc_pid == -1 || !(p = proc_get(procs, lock_proc_pid))){
 		p = search_proc ? search_proc : curproc(procs);
@@ -399,7 +450,7 @@ void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc
 	}
 }
 
-void lock_to(struct proc *p)
+void lock_to(struct myproc *p)
 {
 	if(p){
 		if(lock_proc_pid == p->pid){
@@ -419,7 +470,7 @@ unlock:
 	}
 }
 
-void gui_search(int ch, struct proc **procs)
+void gui_search(int ch, struct myproc **procs)
 {
 	int do_lock = 0;
 
@@ -468,10 +519,8 @@ lock_proc:
 				do_lock = 1;
 				break;
 
-			case SEARCH_NEXT_CHAR:
-        search_offset++;
-        break;
-			case SEARCH_PREVIOUS_CHAR:
+			case CTRL_AND('n'): search_offset++; break;
+			case CTRL_AND('p'):
 				if(search_offset > 0)
 					search_offset--;
 				break;
@@ -505,7 +554,7 @@ backspace:
 		lock_to(search_proc);
 }
 
-void gui_run(struct proc **procs)
+void gui_run(struct myproc **procs)
 {
 	struct procstat pst;
 	long last_update = 0, last_full_refresh;
@@ -609,8 +658,11 @@ void gui_run(struct proc **procs)
 					on_curproc("lsof", lsof, 1, procs);
 					break;
 				case STRACE_CHAR:
-					on_curproc("strace", strace, 1, procs);
+					on_curproc("ktrace", ktrace, 1, procs);
 					break;
+        case 'a':
+          on_curproc("gdb", gdb, 1, procs);
+          break;
 
 				case GOTO_LOCKED_CHAR:
 					goto_lock(procs);

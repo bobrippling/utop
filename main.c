@@ -7,11 +7,13 @@
 #include "proc.h"
 #include "gui.h"
 #include "util.h"
+#include "main.h"
 
 #define MS_TO_US(n) ((n) * 1000)
 
-int global_uid   = 0;
-int global_force = 0;
+uid_t global_uid   = 0;
+int   global_force = 0;
+int   global_debug = 0;
 
 int max_unam_len, max_gnam_len;
 
@@ -26,21 +28,26 @@ void extra_init()
 
 int main(int argc, char **argv)
 {
-	static struct proc **proclist;
+	static struct myproc **proclist;
 	int i;
 
-	for(i = 1; i < argc; i++)
+	for(i = 1; i < argc; i++){
 		if(!strcmp(argv[i], "-f")){
 			global_force = 1;
+		}else if(!strcmp(argv[i], "-d")){
+			global_debug = 1;
 		}else{
 			fprintf(stderr,
-					"Usage: %s [-f]\n"
+					"Usage: %s [-f] [-d]\n"
 					" -f: Don't prompt for lsof and strace\n"
+					" -d: Debug mode\n"
 					, *argv);
 			return 1;
 		}
+	}
 
 	extra_init();
+
 	gui_init();
 
 	proclist = proc_init();

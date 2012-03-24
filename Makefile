@@ -1,6 +1,6 @@
-CFLAGS  = -g -Wall -Wextra -pedantic -std=c99 -D_POSIX_SOURCE
-LDFLAGS = -g -lncurses
-PREFIX  = /usr/local
+CFLAGS  = -g -Wall -Wextra -pedantic -std=c99
+LDFLAGS = -g -lncurses -lkvm
+PREFIX  = /usr
 OBJ     = main.o proc.o gui.o util.o
 
 .PHONY: clean install uninstall

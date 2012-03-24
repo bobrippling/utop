@@ -42,49 +42,6 @@ long mstime()
 	return t.tv_sec * 1000 + t.tv_usec / 1000;
 }
 
-char *fline(const char *path, char **pbuf, int *plen)
-{
-	FILE *f;
-	char *ret;
-	int c;
-	int len;
-	int i;
-
-	f = fopen(path, "r");
-	if(!f)
-		return NULL;
-
-	len = 64;
-	ret = umalloc(len + 1);
-	memset(ret, 0, len);
-
-	i = 0;
-	while((c = fgetc(f)) != EOF){
-		ret[i++] = c;
-		if(i == len){
-			len += 64;
-			ret = urealloc(ret, len + 1);
-			memset(ret + i + 1, 0, 64);
-		}
-	}
-
-	if(ferror(f)){
-		/* process exited while we were reading, for e.g. */
-		/*perror("read()");*/
-		/*abort();*/
-		free(ret);
-		ret = NULL;
-		i = 0;
-	}
-	fclose(f);
-
-	*pbuf = ret;
-	if(plen)
-		*plen = i;
-
-	return ret;
-}
-
 int str_to_sig(const char *s)
 {
 #define SIG(i) { #i, SIG##i }
