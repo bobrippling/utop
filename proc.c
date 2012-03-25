@@ -392,12 +392,12 @@ static void proc_update_single(struct proc *proc, struct proc **procs, struct pr
 void proc_update(struct proc **procs, struct procstat *pst)
 {
 	int i;
-	int count, running, owned;
+	int count, running, owned, zombies;
 
 	getprocstat(pst);
 
 	count = 1; /* init */
-	running = owned = 0;
+	running = owned = zombies = 0;
 
 	for(i = 0; i < NPROCS; i++){
 		struct proc **change_me;
@@ -435,6 +435,8 @@ void proc_update(struct proc **procs, struct procstat *pst)
 
 					if(p->state == 'R')
 						running++;
+					if(p->state == 'Z')
+						zombies++;
 					if(p->uid == global_uid)
 						owned++;
 				}
@@ -448,6 +450,7 @@ void proc_update(struct proc **procs, struct procstat *pst)
 	pst->count   = count;
 	pst->running = running;
 	pst->owned   = owned;
+  pst->zombies = zombies;
 
 	proc_listall(procs, pst);
 }

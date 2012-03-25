@@ -259,8 +259,8 @@ void showprocs(struct proc **procs, struct procstat *pst)
 	}else{
 		int y;
 
-		STATUS(0, 0, "%d processes, %d running, %d owned, load averages: %.2lf, %.2lf, %.2lf, uptime: %s",
-			pst->count, pst->running, pst->owned, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_to_str(pst->uptime_secs));
+		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2lf, %.2lf, %.2lf, uptime: %s",
+			pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_to_str(pst->uptime_secs));
 		clrtoeol();
 
 		y = 1 + pos_y - pos_top;
