@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "proc.h"
 #include "gui.h"
@@ -125,6 +126,29 @@ void goto_lock(struct proc **procs)
 	}
 }
 
+const char *uptime_to_str(long unsigned diff_secs)
+{
+  static char buf[64]; // Should be sufficient
+  time_t now;
+  struct tm *ltime;
+  unsigned long int rest;
+  unsigned int days, hours, minutes, seconds;
+
+  time(&now);
+  ltime = localtime(&now);
+
+  days = diff_secs/86400;
+  rest = diff_secs % 86400;
+  hours = rest / 3600;
+  rest = rest % 3600;
+  minutes = rest/60;
+  rest = rest % 60;
+  seconds = (unsigned int)rest;
+
+  snprintf(buf, sizeof buf, "up %d+%02d:%02d:%02d  %2d:%2d:%2d", days, hours, minutes, seconds, ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
+  return buf;
+}
+
 void showproc(struct proc *proc, int *py, int indent)
 {
 	struct proc *p;
@@ -235,8 +259,8 @@ void showprocs(struct proc **procs, struct procstat *pst)
 	}else{
 		int y;
 
-		STATUS(0, 0, "%d processes, %d running, %d owned",
-			pst->count, pst->running, pst->owned);
+		STATUS(0, 0, "%d processes, %d running, %d owned, load averages: %.2lf, %.2lf, %.2lf, uptime: %s",
+			pst->count, pst->running, pst->owned, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_to_str(pst->uptime_secs));
 		clrtoeol();
 
 		y = 1 + pos_y - pos_top;

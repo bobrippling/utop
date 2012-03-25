@@ -37,12 +37,12 @@ void proc_free(struct proc *p)
 
 static void getprocstat(struct procstat *pst)
 {
+  FILE *f;
 #ifdef CPU_PERCENTAGE
 	static time_t last;
 	time_t now;
 
 	if(last + 3 < (now = time(NULL))){
-		FILE *f;
 		char buf[1024];
 		unsigned long usertime, nicetime, systemtime, irq, sirq, idletime, iowait, steal, guest;
 
@@ -82,6 +82,40 @@ static void getprocstat(struct procstat *pst)
 		}
 	}
 #endif
+
+  char buf[64];
+
+  if((f = fopen("/proc/uptime", "r"))){
+    for(;;) {
+      unsigned long uptime_secs; 
+
+      if(!fgets(buf, sizeof buf - 1, f))
+        break;
+
+      if(sscanf(buf, "%lu", &uptime_secs)) {
+        pst->uptime_secs = uptime_secs;
+      }
+      break; 
+    }
+  }
+  fclose(f);
+
+  if((f = fopen("/proc/loadavg", "r"))){
+    for(;;) {
+      double avg_1, avg_5, avg_15;
+
+      if(!fgets(buf, sizeof buf - 1, f))
+        break;
+
+      if(sscanf(buf, "%lf %lf %lf", &avg_1, &avg_5, &avg_15)) {
+        pst->loadavg[0] = avg_1;
+        pst->loadavg[1] = avg_5;
+        pst->loadavg[2] = avg_15;
+      }
+      break; 
+    }
+  }
+  fclose(f);
 
 #define NIL(x) if(!x) x = 1
 	NIL(pst->cputime_total);
