@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/types.h>
+#include <signal.h>
 
 #include "proc.h"
 #include "gui.h"
@@ -17,6 +18,8 @@ int   global_debug = 0;
 
 int max_unam_len, max_gnam_len;
 
+static struct myproc **proclist;
+
 void extra_init()
 {
 	global_uid = getuid();
@@ -26,10 +29,21 @@ void extra_init()
 	max_gnam_len = longest_passwd_line("/etc/group");
 }
 
+void signal_handler(int sig) {
+  if (sig == SIGABRT || sig == SIGTERM) {
+    proc_cleanup(proclist);
+    exit(EXIT_FAILURE);
+  }
+}
+
 int main(int argc, char **argv)
 {
-	static struct myproc **proclist;
+  struct sigaction action;
 	int i;
+
+  action.sa_handler = signal_handler;
+  sigaction(SIGABRT, &action, NULL);
+  sigaction(SIGTERM, &action, NULL);
 
 	for(i = 1; i < argc; i++){
 		if(!strcmp(argv[i], "-f")){
@@ -55,6 +69,7 @@ int main(int argc, char **argv)
 	gui_run(proclist);
 
 	gui_term();
+  proc_cleanup(proclist);
 
 	return 0;
 }

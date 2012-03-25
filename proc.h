@@ -55,18 +55,20 @@ struct myproc
 	struct myproc *next;
 	int displayed;
 };
+
 struct procstat
 {
 	int count, running, owned, zombies;
-  pid_t lastpid;
-  struct loadavg load_average;
+	struct timeval boottime;
+  double loadavg[3];
 	unsigned long cputime_total, cputime_period;
 };
 
 struct myproc **proc_init();
-struct myproc  *proc_get(   struct myproc **, pid_t);
+struct myproc  *proc_get(struct myproc **, pid_t);
 void          proc_update(struct myproc **, struct procstat *);
 void          proc_handle_renames(struct myproc **);
+void          proc_cleanup(struct myproc **);
 
 struct myproc  *proc_to_list(struct myproc **);
 struct myproc  *proc_to_tree(struct myproc **);

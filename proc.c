@@ -14,7 +14,6 @@
 #include <grp.h>
 #include <time.h>
 #include <kvm.h>
-#include <paths.h>
 
 #include "proc.h"
 #include "util.h"
@@ -37,7 +36,7 @@
 
 */
 
-static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *pst);
+static void proc_update_single(struct myproc *proc, struct myproc **procs);
 static void proc_handle_rename(struct myproc *p);
 
 static kvm_t *kd = NULL; // kvm handle
@@ -68,6 +67,7 @@ const char *state_abbrev[] = {
   "", "START", "RUN\0\0\0", "SLEEP", "STOP", "ZOMB", "WAIT", "LOCK"
 };
 
+// Taken from top(8)
 static void getsysctl(const char *name, void *ptr, size_t len)
 {
 	size_t nlen = len;
@@ -90,60 +90,25 @@ void proc_free(struct myproc *p)
   if (p->argv)
  		for(iter = p->argv; *iter; iter++)
  			free(*iter);
+  free(p->basename);
   free(p->cmd);
   free(p->state);
  	free(p->argv);
  	free(p->unam);
  	free(p->gnam);
+  free(p->tty);
  	free(p);
 }
 
 static void getprocstat(struct procstat *pst)
 {
+	struct loadavg sysload;
+  int i, mib[2];
+	size_t bt_size;
+  struct timeval boottime;
+
 #ifdef CPU_PERCENTAGE
- 	static time_t last;
- 	time_t now;
-
- 	if(last + 3 < (now = time(NULL))){
- 		FILE *f;
- 		char buf[1024];
- 		unsigned long usertime, nicetime, systemtime, irq, sirq, idletime, iowait, steal, guest;
-
- 		last = now;
-
- 		if((f = fopen("/proc/stat", "r"))){
- 			for(;;){
- 				unsigned long totaltime, totalperiod;
-
- 				if(!fgets(buf, sizeof buf - 1, f))
- 					break;
-
- 				if(sscanf(buf, "cpu %lu %lu %lu %lu %lu %lu %lu %lu %lu",
- 							&usertime, &nicetime, &systemtime, &idletime, &iowait,
- 							&irq, &sirq, &steal, &guest) == 10){
-
- 					totaltime =
- 						usertime +
- 						nicetime +
- 						systemtime +
- 						irq +
- 						sirq +
- 						idletime +
- 						iowait +
- 						steal +
- 						guest;
-
- 					totalperiod = totaltime - pst->cputime_total;
-
- 					pst->cputime_total  = totaltime;
-          pst->cputime_period = totalperiod;
-
-					break;
-				}
-			}
-			fclose(f);
-		}
-	}
+  // TODO
 #endif
 
 #define NIL(x) if(!x) x = 1
@@ -151,8 +116,20 @@ static void getprocstat(struct procstat *pst)
 	NIL(pst->cputime_period);
 #undef NIL
 
-  GETSYSCTL("kern.lastpid", pst->lastpid);
-  GETSYSCTL("vm.loadavg", pst->load_average);
+	GETSYSCTL("vm.loadavg", sysload);
+
+	for (i = 0; i < 3; i++)
+		pst->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
+
+	mib[0] = CTL_KERN;
+	mib[1] = KERN_BOOTTIME;
+	bt_size = sizeof(boottime);
+	if (sysctl(mib, 2, &boottime, &bt_size, NULL, 0) != -1 &&
+	    boottime.tv_sec != 0) {
+		pst->boottime = boottime;
+	} else {
+		pst->boottime.tv_sec = -1;
+	}
 }
 
 char *proc_state(struct kinfo_proc *pp) {
@@ -200,7 +177,6 @@ struct myproc *proc_new(struct kinfo_proc *pp) {
   struct myproc *this = NULL;
 
   this = umalloc(sizeof(*this));
-
 
   this->basename = ustrdup(pp->ki_comm);
   this->uid = pp->ki_uid;
@@ -274,27 +250,19 @@ struct myproc **proc_init()
 
 	return umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
 }
-/*   struct myproc **p = NULL; */
-/*   // get a kd handle for kvm */
-/*   if ((kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL)) == NULL) { */
-/*     perror("kd"); */
-/*     abort(); */
-/*   } */
 
-/*   int num_procs = 0; // This is the number of processes that kvm_getprocs returns */
+void proc_cleanup(struct myproc **procs)
+{
+	struct myproc *p;
+	int i;
 
-/*   /\* // get all processes *\/ */
-/*   if (kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs) != NULL) { */
-/*     // malloc memory for all myproc structures */
-/*     int n = sizeof(struct myproc *) * HASH_TABLE_SIZE; */
-/*     p = umalloc(n); */
-/*     memset(p, 0, n); */
-
-/*     return p; */
-/*   } else { */
-/*     return NULL; */
-/*   } */
-/* } */
+  if(procs) {
+    ITER_PROCS(i, p, procs)
+        proc_free(p);
+  }
+  if(kd)
+    kvm_close(kd);
+}
 
 void proc_listall(struct myproc **procs, struct procstat *stat)
 {
@@ -378,7 +346,7 @@ static void proc_handle_rename(struct myproc *this)
 	}
 }
 
-static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *pst)
+static void proc_update_single(struct myproc *proc, struct myproc **procs)
 {
   struct kinfo_proc *pp = NULL; // defined in /usr/include/sys/user.h
   int num_procs = 0; // This is the number of processes that kvm_getprocs returns
@@ -396,9 +364,6 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs, struc
     // Set tty
     char buf[8];
     devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
-    /* if(!strcmp(buf, "#NODEV")) */
-    /*   proc->tty = ustrdup(" "); */
-    /* else */
     proc->tty = ustrdup(buf);
 
     if(proc->ppid && oldppid != proc->ppid){
@@ -418,7 +383,8 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs, struc
         }
       }
 		}
-  }
+  } else // If KVM reports that the process isn't existing anymore, drop it.
+    proc_free(proc);
 }
 
 const char *proc_str(struct myproc *p)
@@ -471,13 +437,13 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 				p = next;
 			}else{
 				if(p){
-					proc_update_single(p, procs, pst);
+					proc_update_single(p, procs);
 					if(p->ppid != 2)
 						count++; /* else it's kthreadd or init */
 
 					/* if(p->state) // TODO */
 					/* 	running++; */
-					if(p->uid == (unsigned)global_uid)
+					if(p->uid == global_uid)
 						owned++;
 				}
 

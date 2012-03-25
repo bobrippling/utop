@@ -156,6 +156,33 @@ void goto_lock(struct myproc **procs)
 	}
 }
 
+
+const char *uptime_from_bootime(time_t boottime)
+{
+  static char buf[64]; // Should be sufficient
+  time_t now;
+  struct tm *ltime;
+  unsigned long int diff_secs; // The difference between now and the epoch
+  unsigned long int rest;
+  unsigned int days, hours, minutes, seconds;
+
+  time(&now);
+  ltime = localtime(&now);
+
+  diff_secs = now-boottime;
+
+  days = diff_secs/86400;
+  rest = diff_secs % 86400;
+  hours = rest / 3600;
+  rest = rest % 3600;
+  minutes = rest/60;
+  rest = rest % 60;
+  seconds = (unsigned int)rest;
+
+  snprintf(buf, sizeof buf, "up %d+%02d:%02d:%02d  %2d:%2d:%2d", days, hours, minutes, seconds, ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
+  return buf;
+}
+
 void showproc(struct myproc *proc, int *py, int indent)
 {
 	struct myproc *p;
@@ -168,8 +195,8 @@ void showproc(struct myproc *proc, int *py, int indent)
 		return; /* FIXME */
 
 	if(y > 0){
-		extern int global_uid;
-		const int owned = proc->uid == (unsigned)global_uid;
+		extern uid_t global_uid;
+		const int owned = proc->uid == global_uid;
 		extern int max_unam_len, max_gnam_len;
 
 		char buf[256];
@@ -243,6 +270,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 	*py = y;
 }
 
+
 void showprocs(struct myproc **procs, struct procstat *pst)
 {
 	int y = -pos_top + 1;
@@ -276,9 +304,12 @@ void showprocs(struct myproc **procs, struct procstat *pst)
 
 	}else{
 		int y;
+    time_t now;
 
-		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, %d lastpid",
-           pst->count, pst->running, pst->owned, pst->zombies, pst->lastpid);
+    time(&now);
+
+		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
+           pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_from_bootime(pst->boottime.tv_sec));
 		clrtoeol();
 
 		y = 1 + pos_y - pos_top;
