@@ -401,12 +401,12 @@ const char *proc_str(struct myproc *p)
 void proc_update(struct myproc **procs, struct procstat *pst)
 {
 	int i;
-	int count, running, owned;
+	int count, running, owned, zombies;
   int num_procs = 0;
 
 	getprocstat(pst);
 
-	count = running = owned = 0;
+	count = running = owned = zombies = 0;
 
 	for(i = 0; i < HASH_TABLE_SIZE; i++){
 		struct myproc **change_me;
@@ -456,6 +456,7 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 	pst->count   = count;
 	pst->running = running;
 	pst->owned   = owned;
+  pst->zombies = zombies;
 
   proc_listall(procs, pst);
 }
