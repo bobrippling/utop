@@ -32,6 +32,7 @@ struct myproc
 	pid_t pid, ppid;
 	uid_t uid;
   gid_t gid;
+  int jid; // Jail ID
 	char *unam, *gnam;
 
 	char *cmd;

@@ -210,11 +210,11 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attron(ATTR_NOT_OWNED);
 
 		len -= snprintf(buf, sizeof buf,
-				"% 7d %-7s "
+				"% 7d  %3d  %-7s "
 				"%-*s %-*s "
 				"% 4d"
 				,
-				proc->pid, proc->state,
+        proc->pid, proc->jid, proc->state,
 				max_unam_len, proc->unam,
 				max_gnam_len, proc->gnam,
 				proc->pc_cpu

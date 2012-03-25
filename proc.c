@@ -200,6 +200,7 @@ struct myproc *proc_new(struct kinfo_proc *pp) {
 
   this->pid  = pp->ki_pid;
   this->ppid = -1;
+  this->jid = pp->ki_jid;
 
   proc_handle_rename(this);
 

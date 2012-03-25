@@ -9,3 +9,7 @@ bug - bottom most process (at LINES-1, 0) only has its basename displayed
 fix shell-detach bug (SIGHUP?)
 
 option for clipping usernames, instead of expanding to the longest
+
+bug - process counters are not correct
+
+bug - searching causes a seg fault
