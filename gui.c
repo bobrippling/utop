@@ -14,14 +14,6 @@
 #include "config.h"
 
 
-// TODO:
-// rewrite exposed functions from proc.c:
-// [x] proc_get
-// [x] proc_to_idx
-// [x] prox_from_idx
-// [x] proc_find_n
-// [x] proc_update
-
 #define HALF_DELAY_TIME 10
 
 /* 1000ms */
