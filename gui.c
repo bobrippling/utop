@@ -149,7 +149,7 @@ void goto_lock(struct myproc **procs)
 }
 
 
-const char *uptime_from_bootime(time_t boottime)
+const char *uptime_from_boottime(time_t boottime)
 {
   static char buf[64]; // Should be sufficient
   time_t now;
@@ -301,7 +301,7 @@ void showprocs(struct myproc **procs, struct procstat *pst)
     time(&now);
 
 		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
-           pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_from_bootime(pst->boottime.tv_sec));
+           pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_from_boottime(pst->boottime.tv_sec));
 		clrtoeol();
 
 		y = 1 + pos_y - pos_top;
