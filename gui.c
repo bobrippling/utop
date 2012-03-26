@@ -1,18 +1,19 @@
-#include <ncurses.h>
 #include <sys/types.h>
+
+#include <ncurses.h>
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <signal.h>
-#include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <stdarg.h>
 
 #include "proc.h"
 #include "gui.h"
-#include "util.h"
 #include "config.h"
-
+#include "util.h"
 
 #define HALF_DELAY_TIME 10
 

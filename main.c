@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <sys/select.h>
 #include <sys/types.h>
 #include <signal.h>
 
 #include "proc.h"
 #include "gui.h"
 #include "util.h"
-#include "main.h"
 
 #define MS_TO_US(n) ((n) * 1000)
 

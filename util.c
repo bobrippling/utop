@@ -1,11 +1,9 @@
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include <errno.h>
 #include <string.h>
 #include <signal.h>
-
-#include "util.h"
 
 void *umalloc(size_t l)
 {

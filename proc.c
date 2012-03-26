@@ -1,19 +1,7 @@
-#include <sys/file.h>
-#include <sys/user.h>
-#include <sys/proc.h>
-#include <sys/sysctl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <pwd.h>
-#include <grp.h>
-#include <time.h>
-#include <kvm.h>
 
 #include "proc.h"
 #include "util.h"

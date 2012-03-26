@@ -6,7 +6,6 @@
 #include <sys/file.h>
 #include <sys/proc.h>
 #include <sys/resource.h>
-#include <sys/rtprio.h>
 #include <sys/signal.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
