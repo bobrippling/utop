@@ -41,9 +41,11 @@ struct myproc
   int argc;
 	int basename_offset;
 
-	char *state;
+  char state;
+	char *state_str;
   char *tty;
   gid_t pgrp;
+  signed char nice;
 
 	int pc_cpu;
 	unsigned long utime, stime, cutime, cstime;

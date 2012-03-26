@@ -209,24 +209,44 @@ void showproc(struct myproc *proc, int *py, int indent)
 		else if(!owned)
 			attron(ATTR_NOT_OWNED);
 
-		len -= snprintf(buf, sizeof buf,
-				"% 7d  %3d  %-7s "
-				"%-*s %-*s "
-				"% 4d"
-				,
-        proc->pid, proc->jid, proc->state,
-				max_unam_len, proc->unam,
-				max_gnam_len, proc->gnam,
-				proc->pc_cpu
-				);
+    if(proc->jid == 0){
+      len -= snprintf(buf, sizeof buf,
+                      "% 7d       %-7s "
+                      "%-*s %-*s "
+                      "% 4d"
+                      ,
+                      proc->pid, proc->state_str,
+                      max_unam_len, proc->unam,
+                      max_gnam_len, proc->gnam,
+                      proc->pc_cpu
+                      );
+    } else {
+      len -= snprintf(buf, sizeof buf,
+                      "% 7d  %3d  %-7s "
+                      "%-*s %-*s "
+                      "% 4d"
+                      ,
+                      proc->pid, proc->jid, proc->state_str,
+                      max_unam_len, proc->unam,
+                      max_gnam_len, proc->gnam,
+                      proc->pc_cpu
+                      );
+    }
 		addstr(buf);
 
-		/* if(proc->state == 'R'){ */
-		/* 	int y, x; */
-		/* 	getyx(stdscr, y, x); */
-		/* 	mvchgat(y, 8, 1, 0, COLOR_GREEN + 1, NULL); */
-		/* 	move(y, x); */
-		/* } */
+		if(proc->state == SRUN){
+			int y, x;
+			getyx(stdscr, y, x);
+			mvchgat(y, 8, 1, 0, COLOR_GREEN + 1, NULL);
+			move(y, x);
+		}
+
+		if(proc->state == SZOMB){
+			int y, x;
+			getyx(stdscr, y, x);
+			mvchgat(y, 8, 1, 0, COLOR_MAGENTA + 1, NULL);
+			move(y, x);
+		}
 
 		i = indent;
 		while(i -->= 0){
@@ -407,9 +427,9 @@ void external(const char *cmd, struct myproc *p)
 }
 
 
-void ktrace(struct myproc *p)
+void strace(struct myproc *p)
 {
-	external("ktrace -ti -p", p);
+	external(TRACE_TOOL, p);
 }
 
 void lsof(struct myproc *p)
@@ -432,15 +452,17 @@ void info(struct myproc *p)
 
 	clear();
 	mvprintw(0, 0,
-			"pid: %d, ppid: %d\n"
-			"uid: %d (%s), gid: %d (%s)\n"
-			"state: %s\n"
+           "pid: %d, ppid: %d\n"
+           "uid: %d (%s), gid: %d (%s)\n"
+           "jid: %d\n"
+           "state: %s, nice: %d\n"
            "tty: %s\n"
-			,
-			p->pid, p->ppid,
-			p->uid, p->unam, p->gid, p->gnam,
-			p->state,
-			p->tty);
+           ,
+           p->pid, p->ppid,
+           p->uid, p->unam, p->gid, p->gnam,
+           p->jid,
+           p->state_str, p->nice,
+           p->tty);
 
 	for(i = 0; p->argv[i]; i++)
 		printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
@@ -680,8 +702,8 @@ void gui_run(struct myproc **procs)
 				case LSOF_CHAR:
 					on_curproc("lsof", lsof, 1, procs);
 					break;
-				case STRACE_CHAR:
-					on_curproc("ktrace", ktrace, 1, procs);
+				case TRACE_CHAR:
+					on_curproc(TRACE_TOOL, strace, 1, procs);
 					break;
         case 'a':
           on_curproc("gdb", gdb, 1, procs);

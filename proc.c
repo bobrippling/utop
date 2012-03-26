@@ -92,7 +92,7 @@ void proc_free(struct myproc *p)
  			free(*iter);
   free(p->basename);
   free(p->cmd);
-  free(p->state);
+  free(p->state_str);
  	free(p->argv);
  	free(p->unam);
  	free(p->gnam);
@@ -132,13 +132,12 @@ static void getprocstat(struct procstat *pst)
 	}
 }
 
-char *proc_state(struct kinfo_proc *pp) {
-  char state;
-  char *status = umalloc(16 * sizeof(char));
+const char *proc_state_str(struct kinfo_proc *pp) {
+  static char status[10];
+
+  char state = pp->ki_stat;
 
   if (pp) {
-    state = pp->ki_stat;
-
     switch (state) {
       case SRUN:
         if (pp->ki_oncpu != 0xff)
@@ -358,9 +357,11 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs)
     proc->basename = ustrdup(pp->ki_comm);
     proc->pid = pp->ki_pid;
     proc->ppid = pp->ki_ppid;
-    proc->state = proc_state(pp);
+    proc->state = pp->ki_stat;
+    proc->state_str = ustrdup(proc_state_str(pp));
     proc->uid = pp->ki_ruid;
     proc->gid = pp->ki_rgid;
+    proc->nice = pp->ki_nice;
 
     // Set tty
     char buf[8];
@@ -393,7 +394,7 @@ const char *proc_str(struct myproc *p)
 	static char buf[256];
 
 	snprintf(buf, sizeof buf,
-			"{ pid=%d, ppid=%d, state=%s, cmd=\"%s\" }",
+			"{ pid=%d, ppid=%d, state=%c, cmd=\"%s\" }",
 			p->pid, p->ppid, p->state, p->basename);
 
 	return buf;
@@ -442,8 +443,8 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 					if(p->ppid != 2)
 						count++; /* else it's kthreadd or init */
 
-					/* if(p->state) // TODO */
-					/* 	running++; */
+					if(p->state == SRUN)
+						running++;
 					if(p->uid == global_uid)
 						owned++;
 				}
