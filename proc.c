@@ -312,19 +312,19 @@ static void proc_handle_rename(struct myproc *this)
 
 			this->argv = umalloc((argc+1) * sizeof *this->argv);
 
-			for(i = 0; i < argc; i++){
-				slen += strlen(argv[i]) + 1 /* space */;
-				this->argv[i] = ustrdup(argv[i]);
-			}
+      for(i = 0; i < argc; i++){
+        slen += strlen(argv[i]) + 1 /* space */;
+        this->argv[i] = ustrdup(argv[i]);
+      }
 
-			this->argv[argc] = NULL;
+      this->argv[argc] = NULL;
       this->argc = argc;
 
-			/* recreate this->cmd from argv */
-			free(this->cmd);
-			cmd = this->cmd = umalloc(slen + 1);
-			for(int i = 0; i < argc; i++)
-				cmd += sprintf(cmd, "%s ", argv[i]);
+      /* recreate this->cmd from argv */
+      free(this->cmd);
+      cmd = this->cmd = umalloc(slen + 1);
+      for(int i = 0; i < argc; i++)
+        cmd += sprintf(cmd, "%s ", argv[i]);
 
       if(global_debug){
         fprintf(stderr, "recreated argv for %s\n", this->basename);
@@ -332,7 +332,7 @@ static void proc_handle_rename(struct myproc *this)
           fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
         fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
       }
-		}
+    }
 	}
 }
 
@@ -487,9 +487,11 @@ struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 	struct myproc *p;
 	int i;
 
-	ITER_PROCS(i, p, ps)
-		if(strstr(p->cmd, str) && n-- <= 0)
-			return p;
+  if(str) {
+    ITER_PROCS(i, p, ps)
+        if(p->cmd && strstr(p->cmd, str) && n-- <= 0)
+          return p;
+  }
 
 	return NULL;
 }

@@ -11,7 +11,7 @@
 
 #define INDENT "    "
 
-#define TRACE_TOOL "ktrace -ti -p"
+#define TRACE_TOOL "ktrace"
 // Key bindings
 #define CTRL_AND(c) ((c) & 037)
 
