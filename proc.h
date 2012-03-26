@@ -47,7 +47,7 @@ struct myproc
   gid_t pgrp;
   signed char nice;
 
-	int pc_cpu;
+	double pc_cpu;
 	unsigned long utime, stime, cutime, cstime;
 
 	/* important */
@@ -64,6 +64,7 @@ struct procstat
 	int count, running, owned, zombies;
 	struct timeval boottime;
   double loadavg[3];
+  double fscale;
 	unsigned long cputime_total, cputime_period;
 };
 

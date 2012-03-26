@@ -36,7 +36,7 @@
 
 */
 
-static void proc_update_single(struct myproc *proc, struct myproc **procs);
+static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *ps);
 static void proc_handle_rename(struct myproc *p);
 
 static kvm_t *kd = NULL; // kvm handle
@@ -120,6 +120,8 @@ static void getprocstat(struct procstat *pst)
 
 	for (i = 0; i < 3; i++)
 		pst->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
+
+  pst->fscale = sysload.fscale;
 
 	mib[0] = CTL_KERN;
 	mib[1] = KERN_BOOTTIME;
@@ -346,7 +348,12 @@ static void proc_handle_rename(struct myproc *this)
 	}
 }
 
-static void proc_update_single(struct myproc *proc, struct myproc **procs)
+double pctdouble(fixpt_t pc_cpu, double fscale)
+{
+  return ((double)pc_cpu/fscale)*100; // in %
+}
+
+static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *pst)
 {
   struct kinfo_proc *pp = NULL; // defined in /usr/include/sys/user.h
   int num_procs = 0; // This is the number of processes that kvm_getprocs returns
@@ -362,6 +369,7 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs)
     proc->uid = pp->ki_ruid;
     proc->gid = pp->ki_rgid;
     proc->nice = pp->ki_nice;
+    proc->pc_cpu = pctdouble(pp->ki_pctcpu, pst->fscale);
 
     // Set tty
     char buf[8];
@@ -439,7 +447,7 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 				p = next;
 			}else{
 				if(p){
-					proc_update_single(p, procs);
+					proc_update_single(p, procs, pst);
 					if(p->ppid != 2)
 						count++; /* else it's kthreadd or init */
 

@@ -213,7 +213,7 @@ void showproc(struct myproc *proc, int *py, int indent)
       len -= snprintf(buf, sizeof buf,
                       "% 7d       %-7s "
                       "%-*s %-*s "
-                      "% 4d"
+                      "%.1f"
                       ,
                       proc->pid, proc->state_str,
                       max_unam_len, proc->unam,
@@ -224,7 +224,7 @@ void showproc(struct myproc *proc, int *py, int indent)
       len -= snprintf(buf, sizeof buf,
                       "% 7d  %3d  %-7s "
                       "%-*s %-*s "
-                      "% 4d"
+                      "%.1f"
                       ,
                       proc->pid, proc->jid, proc->state_str,
                       max_unam_len, proc->unam,
@@ -235,16 +235,9 @@ void showproc(struct myproc *proc, int *py, int indent)
 		addstr(buf);
 
 		if(proc->state == SRUN){
-			int y, x;
+      int y, x;
 			getyx(stdscr, y, x);
-			mvchgat(y, 8, 1, 0, COLOR_GREEN + 1, NULL);
-			move(y, x);
-		}
-
-		if(proc->state == SZOMB){
-			int y, x;
-			getyx(stdscr, y, x);
-			mvchgat(y, 8, 1, 0, COLOR_MAGENTA + 1, NULL);
+			mvchgat(y, 14, 8, 0, COLOR_RUNNING + 1, NULL);
 			move(y, x);
 		}
 
@@ -254,7 +247,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 			len -= 2;
 		}
 
-		i = getcurx(stdscr); /* + proc->basename_offset; */
+		i = getcurx(stdscr) + proc->basename_offset;
 
 		addnstr(proc->cmd, COLS - indent - len - 1);
 		clrtoeol();
@@ -271,7 +264,6 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attroff(ATTR_BASENAME);
 		else
 			attroff(ATTR_NOT_OWNED);
-
 	}
 
 	for(p = proc->child_first; p; p = p->child_next){
