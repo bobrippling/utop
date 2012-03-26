@@ -318,8 +318,8 @@ void showprocs(struct myproc **procs, struct procstat *pst)
 
 		y = 1 + pos_y - pos_top;
 
-		mvchgat(y, 0, 36, A_UNDERLINE, 0, NULL);
-		move(y, 35);
+		mvchgat(y, 0, 47, A_UNDERLINE, 0, NULL);
+		move(y, 47);
 	}
 }
 
