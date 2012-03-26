@@ -399,6 +399,41 @@ void delete(struct myproc *p)
 	getch_delay(1);
 }
 
+void renice(struct myproc *p)
+{
+  char increment[3]; // -20 to 20
+	int i, wait = 0;
+
+	STATUS(0, 0, "renice %d (%s) with [-20:20]: ", p->pid, p->basename);
+	echo();
+	getnstr(increment, sizeof increment);
+	noecho();
+
+	if(!*increment)
+		return;
+
+  if(sscanf(increment, "%d", &i) != 1){
+    STATUS(0, 0, "not a number");
+    wait = 1;
+  }else{
+    if( (i < -20) || (i > 20) ){
+      i = -1;
+			STATUS(0, 0, "not a valid nice increment");
+			wait = 1;
+    }
+	}
+
+	if(!wait && i != -1)
+		if((setpriority(PRIO_PROCESS, p->pid, i)) != 0){
+			STATUS(0, 0, "renice: %s", strerror(errno));
+			wait = 1;
+		}
+
+	if(wait)
+		waitch(1, 0);
+	getch_delay(1);
+}
+
 void external(const char *cmd, struct myproc *p)
 {
 	char buf[16];
@@ -687,6 +722,9 @@ void gui_run(struct myproc **procs)
 				case KILL_CHAR:
 					on_curproc("delete", delete, 0, procs);
 					break;
+        case RENICE_CHAR:
+          on_curproc("renice", renice, 0, procs);
+          break;
 				case LSOF_CHAR:
 					on_curproc("lsof", lsof, 1, procs);
 					break;

@@ -20,6 +20,7 @@
 #define DOWN_CHAR 'j'
 #define INFO_CHAR 'i'
 #define KILL_CHAR 'd'
+#define RENICE_CHAR 'r'
 #define LSOF_CHAR 'l'
 #define TRACE_CHAR 's'
 #define GOTO_LOCKED_CHAR 'o'
