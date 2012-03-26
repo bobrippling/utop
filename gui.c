@@ -196,11 +196,6 @@ void showproc(struct myproc *proc, int *py, int indent)
 		int len = LINES;
 		int lock = proc->pid == lock_proc_pid;
 
-#define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
-#define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
-#define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
-#define ATTR_LOCK      A_BOLD | COLOR_PAIR(1 + COLOR_YELLOW)
-
 		move(y, 0);
 
 		if(lock)
@@ -238,7 +233,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 		if(proc->state == SRUN){
       int y, x;
 			getyx(stdscr, y, x);
-			mvchgat(y, 14, 8, 0, COLOR_RUNNING + 1, NULL);
+			mvchgat(y, 14, 7, 0, COLOR_RUNNING + 1, NULL);
 			move(y, x);
 		}
 
