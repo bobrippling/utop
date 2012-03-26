@@ -11,6 +11,7 @@
 
 #define INDENT "    "
 
+#define TRACE_TOOL "ktrace -ti -p"
 // Key bindings
 #define CTRL_AND(c) ((c) & 037)
 
@@ -20,7 +21,7 @@
 #define INFO_CHAR 'i'
 #define KILL_CHAR 'd'
 #define LSOF_CHAR 'l'
-#define STRACE_CHAR 's'
+#define TRACE_CHAR 's'
 #define GOTO_LOCKED_CHAR 'o'
 #define GOTO_$$_CHAR 'O'
 #define SCROLL_TO_TOP_CHAR 'g'
