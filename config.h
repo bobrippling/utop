@@ -9,7 +9,7 @@
 /* 60s */
 #define FULL_WAIT_TIME (WAIT_TIME * 60)
 
-#define INDENT "    "
+#define INDENT 4
 
 #define TRACE_TOOL "ktrace"
 // Key bindings

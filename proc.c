@@ -318,54 +318,65 @@ static void proc_handle_rename(struct myproc *this)
 	int num_procs = 0;
 
 	if((proc = kvm_getprocs(kd, KERN_PROC_PID, this->pid, &num_procs)) != NULL){
+
+    char **iter, **argv;
+
+    /* dup argv */
+    int i, argc, slen;
+    char *cmd;
+
+    argv = kvm_getargv(kd, proc, 0);
+    argc = slen = 0;
+
+    if(argv) {
+      /* free old argv */
+      for(i = 0; i < this->argc; i++)
+        free(this->argv[i]);
+      free(this->argv);
+
+
+      for(iter = argv; *iter; iter++)
+        argc++;
+
+      this->argv = umalloc((argc+1) * sizeof *this->argv); // + NULL terminator
+
+      for(i = 0; i < argc; i++){
+        slen += strlen(argv[i]) + 1 /* space */;
+        this->argv[i] = ustrdup(argv[i]);
+      }
+
+      this->argv[argc] = NULL;
+      this->argc = argc;
+    } else { // argv is empty like for init for example
+      fprintf(stderr, "argv empty for %d\n", this->pid);
+
+      this->argv = umalloc((argc+2)*sizeof(char*));
+      this->argv[0] = ustrdup(this->basename);
+      this->argv[1] = NULL;
+
+      slen = strlen(this->basename);
+      argc = 1;
+    }
+
+    /* recreate this->cmd from argv */
+    free(this->cmd);
+
     if(this->flag & P_SYSTEM){ // it's a system process, render it nicely like top does
       this->cmd = umalloc(strlen(this->basename)+2); // [this->basename]
       sprintf(this->cmd, "[%s]", this->basename);
     } else {
-      char **iter, **argv;
-
-      argv = kvm_getargv(kd, proc, 0);
-
-      /* dup argv */
-      if(argv){
-        int i, argc, slen;
-        char *cmd;
-
-        /* free old argv */
-        for(i = 0; i < this->argc; i++)
-          free(this->argv[i]);
-        free(this->argv);
-
-        argc = slen = 0;
-
-        for(iter = argv; *iter; iter++)
-          argc++;
-
-        this->argv = umalloc((argc+1) * sizeof *this->argv);
-
-        for(i = 0; i < argc; i++){
-          slen += strlen(argv[i]) + 1 /* space */;
-          this->argv[i] = ustrdup(argv[i]);
-        }
-
-        this->argv[argc] = NULL;
-        this->argc = argc;
-
-        /* recreate this->cmd from argv */
-        free(this->cmd);
-        cmd = this->cmd = umalloc(slen + 1);
-        for(int i = 0; i < argc; i++)
-          cmd += sprintf(cmd, "%s ", argv[i]);
-
-        if(global_debug){
-          fprintf(stderr, "recreated argv for %s\n", this->basename);
-          for(i = 0; this->argv[i]; i++)
-            fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
-          fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
-        }
-      }
+      cmd = this->cmd = umalloc(slen + 1);
+      for(int i = 0; i < argc; i++)
+        cmd += sprintf(cmd, "%s ", this->argv[i]);
     }
-	}
+
+    if(global_debug){
+      fprintf(stderr, "recreated argv for %s\n", this->basename);
+      for(i = 0; this->argv[i]; i++)
+        fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
+      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
+    }
+  }
 }
 
 double pctdouble(fixpt_t pc_cpu, double fscale)

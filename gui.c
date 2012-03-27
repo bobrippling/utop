@@ -15,17 +15,6 @@
 #include "config.h"
 #include "util.h"
 
-#define HALF_DELAY_TIME 10
-
-/* 1000ms */
-#define WAIT_TIME (HALF_DELAY_TIME * 100)
-/* 60s */
-#define FULL_WAIT_TIME (WAIT_TIME * 60)
-
-#define LOCK_CHAR CTRL_AND('k')
-
-#define CTRL_AND(c) ((c) & 037)
-#define INDENT "    "
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
 
@@ -153,21 +142,21 @@ void showproc(struct myproc *proc, int *py, int indent)
 {
 	struct myproc *p;
 	int y = *py;
-	int i;
 
 	proc->displayed = 1;
 
 	if(y >= LINES)
 		return; /* FIXME */
 
-	if(y > 0){
+	if(y > 0){ // otherwise we're iterating over a process that's above pos_top
 		extern uid_t global_uid;
-		const int owned = proc->uid == global_uid;
 		extern int max_unam_len, max_gnam_len;
 
+    const int owned = proc->uid == global_uid;
 		char buf[256];
 		int len = LINES;
 		int lock = proc->pid == lock_proc_pid;
+		int x;
 
 		move(y, 0);
 
@@ -205,27 +194,34 @@ void showproc(struct myproc *proc, int *py, int indent)
     }
 		addstr(buf);
 
+    getyx(stdscr, y, x);
+
 		if(proc->state == SRUN){
-      int y, x;
-      getyx(stdscr, y, x);
 			mvchgat(y, 14, 7, 0, COLOR_RUNNING + 1, NULL);
       move(y, x);
     }
+    clrtoeol();
 
-		i = indent;
-		while(i -->= 0){
-			addstr(INDENT);
-			len -= 2;
-		}
+		/* position for process name */
+    // TODO: add some define that adjusts offset here
+		x+=5; /* one after the state */
+		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
+			x += INDENT;
 
-		i = getcurx(stdscr) + proc->basename_offset;
+		mvprintw(y, x, "%s", proc->cmd, COLS - indent - len - 1);
 
-		addnstr(proc->cmd, COLS - indent - len - 1);
-		clrtoeol();
+		/* basename shading */
+		if(owned && !lock){
+			const int bn_len = strlen(proc->basename);
+			int min_len = COLS - indent - len - 1;
 
-		if(owned && !lock)
+			if(min_len > bn_len)
+				min_len = bn_len;
+
+			x += proc->basename_offset;
 			attron(ATTR_BASENAME);
-		mvaddnstr(y, i, proc->cmd, COLS - indent - len - 1);
+			mvaddnstr(y, x, proc->basename, min_len);
+		}
 
 		if(lock)
 			attroff(ATTR_LOCK);
@@ -239,6 +235,10 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attroff(ATTR_NOT_OWNED);
 	}
 
+	/*
+	 * need to iterate over all children,
+	 * since we may currently be on a process above the top
+	 */
 	for(p = proc->child_first; p; p = p->child_next){
 		y++;
 		showproc(p, &y, indent + 1);
@@ -250,7 +250,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 void showprocs(struct myproc **procs, struct procstat *pst)
 {
-	int y = -pos_top + 1;
+	int y = -pos_top + 2; // 2 status lines
 	struct myproc *topproc;
 
 	procs_mark_undisplayed(procs);
@@ -258,7 +258,10 @@ void showprocs(struct myproc **procs, struct procstat *pst)
 	for(topproc = gui_proc_first(procs); topproc; topproc = proc_undisplayed(procs))
 		showproc(topproc, &y, 0);
 
-	clrtobot();
+	if(++y < LINES){
+		move(y, 0);
+		clrtobot();
+	}
 
 	if(search){
 		const int red = !search_proc && *search_str;;
