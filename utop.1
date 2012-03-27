@@ -6,9 +6,13 @@
 utop \- process control
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-utop [\-f]
+utop [\-f] [\-d]
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
+.B utop
+is a simple tree-rendering process monitor.
+.SH "UTOP COMMANDS"
+.IX Header "UTOP COMMANDS"
 .SS "Normal Modes Keys"
 .IX Subsection "Normal Modes Keys"
 / - enter search
@@ -55,9 +59,17 @@ Note: the "selected process" is overridden by the locked process
 \fB\-f\fR
 Don't prompt for lsof, strace and kill
 .PP
+\fB\-d\fR
+Enable debug messages on stderr
+.PP
+.SH AUTHORS
+.IX Header "AUTHORS"
+Rob Pilling <robpilling@gmail.com>
+.PP
+Florian Unglaub <f.unglaub@gmail.com>
 .SH "NOTES"
 .IX Header "NOTES"
 Bugless software!
 .SH "SEE ALSO"
 .IX Header "SEE ALSO"
-top (1), htop (1)
+top (1), htop (1), ps (1), kvm (3), sysctl (3)
