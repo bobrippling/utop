@@ -153,12 +153,11 @@ void showproc(struct proc *proc, int *py, int indent)
 {
 	struct proc *p;
 	int y = *py;
-	int i;
 
 	if(y >= LINES)
 		return;
 
-	if(y > 0){
+	if(y > 0){ // otherwise we're iterating over a process that's above pos_top
 		extern int global_uid;
 		extern int max_unam_len, max_gnam_len;
 
@@ -166,6 +165,7 @@ void showproc(struct proc *proc, int *py, int indent)
 		char buf[256];
 		int len = LINES;
 		int lock = proc->pid == lock_proc_pid;
+		int x;
 
 		move(y, 0);
 
@@ -184,31 +184,38 @@ void showproc(struct proc *proc, int *py, int indent)
 				proc->pid, proc->state,
 				max_unam_len, proc->unam,
 				max_gnam_len, proc->gnam,
-				proc->pc_cpu
-				);
+				proc->pc_cpu);
+
 		addstr(buf);
 
+		getyx(stdscr, y, x);
+
 		if(proc->state == 'R'){
-			int y, x;
-			getyx(stdscr, y, x);
 			mvchgat(y, 8, 1, 0, COLOR_GREEN + 1, NULL);
 			move(y, x);
 		}
-
-		i = indent;
-		while(i -->= 0){
-			addstr(INDENT);
-			len -= 2;
-		}
-
-		i = getcurx(stdscr) + proc->basename_offset;
-
-		addnstr(proc->cmd, COLS - indent - len - 1);
 		clrtoeol();
 
-		if(owned && !lock)
+
+		/* position for process name */
+		x++; /* one after the state */
+		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
+			x += INDENT;
+
+		mvprintw(y, x, "%s", proc->cmd, COLS - indent - len - 1);
+
+		/* basename shading */
+		if(owned && !lock){
+			const int bn_len = strlen(proc->basename);
+			int min_len = COLS - indent - len - 1;
+
+			if(min_len > bn_len)
+				min_len = bn_len;
+
+			x += proc->basename_offset;
 			attron(ATTR_BASENAME);
-		mvaddnstr(y, i, proc->basename, COLS - indent - len - 1);
+			mvaddnstr(y, x, proc->basename, min_len);
+		}
 
 		if(lock)
 			attroff(ATTR_LOCK);
@@ -221,6 +228,10 @@ void showproc(struct proc *proc, int *py, int indent)
 
 	}
 
+	/*
+	 * need to iterate over all children,
+	 * since we may currently be on a process above the top
+	 */
 	for(p = proc->child_first; p; p = p->child_next){
 		y++;
 		showproc(p, &y, indent + 1);
@@ -235,7 +246,10 @@ void showprocs(struct proc **procs, struct procstat *pst)
 
 	showproc(proc_get(procs, 1), &y, 0);
 
-	clrtobot();
+	if(++y < LINES){
+		move(y, 0);
+		clrtobot();
+	}
 
 	if(search){
 		const int red = !search_proc && *search_str;;

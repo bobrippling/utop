@@ -9,7 +9,7 @@
 /* 60s */
 #define FULL_WAIT_TIME (WAIT_TIME * 60)
 
-#define INDENT "    "
+#define INDENT 4
 
 // Key bindings
 #define CTRL_AND(c) ((c) & 037)
