@@ -12,6 +12,12 @@
 	for(i = 0; i < HASH_TABLE_SIZE; i++) \
 	  for(p = ps[i]; p; p = p->hash_next)
 
+
+/* define pagetok in terms of pageshift */
+static int pageshift;		/* log base 2 of the pagesize */
+#define LOG1024 10 // log_2(1024)
+#define pagetok(size) ((size) << LOG1024)
+
 /* Processes are saved into a hash table with size HASH_TABLE_SIZE and
  * key pid % HASH_TABLE_SIZE. If the key already exists, the new
  * element is appended to the last one throught hash_next:
@@ -24,36 +30,22 @@
 
 */
 
-static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *ps);
-static void proc_handle_rename(struct myproc *p);
-
-static kvm_t *kd = NULL; // kvm handle
-
-// States taken from top(8)
-/* these are for detailing the cpu states */
-int cpu_states[CPUSTATES];
-char *cpustatenames[] = {
-	"user", "nice", "system", "interrupt", "idle", NULL
+// Take from top(8)
+char *state_abbrev[] = {
+  "", "START", "RUN\0\0\0", "SLEEP", "STOP", "ZOMB", "WAIT", "LOCK"
 };
 
 /* these are for detailing the memory statistics */
-
-int memory_stats[7];
 char *memorynames[] = {
 	"K Active, ", "K Inact, ", "K Wired, ", "K Cache, ", "K Buf, ",
 	"K Free", NULL
 };
 
-int swap_stats[7];
-char *swapnames[] = {
-	"K Total, ", "K Used, ", "K Free, ", "% Inuse, ", "K In, ", "K Out",
-	NULL
-};
+static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *ps);
+static void proc_handle_rename(struct myproc *p);
 
-// Process states - short form
-const char *state_abbrev[] = {
-  "", "START", "RUN\0\0\0", "SLEEP", "STOP", "ZOMB", "WAIT", "LOCK"
-};
+static kvm_t *kd = NULL; // kvm handle
+
 
 // Taken from top(8)
 static void getsysctl(const char *name, void *ptr, size_t len)
@@ -91,26 +83,30 @@ void proc_free(struct myproc *p)
 static void getprocstat(struct procstat *pst)
 {
 	struct loadavg sysload;
-  int i, mib[2];
+  int i, mib[2], pagesize;
 	size_t bt_size;
   struct timeval boottime;
 
-#ifdef CPU_PERCENTAGE
-  // TODO
-#endif
+	/* get the page size and calculate pageshift from it */
+	pagesize = getpagesize();
+	pageshift = 0;
+	while (pagesize > 1) {
+		pageshift++;
+		pagesize >>= 1;
+	}
 
-#define NIL(x) if(!x) x = 1
-	NIL(pst->cputime_total);
-	NIL(pst->cputime_period);
-#undef NIL
+	/* we only need the amount of log(2)1024 for our conversion */
+	pageshift -= LOG1024;
 
+  // Load average
 	GETSYSCTL("vm.loadavg", sysload);
-
 	for (i = 0; i < 3; i++)
 		pst->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
 
   pst->fscale = sysload.fscale;
 
+  // TODO: do this only once, not continously
+  // Get the boottime from the kernel to calculate uptime
 	mib[0] = CTL_KERN;
 	mib[1] = KERN_BOOTTIME;
 	bt_size = sizeof(boottime);
@@ -120,6 +116,25 @@ static void getprocstat(struct procstat *pst)
 	} else {
 		pst->boottime.tv_sec = -1;
 	}
+
+  // Memory stuff
+  static long bufspace = 0;
+  static int memory_stats[7];
+
+  GETSYSCTL("vfs.bufspace", bufspace);
+  GETSYSCTL("vm.stats.vm.v_active_count", memory_stats[0]);
+  GETSYSCTL("vm.stats.vm.v_inactive_count", memory_stats[1]);
+  GETSYSCTL("vm.stats.vm.v_wire_count", memory_stats[2]);
+  GETSYSCTL("vm.stats.vm.v_cache_count", memory_stats[3]);
+  GETSYSCTL("vm.stats.vm.v_free_count", memory_stats[5]);
+  /* convert memory stats to Kbytes */
+  pst->memory[0] = pagetok(memory_stats[0]);
+  pst->memory[1] = pagetok(memory_stats[1]);
+  pst->memory[2] = pagetok(memory_stats[2]);
+  pst->memory[3] = pagetok(memory_stats[3]);
+  pst->memory[4] = bufspace / 1024;
+  pst->memory[5] = pagetok(memory_stats[5]);
+  pst->memory[6] = -1;
 }
 
 const char *proc_state_str(struct kinfo_proc *pp) {
@@ -190,6 +205,8 @@ struct myproc *proc_new(struct kinfo_proc *pp) {
   this->pid  = pp->ki_pid;
   this->ppid = -1;
   this->jid = pp->ki_jid;
+  this->state = pp->ki_stat;
+  this->flag = pp->ki_flag;
 
   proc_handle_rename(this);
 
@@ -232,7 +249,6 @@ void proc_addto(struct myproc **procs, struct myproc *p)
 // initialize hash table and kvm
 struct myproc **proc_init()
 {
-
 	if((kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL)) == NULL){
 		perror("kd");
 		abort();
@@ -273,7 +289,22 @@ void proc_listall(struct myproc **procs, struct procstat *stat)
       if(!proc_listcontains(procs, pp->ki_pid)) {
         struct myproc *p = proc_new(pp);
 
-        // Skip zombies here
+        // TODO: (code from top)
+        /* if (!show_kidle && pp->ki_tdflags & TDF_IDLETD) */
+        /*   /\* skip kernel idle process *\/ */
+        /*   continue; */
+        /* if (pp->ki_stat == 0) */
+        /*   /\* not in use *\/ */
+        /*   continue; */
+
+        /* if (!show_self && pp->ki_pid == sel->self) */
+        /*   /\* skip self *\/ */
+        /*   continue; */
+
+        /* if (!show_system && (pp->ki_flag & P_SYSTEM)) */
+        /*   /\* skip system process *\/ */
+        /*   continue; */
+
         if(p) {
           proc_addto(procs, p);
           stat->count++;
@@ -291,46 +322,51 @@ static void proc_handle_rename(struct myproc *this)
 	int num_procs = 0;
 
 	if((proc = kvm_getprocs(kd, KERN_PROC_PID, this->pid, &num_procs)) != NULL){
-		char **iter, **argv;
+    if(this->flag & P_SYSTEM){ // it's a system process, render it nicely like top does
+      this->cmd = umalloc(strlen(this->basename)+2); // [this->basename]
+      sprintf(this->cmd, "[%s]", this->basename);
+    } else {
+      char **iter, **argv;
 
-		argv = kvm_getargv(kd, proc, 0);
+      argv = kvm_getargv(kd, proc, 0);
 
-		/* dup argv */
-		if(argv){
-			int i, argc, slen;
-			char *cmd;
+      /* dup argv */
+      if(argv){
+        int i, argc, slen;
+        char *cmd;
 
-			/* free old argv */
-      for(i = 0; i < this->argc; i++)
-        free(this->argv[i]);
-      free(this->argv);
+        /* free old argv */
+        for(i = 0; i < this->argc; i++)
+          free(this->argv[i]);
+        free(this->argv);
 
-			argc = slen = 0;
+        argc = slen = 0;
 
-			for(iter = argv; *iter; iter++)
-				argc++;
+        for(iter = argv; *iter; iter++)
+          argc++;
 
-			this->argv = umalloc((argc+1) * sizeof *this->argv);
+        this->argv = umalloc((argc+1) * sizeof *this->argv);
 
-      for(i = 0; i < argc; i++){
-        slen += strlen(argv[i]) + 1 /* space */;
-        this->argv[i] = ustrdup(argv[i]);
-      }
+        for(i = 0; i < argc; i++){
+          slen += strlen(argv[i]) + 1 /* space */;
+          this->argv[i] = ustrdup(argv[i]);
+        }
 
-      this->argv[argc] = NULL;
-      this->argc = argc;
+        this->argv[argc] = NULL;
+        this->argc = argc;
 
-      /* recreate this->cmd from argv */
-      free(this->cmd);
-      cmd = this->cmd = umalloc(slen + 1);
-      for(int i = 0; i < argc; i++)
-        cmd += sprintf(cmd, "%s ", argv[i]);
+        /* recreate this->cmd from argv */
+        free(this->cmd);
+        cmd = this->cmd = umalloc(slen + 1);
+        for(int i = 0; i < argc; i++)
+          cmd += sprintf(cmd, "%s ", argv[i]);
 
-      if(global_debug){
-        fprintf(stderr, "recreated argv for %s\n", this->basename);
-        for(i = 0; this->argv[i]; i++)
+        if(global_debug){
+          fprintf(stderr, "recreated argv for %s\n", this->basename);
+          for(i = 0; this->argv[i]; i++)
+            fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
           fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
-        fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
+        }
       }
     }
 	}
@@ -358,6 +394,7 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs, struc
     proc->gid = pp->ki_rgid;
     proc->nice = pp->ki_nice;
     proc->pc_cpu = pctdouble(pp->ki_pctcpu, pst->fscale);
+    proc->flag = pp->ki_flag;
 
     // Set tty
     char buf[8];
@@ -390,8 +427,8 @@ const char *proc_str(struct myproc *p)
 	static char buf[256];
 
 	snprintf(buf, sizeof buf,
-			"{ pid=%d, ppid=%d, state=%c, cmd=\"%s\" }",
-			p->pid, p->ppid, p->state, p->basename);
+			"{ pid=%d, ppid=%d, state=%d, cmd=\"%s\" }",
+           p->pid, p->ppid, (int)p->state, p->basename);
 
 	return buf;
 }
@@ -412,7 +449,7 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 
 		change_me = &procs[i];
 		for(p = procs[i]; p; ) {
-			if(kvm_getprocs(kd, KERN_PROC_PID, p->pid, &num_procs) == NULL) {
+			if(kvm_getprocs(kd, KERN_PROC_PID, p->pid, &num_procs) == NULL) { // process doesn't exist anymore
 				struct myproc *next = p->hash_next;
 				struct myproc *parent = proc_get(procs, p->ppid);
 
@@ -430,14 +467,13 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 				}
 
 				*change_me = next;
-        if (p)
-          proc_free(p);
+        proc_free(p);
+        pst->count--;
 				p = next;
 			}else{
 				if(p){
 					proc_update_single(p, procs, pst);
-					if(p->ppid != 2)
-						count++; /* else it's kthreadd or init */
+          count++;
 
 					if(p->state == SRUN)
 						running++;
@@ -457,6 +493,9 @@ void proc_update(struct myproc **procs, struct procstat *pst)
   pst->zombies = zombies;
 
   proc_listall(procs, pst);
+  FILE *fp = fopen("./log", "w+");
+  proc_dump(procs, fp);
+  fclose(fp);
 }
 
 void proc_handle_renames(struct myproc **ps)

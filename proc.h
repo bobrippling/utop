@@ -26,6 +26,18 @@
 #include <vis.h>
 #include <grp.h>
 
+extern char *state_abbrev[];
+extern char *memorynames[];
+
+// Process states - short form
+// SIDL	1		/* Process being created by fork. */
+// SRUN	2		/* Currently runnable. */
+// SSLEEP	3		/* Sleeping on an address. */
+// SSTOP	4		/* Process debugging or suspension. */
+// SZOMB	5		/* Awaiting collection by parent. */
+// SWAIT	6		/* Waiting for interrupt. */
+// SLOCK	7		/* Blocked on a lock. */
+
 struct myproc
 {
 	pid_t pid, ppid;
@@ -45,6 +57,7 @@ struct myproc
   char *tty;
   gid_t pgrp;
   signed char nice;
+  long flag; // P* flags
 
 	double pc_cpu;
 	unsigned long utime, stime, cutime, cstime;
@@ -65,6 +78,8 @@ struct procstat
   double loadavg[3];
   double fscale;
 	unsigned long cputime_total, cputime_period;
+
+  int memory[7];
 };
 
 struct myproc **proc_init();

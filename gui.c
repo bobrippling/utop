@@ -149,33 +149,6 @@ void goto_lock(struct myproc **procs)
 	}
 }
 
-
-const char *uptime_from_boottime(time_t boottime)
-{
-  static char buf[64]; // Should be sufficient
-  time_t now;
-  struct tm *ltime;
-  unsigned long int diff_secs; // The difference between now and the epoch
-  unsigned long int rest;
-  unsigned int days, hours, minutes, seconds;
-
-  time(&now);
-  ltime = localtime(&now);
-
-  diff_secs = now-boottime;
-
-  days = diff_secs/86400;
-  rest = diff_secs % 86400;
-  hours = rest / 3600;
-  rest = rest % 3600;
-  minutes = rest/60;
-  rest = rest % 60;
-  seconds = (unsigned int)rest;
-
-  snprintf(buf, sizeof buf, "up %d+%02d:%02d:%02d  %2d:%2d:%2d", days, hours, minutes, seconds, ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
-  return buf;
-}
-
 void showproc(struct myproc *proc, int *py, int indent)
 {
 	struct myproc *p;
@@ -202,10 +175,12 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attron(ATTR_LOCK);
 		else if(proc == search_proc)
 			attron(ATTR_SEARCH);
+    else if(proc->flag & P_JAILED)
+      attron(ATTR_JAILED);
 		else if(!owned)
 			attron(ATTR_NOT_OWNED);
 
-    if(proc->jid == 0){
+    if(!(proc->flag & P_JAILED)){ // non-jailed processes
       len -= snprintf(buf, sizeof buf,
                       "% 7d       %-7s "
                       "%-*s %-*s "
@@ -216,7 +191,7 @@ void showproc(struct myproc *proc, int *py, int indent)
                       max_gnam_len, proc->gnam,
                       proc->pc_cpu
                       );
-    } else {
+    } else { // processes in a jail; display Jail ID
       len -= snprintf(buf, sizeof buf,
                       "% 7d  %3d  %-7s "
                       "%-*s %-*s "
@@ -232,10 +207,10 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 		if(proc->state == SRUN){
       int y, x;
-			getyx(stdscr, y, x);
+      getyx(stdscr, y, x);
 			mvchgat(y, 14, 7, 0, COLOR_RUNNING + 1, NULL);
-			move(y, x);
-		}
+      move(y, x);
+    }
 
 		i = indent;
 		while(i -->= 0){
@@ -258,6 +233,8 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attroff(ATTR_SEARCH);
 		else if(owned)
 			attroff(ATTR_BASENAME);
+    else if(proc->flag & P_JAILED)
+			attroff(ATTR_JAILED);
 		else
 			attroff(ATTR_NOT_OWNED);
 	}
@@ -310,9 +287,19 @@ void showprocs(struct myproc **procs, struct procstat *pst)
 
 		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
            pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_from_boottime(pst->boottime.tv_sec));
+
+    // Mem stuf
+    STATUS(1, 0, "Mem: %d%s%d%s%d%s%d%s%d%s%d%s",
+           pst->memory[0], memorynames[0],
+           pst->memory[1], memorynames[1],
+           pst->memory[2], memorynames[2],
+           pst->memory[3], memorynames[3],
+           pst->memory[4] ,memorynames[4],
+           pst->memory[5], memorynames[5]);
+
 		clrtoeol();
 
-		y = 1 + pos_y - pos_top;
+		y = 2 + pos_y - pos_top;
 
 		mvchgat(y, 0, 47, A_UNDERLINE, 0, NULL);
 		move(y, 47);
@@ -478,13 +465,13 @@ void info(struct myproc *p)
            "pid: %d, ppid: %d\n"
            "uid: %d (%s), gid: %d (%s)\n"
            "jid: %d\n"
-           "state: %s, nice: %d\n"
+           "state: %s (%s), nice: %d\n"
            "tty: %s\n"
            ,
            p->pid, p->ppid,
            p->uid, p->unam, p->gid, p->gnam,
            p->jid,
-           p->state_str, p->nice,
+           p->state_str, state_abbrev[(int)p->state], p->nice,
            p->tty);
 
 	for(i = 0; p->argv[i]; i++)
