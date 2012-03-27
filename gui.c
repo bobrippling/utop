@@ -493,8 +493,8 @@ lock_proc:
 				break;
 
 			case SEARCH_NEXT_CHAR:
-        search_offset++;
-        break;
+				search_offset++;
+				break;
 			case SEARCH_PREVIOUS_CHAR:
 				if(search_offset > 0)
 					search_offset--;

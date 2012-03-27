@@ -28,7 +28,7 @@ struct proc
 struct procstat
 {
 	int count, running, owned, zombies;
-  double loadavg[3];
+	double loadavg[3];
 	unsigned long cputime_total, cputime_period, uptime_secs;
 };
 

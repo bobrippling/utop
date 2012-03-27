@@ -87,18 +87,18 @@ static void getprocstat(struct procstat *pst)
 
   if((f = fopen("/proc/uptime", "r"))){
     for(;;) {
-      unsigned long uptime_secs; 
+      unsigned long uptime_secs;
 
       if(!fgets(buf, sizeof buf - 1, f))
         break;
 
-      if(sscanf(buf, "%lu", &uptime_secs)) {
+      if(sscanf(buf, "%lu", &uptime_secs) == 1) {
         pst->uptime_secs = uptime_secs;
       }
-      break; 
+      break;
     }
+    fclose(f);
   }
-  fclose(f);
 
   if((f = fopen("/proc/loadavg", "r"))){
     for(;;) {
@@ -107,15 +107,15 @@ static void getprocstat(struct procstat *pst)
       if(!fgets(buf, sizeof buf - 1, f))
         break;
 
-      if(sscanf(buf, "%lf %lf %lf", &avg_1, &avg_5, &avg_15)) {
+      if(sscanf(buf, "%lf %lf %lf", &avg_1, &avg_5, &avg_15) == 3) {
         pst->loadavg[0] = avg_1;
         pst->loadavg[1] = avg_5;
         pst->loadavg[2] = avg_15;
       }
-      break; 
+      break;
     }
+    fclose(f);
   }
-  fclose(f);
 
 #define NIL(x) if(!x) x = 1
 	NIL(pst->cputime_total);
@@ -450,7 +450,7 @@ void proc_update(struct proc **procs, struct procstat *pst)
 	pst->count   = count;
 	pst->running = running;
 	pst->owned   = owned;
-  pst->zombies = zombies;
+	pst->zombies = zombies;
 
 	proc_listall(procs, pst);
 }
