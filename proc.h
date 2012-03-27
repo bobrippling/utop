@@ -26,8 +26,14 @@
 #include <vis.h>
 #include <grp.h>
 
+// defined in proc.c
 extern char *state_abbrev[];
 extern char *memorynames[];
+extern int pageshift;
+
+/* define pagetok in terms of pageshift */
+#define LOG1024 10 // log_2(1024)
+#define pagetok(size) ((size) << pageshift)
 
 // Process states - short form
 // SIDL	1		/* Process being created by fork. */

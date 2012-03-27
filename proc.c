@@ -12,12 +12,6 @@
 	for(i = 0; i < HASH_TABLE_SIZE; i++) \
 	  for(p = ps[i]; p; p = p->hash_next)
 
-
-/* define pagetok in terms of pageshift */
-static int pageshift;		/* log base 2 of the pagesize */
-#define LOG1024 10 // log_2(1024)
-#define pagetok(size) ((size) << LOG1024)
-
 /* Processes are saved into a hash table with size HASH_TABLE_SIZE and
  * key pid % HASH_TABLE_SIZE. If the key already exists, the new
  * element is appended to the last one throught hash_next:
@@ -40,6 +34,7 @@ char *memorynames[] = {
 	"K Active, ", "K Inact, ", "K Wired, ", "K Cache, ", "K Buf, ",
 	"K Free", NULL
 };
+
 
 static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *ps);
 static void proc_handle_rename(struct myproc *p);
@@ -86,6 +81,7 @@ static void getprocstat(struct procstat *pst)
   int i, mib[2], pagesize;
 	size_t bt_size;
   struct timeval boottime;
+  static int pageshift;
 
 	/* get the page size and calculate pageshift from it */
 	pagesize = getpagesize();
