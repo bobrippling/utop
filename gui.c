@@ -7,22 +7,13 @@
 #include <signal.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "proc.h"
 #include "gui.h"
 #include "util.h"
+#include "config.h"
 
-#define HALF_DELAY_TIME 10
-
-/* 1000ms */
-#define WAIT_TIME (HALF_DELAY_TIME * 100)
-/* 60s */
-#define FULL_WAIT_TIME (WAIT_TIME * 60)
-
-#define LOCK_CHAR CTRL_AND('k')
-
-#define CTRL_AND(c) ((c) & 037)
-#define INDENT "    "
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
 
@@ -67,14 +58,14 @@ void gui_init()
 			start_color();
 			use_default_colors();
 
-			init_pair(1 + COLOR_BLACK  , COLOR_BLACK  , -1);
-			init_pair(1 + COLOR_GREEN  , COLOR_GREEN  , -1);
-			init_pair(1 + COLOR_WHITE  , COLOR_WHITE  , -1);
-			init_pair(1 + COLOR_RED    , COLOR_RED    , -1);
-			init_pair(1 + COLOR_CYAN   , COLOR_CYAN   , -1);
-			init_pair(1 + COLOR_MAGENTA, COLOR_MAGENTA, -1);
-			init_pair(1 + COLOR_BLUE   , COLOR_BLUE   , -1);
-			init_pair(1 + COLOR_YELLOW , COLOR_YELLOW , -1);
+			init_pair(1 + COLOR_BLACK   , COLOR_BLACK  , -1);
+			init_pair(1 + COLOR_GREEN   , COLOR_GREEN  , -1);
+			init_pair(1 + COLOR_WHITE   , COLOR_WHITE  , -1);
+			init_pair(1 + COLOR_RED     , COLOR_RED    , -1);
+			init_pair(1 + COLOR_CYAN    , COLOR_CYAN   , -1);
+			init_pair(1 + COLOR_MAGENTA , COLOR_MAGENTA, -1);
+			init_pair(1 + COLOR_BLUE    , COLOR_BLUE   , -1);
+			init_pair(1 + COLOR_YELLOW  , COLOR_YELLOW , -1);
 		}
 	}
 }
@@ -135,6 +126,29 @@ void goto_lock(struct proc **procs)
 	}
 }
 
+const char *uptime_to_str(long unsigned diff_secs)
+{
+  static char buf[64]; // Should be sufficient
+  time_t now;
+  struct tm *ltime;
+  unsigned long int rest;
+  unsigned int days, hours, minutes, seconds;
+
+  time(&now);
+  ltime = localtime(&now);
+
+  days = diff_secs/86400;
+  rest = diff_secs % 86400;
+  hours = rest / 3600;
+  rest = rest % 3600;
+  minutes = rest/60;
+  rest = rest % 60;
+  seconds = (unsigned int)rest;
+
+  snprintf(buf, sizeof buf, "up %d+%02d:%02d:%02d  %2d:%2d:%2d", days, hours, minutes, seconds, ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
+  return buf;
+}
+
 void showproc(struct proc *proc, int *py, int indent)
 {
 	struct proc *p;
@@ -152,11 +166,6 @@ void showproc(struct proc *proc, int *py, int indent)
 		char buf[256];
 		int len = LINES;
 		int lock = proc->pid == lock_proc_pid;
-
-#define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
-#define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
-#define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
-#define ATTR_LOCK      A_BOLD | COLOR_PAIR(1 + COLOR_YELLOW)
 
 		move(y, 0);
 
@@ -250,8 +259,8 @@ void showprocs(struct proc **procs, struct procstat *pst)
 	}else{
 		int y;
 
-		STATUS(0, 0, "%d processes, %d running, %d owned",
-			pst->count, pst->running, pst->owned);
+		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2lf, %.2lf, %.2lf, uptime: %s",
+			pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_to_str(pst->uptime_secs));
 		clrtoeol();
 
 		y = 1 + pos_y - pos_top;
@@ -483,8 +492,10 @@ lock_proc:
 				do_lock = 1;
 				break;
 
-			case CTRL_AND('n'): search_offset++; break;
-			case CTRL_AND('p'):
+			case SEARCH_NEXT_CHAR:
+        search_offset++;
+        break;
+			case SEARCH_PREVIOUS_CHAR:
 				if(search_offset > 0)
 					search_offset--;
 				break;
@@ -496,7 +507,7 @@ backspace:
 					search = 0;
 				break;
 
-			case CTRL_AND('u'):
+			case RESET_SEARCH_CHAR:
 				search_idx = 0;
 				*search_str = '\0';
 				break;
@@ -555,46 +566,46 @@ void gui_run(struct proc **procs)
 			gui_search(ch, procs);
 		}else{
 			switch(ch){
-				case 'q':
+				case QUIT_CHAR:
 					fin = 1;
 					break;
 
-				case 'k':
+				case UP_CHAR:
 					if(pos_y > 0)
 						position(pos_y - 1);
 					break;
-				case 'j':
+				case DOWN_CHAR:
 					position(pos_y + 1);
 					break;
 
-				case 'g':
+				case SCROLL_TO_TOP_CHAR:
 					position(0);
 					break;
-				case 'G':
+				case SCROLL_TO_BOTTOM_CHAR:
 					position(pst.count);
 					break;
 
-				case CTRL_AND('u'):
+				case BACKWARD_HALF_WINDOW_CHAR:
 					position(pos_y - LINES / 2);
 					break;
-				case CTRL_AND('d'):
+				case FORWARD_HALF_WINDOW_CHAR:
 					position(pos_y + LINES / 2);
 					break;
-				case CTRL_AND('b'):
+				case BACKWARD_WINDOW_CHAR:
 					position(pos_y - LINES);
 					break;
-				case CTRL_AND('f'):
+				case FORWARD_WINDOW_CHAR:
 					position(pos_y + LINES);
 					break;
 
-				case CTRL_AND('e'):
+				case EXPOSE_ONE_MORE_LINE_BOTTOM_CHAR:
 					if(pos_top < pst.count - 1){
 						pos_top++;
 						if(pos_y < pos_top)
 							pos_y = pos_top;
 					}
 					break;
-				case CTRL_AND('y'):
+				case EXPOSE_ONE_MORE_LINE_TOP_CHAR:
 					if(pos_top > 0){
 						pos_top--;
 						if(pos_y > pos_top + LINES - 2)
@@ -602,33 +613,33 @@ void gui_run(struct proc **procs)
 					}
 					break;
 
-				case 'L':
+				case SCROLL_TO_LAST_CHAR:
 					position(pos_top + LINES - 2);
 					break;
-				case 'H':
+				case SCROLL_TO_FIRST_CHAR:
 					position(pos_top);
 					break;
-				case 'M':
+				case SCROLL_TO_MIDDLE_CHAR:
 					position(pos_top + (pst.count > LINES ? LINES : pst.count) / 2);
 					break;
 
-				case 'i':
+				case INFO_CHAR:
 					on_curproc("info", info, 0, procs);
 					break;
-				case 'd':
+				case KILL_CHAR:
 					on_curproc("delete", delete, 0, procs);
 					break;
-				case 'l':
+				case LSOF_CHAR:
 					on_curproc("lsof", lsof, 1, procs);
 					break;
-				case 's':
+				case STRACE_CHAR:
 					on_curproc("strace", strace, 1, procs);
 					break;
 
-				case 'o':
+				case GOTO_LOCKED_CHAR:
 					goto_lock(procs);
 					break;
-				case 'O':
+				case GOTO_$$_CHAR:
 					/* goto $$ */
 					goto_me(procs);
 					break;
@@ -654,7 +665,7 @@ void gui_run(struct proc **procs)
 					break;
 
 
-				case CTRL_AND('l'):
+				case REDRAW_CHAR:
 					/* redraw */
 					clear();
 					break;
@@ -664,8 +675,8 @@ void gui_run(struct proc **procs)
 					break;
 
 
-				case '?':
-				case '/':
+				case SEARCH_BACKWARD:
+				case SEARCH_FORWARD:
 					*search_str = '\0';
 					search_idx = 0;
 					search_pid = ch == '?';
