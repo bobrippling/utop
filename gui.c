@@ -24,6 +24,8 @@ static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
 static struct proc *search_proc = NULL;
 
+static long last_name_refresh;
+
 static pid_t lock_proc_pid = -1;
 
 void getch_delay(int on)
@@ -546,22 +548,22 @@ backspace:
 void gui_run(struct proc **procs)
 {
 	struct procstat pst;
-	long last_update = 0, last_full_refresh;
+	long last_update = 0;
 	int fin = 0;
 
 	memset(&pst, 0, sizeof pst);
 
 	proc_update(procs, &pst);
 
-	last_full_refresh = mstime();
+	last_name_refresh = mstime();
 	do{
 		const long now = mstime();
 		int ch;
 
 		if(last_update + WAIT_TIME < now){
 			last_update = now;
-			if(last_full_refresh + FULL_WAIT_TIME < now){
-				last_full_refresh = now;
+			if(last_name_refresh + FULL_WAIT_TIME < now){
+				last_name_refresh = now;
 				proc_handle_renames(procs);
 			}
 			proc_update(procs, &pst);
@@ -681,6 +683,7 @@ void gui_run(struct proc **procs)
 
 				case REDRAW_CHAR:
 					/* redraw */
+					last_name_refresh = 0; /* force refresh */
 					clear();
 					break;
 
