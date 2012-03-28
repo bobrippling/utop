@@ -1,9 +1,7 @@
-CPU%
-
-show threads (/proc/%d/task/*)
-
 fix shell-detach bug (SIGHUP?)
 
 option for clipping usernames, instead of expanding to the longest
 
 bug - process counters are not correct
+
+bug - 'O' is one line off
