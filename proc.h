@@ -87,7 +87,7 @@ const char   *proc_str(struct myproc *p);
 int           proc_to_idx(struct myproc *p, struct myproc *parent, int *y);
 struct myproc  *proc_from_idx(struct myproc *parent, int *idx);
 
-struct myproc *proc_any(        struct myproc **procs);
+struct myproc *proc_any_unparented(        struct myproc **procs);
 struct myproc *proc_undisplayed(struct myproc **procs);
 
 void procs_mark_undisplayed(struct myproc **procs);

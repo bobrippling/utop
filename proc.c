@@ -550,12 +550,15 @@ fin:
 	return ret;
 }
 
-struct myproc *proc_any(struct myproc **procs)
+struct myproc *proc_any_unparented(struct myproc **procs)
 {
 	struct myproc *p;
 	int i;
-	ITER_PROCS(i, p, procs)
-		return p;
+	ITER_PROCS(i, p, procs){
+		struct myproc *parent = proc_get(procs, p->ppid);
+		if(!parent)
+			return p;
+	}
 
 	fputs("no procs\n", stderr);
 	abort();

@@ -83,7 +83,7 @@ struct myproc *gui_proc_first(struct myproc **procs)
 	struct myproc *init = proc_get(procs, 1);
 
 	if(!init)
-		return proc_any(procs);
+		return proc_any_unparented(procs);
 
 	return init;
 }
