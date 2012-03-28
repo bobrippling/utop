@@ -500,9 +500,6 @@ void proc_update(struct myproc **procs, struct procstat *pst)
   pst->zombies = zombies;
 
   proc_listall(procs, pst);
-  FILE *fp = fopen("./log", "w+");
-  proc_dump(procs, fp);
-  fclose(fp);
 }
 
 void proc_handle_renames(struct myproc **ps)
