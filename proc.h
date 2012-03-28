@@ -64,7 +64,7 @@ struct myproc
 
 struct procstat
 {
-	int count, running, owned, zombies;
+	int count, running, owned, zombies, ncpus;
 	struct timeval boottime;
   double loadavg[3];
   double fscale;

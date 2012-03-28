@@ -15,7 +15,7 @@
 // SSLEEP	3		/* Sleeping on an address. */
 // SSTOP	4		/* Process debugging or suspension. */
 // SZOMB	5		/* Awaiting collection by parent. */
-// SWAIT	6		/* Waiting for interrupt. */
+// SWAIT	6		/* Waiting or interrupt. */
 // SLOCK	7		/* Blocked on a lock. */
 
 // Take from top(8)
@@ -32,7 +32,7 @@ char *memorynames[] = {
 void init_machine(struct procstat *pst)
 {
   extern int pageshift; // defined in machine.h
-  int mib[2], pagesize;
+  int mib[2], pagesize, ncpus;
   struct timeval boottime;
 	size_t bt_size;
 
@@ -58,6 +58,11 @@ void init_machine(struct procstat *pst)
 	} else {
 		pst->boottime.tv_sec = -1;
 	}
+
+  /* // Number of cpus */
+  /* ncpus = 0; */
+  /* GETSYSCTL("kern.smp.cpus", ncpus); */
+  /* pst->ncpus = ncpus; */
 }
 
 const char *uptime_from_boottime(time_t boottime)

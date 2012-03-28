@@ -85,6 +85,12 @@ static void getprocstat(struct procstat *pst)
   pst->memory[4] = bufspace / 1024;
   pst->memory[5] = pagetok(memory_stats[5]);
   pst->memory[6] = -1;
+
+  // Calculate total cpu utilization in % user, %nice, %system, %interrupt, %idle
+
+  /* static long cp_time[CPUSTATES], cp_time_old[CPUSTATES]; */
+  /* GETSYSCTL("kern.cp_time", cp_time); */
+  /* memcpy(cp_time_old, cp_time, sizeof cp_time); */
 }
 
 const char *proc_state_str(struct kinfo_proc *pp) {
