@@ -306,12 +306,24 @@ static void proc_handle_rename(struct myproc *this)
         this->argv[i] = ustrdup(argv[i]);
       }
 
-      pos = strrchr(this->argv[0], '/'); // locate the last '/' in argv[0], which is the full command path
+			if((pos = strchr(this->argv[0], ':'))){
+        /* sshd: ... */
+				*pos = '\0';
+				this->basename = ustrdup(this->argv[0]);
+				*pos = ':';
+				this->basename_offset = 0;
+			}else{
+				pos = strrchr(this->argv[0], '/'); // locate the last '/' in argv[0], which is the full command path
 
-      if(pos)
-        this->basename_offset = pos - this->argv[0] + 1; /* space */
-      else
-        this->basename_offset = 0;
+				// malloc in just a second..
+				if(!pos++)
+					pos = this->argv[0];
+				this->basename_offset = pos - this->argv[0];
+				this->basename = ustrdup(pos);
+
+				if(*this->argv[0] == '-')
+					this->basename_offset++; /* login shell, basename offset needs increasing */
+			}
 
       this->argv[argc] = NULL;
       this->argc = argc;
