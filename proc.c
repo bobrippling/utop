@@ -348,8 +348,6 @@ static void proc_handle_rename(struct myproc *this)
       this->argv[argc] = NULL;
       this->argc = argc;
     } else { // argv is empty like for init for example
-      fprintf(stderr, "argv empty for %d\n", this->pid);
-
       this->argv = umalloc((argc+2)*sizeof(char*));
       this->argv[0] = ustrdup(this->basename);
       this->argv[1] = NULL;
