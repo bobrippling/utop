@@ -5,3 +5,8 @@ option for clipping usernames, instead of expanding to the longest
 bug - process counters are not correct
 
 bug - 'O' is one line off
+
+code is still broken when all processes don't descend from init
+proc_any_unparented() needs to be done in all cases, and for drawing,
+->displayed needs to be checked too.
+currently when searching, it will only search one of these subtrees.
