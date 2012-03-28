@@ -323,7 +323,7 @@ static void proc_handle_rename(struct myproc *this)
 
     /* dup argv */
     int i, argc, slen;
-    char *cmd;
+    char *cmd, *pos;
 
     argv = kvm_getargv(kd, proc, 0);
     argc = slen = 0;
@@ -345,9 +345,17 @@ static void proc_handle_rename(struct myproc *this)
         this->argv[i] = ustrdup(argv[i]);
       }
 
+      pos = strrchr(this->argv[0], '/');
+
+      if(pos)
+        this->basename_offset = pos - this->argv[0] + 1; /* space */
+      else
+        this->basename_offset = 0;
+
       this->argv[argc] = NULL;
       this->argc = argc;
     } else { // argv is empty like for init for example
+      this->basename_offset = 0;
       this->argv = umalloc((argc+2)*sizeof(char*));
       this->argv[0] = ustrdup(this->basename);
       this->argv[1] = NULL;
