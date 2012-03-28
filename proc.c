@@ -1,3 +1,12 @@
+#include <sys/param.h>
+#include <sys/errno.h>
+#include <sys/file.h>
+#include <sys/proc.h>
+#include <sys/resource.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
+#include <sys/user.h>
+#include <sys/vmmeter.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,8 +15,8 @@
 #include "proc.h"
 #include "util.h"
 #include "main.h"
+#include "machine.h"
 
-#define GETSYSCTL(name, var) getsysctl(name, &(var), sizeof(var))
 #define ITER_PROCS(i, p, ps) \
 	for(i = 0; i < HASH_TABLE_SIZE; i++) \
 	  for(p = ps[i]; p; p = p->hash_next)
@@ -24,33 +33,10 @@
 
 */
 
-// Take from top(8)
-char *state_abbrev[] = {
-  "", "START", "RUN\0\0\0", "SLEEP", "STOP", "ZOMB", "WAIT", "LOCK"
-};
-
 static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *ps);
 static void proc_handle_rename(struct myproc *p);
 
 static kvm_t *kd = NULL; // kvm handle
-
-
-// Taken from top(8)
-static void getsysctl(const char *name, void *ptr, size_t len)
-{
-	size_t nlen = len;
-
-	if (sysctlbyname(name, ptr, &nlen, NULL, 0) == -1) {
-		fprintf(stderr, "top: sysctl(%s...) failed: %s\n", name,
-            strerror(errno));
-    abort();
-	}
-	if (nlen != len) {
-		fprintf(stderr, "top: sysctl(%s...) expected %lu, got %lu\n",
-            name, (unsigned long)len, (unsigned long)nlen);
-    abort();
-	}
-}
 
 void proc_free(struct myproc *p)
 {
@@ -71,21 +57,8 @@ void proc_free(struct myproc *p)
 static void getprocstat(struct procstat *pst)
 {
 	struct loadavg sysload;
-  int i, mib[2], pagesize;
-	size_t bt_size;
-  struct timeval boottime;
-  static int pageshift;
-
-	/* get the page size and calculate pageshift from it */
-	pagesize = getpagesize();
-	pageshift = 0;
-	while (pagesize > 1) {
-		pageshift++;
-		pagesize >>= 1;
-	}
-
-	/* we only need the amount of log(2)1024 for our conversion */
-	pageshift -= LOG1024;
+  int i;
+  extern int pageshift; // defined in machine.h
 
   // Load average
 	GETSYSCTL("vm.loadavg", sysload);
@@ -93,18 +66,6 @@ static void getprocstat(struct procstat *pst)
 		pst->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
 
   pst->fscale = sysload.fscale;
-
-  // TODO: do this only once, not continously
-  // Get the boottime from the kernel to calculate uptime
-	mib[0] = CTL_KERN;
-	mib[1] = KERN_BOOTTIME;
-	bt_size = sizeof(boottime);
-	if (sysctl(mib, 2, &boottime, &bt_size, NULL, 0) != -1 &&
-	    boottime.tv_sec != 0) {
-		pst->boottime = boottime;
-	} else {
-		pst->boottime.tv_sec = -1;
-	}
 
   // Memory stuff
   static long bufspace = 0;
@@ -128,6 +89,7 @@ static void getprocstat(struct procstat *pst)
 
 const char *proc_state_str(struct kinfo_proc *pp) {
   static char status[10];
+  extern const char *state_abbrev[];
 
   char state = pp->ki_stat;
 
@@ -153,7 +115,7 @@ const char *proc_state_str(struct kinfo_proc *pp) {
         /* FALLTHROUGH */
       default:
         if (state >= 0 &&
-            state < (signed) (sizeof(state_abbrev) / sizeof(*state_abbrev)))
+            state < (signed) (sizeof(char**) / sizeof(char*)))
           sprintf(status, "%.6s", state_abbrev[(int)state]);
         else
           sprintf(status, "?%5d", state);

@@ -13,6 +13,7 @@
 #include "proc.h"
 #include "gui.h"
 #include "config.h"
+#include "machine.h"
 #include "util.h"
 
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
@@ -456,6 +457,7 @@ void info(struct myproc *p)
 {
 	int y, x;
 	int i;
+  extern const char *state_abbrev[];
 
 	clear();
 	mvprintw(0, 0,
@@ -613,7 +615,7 @@ void gui_run(struct myproc **procs)
 	int fin = 0;
 
 	memset(&pst, 0, sizeof pst);
-
+  init_machine(&pst);
 	proc_update(procs, &pst);
 
 	last_full_refresh = mstime();

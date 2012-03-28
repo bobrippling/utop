@@ -6,7 +6,7 @@
 #include <sys/file.h>
 #include <sys/proc.h>
 #include <sys/resource.h>
-#include <sys/signal.h>
+//#include <sys/signal.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/user.h>
@@ -27,21 +27,7 @@
 #include <grp.h>
 
 // defined in proc.c
-extern char *state_abbrev[];
-extern int pageshift;
-
-/* define pagetok in terms of pageshift */
-#define LOG1024 10 // log_2(1024)
-#define pagetok(size) ((size) << pageshift)
-
-// Process states - short form
-// SIDL	1		/* Process being created by fork. */
-// SRUN	2		/* Currently runnable. */
-// SSLEEP	3		/* Sleeping on an address. */
-// SSTOP	4		/* Process debugging or suspension. */
-// SZOMB	5		/* Awaiting collection by parent. */
-// SWAIT	6		/* Waiting for interrupt. */
-// SLOCK	7		/* Blocked on a lock. */
+//extern char *state_abbrev[];
 
 struct myproc
 {

@@ -11,7 +11,4 @@ char *ustrdup(const char *s);
 int str_to_sig(const char *);
 
 int longest_passwd_line(const char *fname);
-
-const char *uptime_from_boottime(time_t boottime);
-const char* format_memory(int memory[6]);
 #endif

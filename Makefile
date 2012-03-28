@@ -1,7 +1,7 @@
 CFLAGS  = -g -Wall -Wextra -pedantic -std=c99
 LDFLAGS = -g -lncurses -lkvm
 PREFIX  = /usr
-OBJ     = main.o proc.o gui.o util.o
+OBJ     = main.o proc.o gui.o util.o machine.o
 
 .PHONY: clean install uninstall
 
@@ -19,7 +19,8 @@ install: utop
 uninstall:
 	rm -f ${PREFIX}/bin/utop ${PREFIX}/share/man/man1/
 
-gui.o: gui.c proc.h gui.h util.h config.h
-main.o: main.c proc.h gui.h
-proc.o: proc.c proc.h util.h
+gui.o: gui.c proc.h gui.h util.h config.h machine.c machine.h
+main.o: main.c proc.h gui.h config.h
+proc.o: proc.c proc.h util.h machine.c machine.h
 util.o: util.c util.h
+machine.o: machine.c

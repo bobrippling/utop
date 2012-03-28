@@ -5,14 +5,6 @@
 #include <string.h>
 #include <signal.h>
 
-
-/* these are for detailing the memory statistics */
-char *memorynames[] = {
-	"Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
-	"Free", NULL
-};
-
-
 void *umalloc(size_t l)
 {
 	void *p = malloc(l);
@@ -99,63 +91,4 @@ int longest_passwd_line(const char *fname)
 	fclose(f);
 
 	return max;
-}
-
-const char *uptime_from_boottime(time_t boottime)
-{
-  static char buf[64]; // Should be sufficient
-  time_t now;
-  struct tm *ltime;
-  unsigned long int diff_secs; // The difference between now and the epoch
-  unsigned long int rest;
-  unsigned int days, hours, minutes, seconds;
-
-  time(&now);
-  ltime = localtime(&now);
-
-  diff_secs = now-boottime;
-
-  days = diff_secs/86400;
-  rest = diff_secs % 86400;
-  hours = rest / 3600;
-  rest = rest % 3600;
-  minutes = rest/60;
-  rest = rest % 60;
-  seconds = (unsigned int)rest;
-
-  snprintf(buf, sizeof buf, "up %d+%02d:%02d:%02d  %02d:%02d:%02d", days, hours, minutes, seconds, ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
-  return buf;
-}
-
-const char* format_memory(int memory[6])
-{
-  int i, slen;
-  char prefix;
-  char buf[6][128];
-  static char *memory_string;
-
-  for(i=0; i<6; i++){
-    int val = memory[i]; // default is KiloBytes
-
-    if(val/1024/1024 > 1){ // display GigaBytes
-      prefix = 'G';
-      val = val/(1024*1024);
-    }
-    else if(val/1024 > 1){ // display MegaBytes
-      prefix = 'M';
-      val /= 1024;
-    } else { // KiloBytes
-      prefix = 'K';
-    }
-    snprintf(buf[i], sizeof buf[i], "%d%c %s", val, prefix, memorynames[i]);
-    slen += strlen(buf[i]);
-  }
-
-  memory_string = umalloc(slen+1);
-  for(i=0; i<6; i++){
-    /* memory_string += sprintf(memory_string, "%s ", buf[i]); */
-    memory_string = strncat(memory_string, buf[i], strlen(buf[i]));
-  }
-
-  return memory_string;
 }
