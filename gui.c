@@ -256,7 +256,7 @@ void showprocs(struct myproc **procs, struct procstat *pst)
 	procs_mark_undisplayed(procs);
 
 	for(topproc = gui_proc_first(procs); topproc; topproc = proc_undisplayed(procs))
-		showproc(topproc, &y, 0);
+    showproc(topproc, &y, 0);
 
 	if(++y < LINES){
 		move(y, 0);
@@ -291,14 +291,8 @@ void showprocs(struct myproc **procs, struct procstat *pst)
 		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
            pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_from_boottime(pst->boottime.tv_sec));
 
-    // Mem stuf
-    STATUS(1, 0, "Mem: %d%s%d%s%d%s%d%s%d%s%d%s",
-           pst->memory[0], memorynames[0],
-           pst->memory[1], memorynames[1],
-           pst->memory[2], memorynames[2],
-           pst->memory[3], memorynames[3],
-           pst->memory[4] ,memorynames[4],
-           pst->memory[5], memorynames[5]);
+    /* // Mem stuf */
+    STATUS(1, 0, "Mem: %s", format_memory(pst->memory));
 
 		clrtoeol();
 

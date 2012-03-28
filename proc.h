@@ -28,7 +28,6 @@
 
 // defined in proc.c
 extern char *state_abbrev[];
-extern char *memorynames[];
 extern int pageshift;
 
 /* define pagetok in terms of pageshift */
@@ -85,7 +84,7 @@ struct procstat
   double fscale;
 	unsigned long cputime_total, cputime_period;
 
-  int memory[7];
+  int memory[6];
 };
 
 struct myproc **proc_init();

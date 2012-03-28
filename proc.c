@@ -29,13 +29,6 @@ char *state_abbrev[] = {
   "", "START", "RUN\0\0\0", "SLEEP", "STOP", "ZOMB", "WAIT", "LOCK"
 };
 
-/* these are for detailing the memory statistics */
-char *memorynames[] = {
-	"K Active, ", "K Inact, ", "K Wired, ", "K Cache, ", "K Buf, ",
-	"K Free", NULL
-};
-
-
 static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *ps);
 static void proc_handle_rename(struct myproc *p);
 
@@ -115,7 +108,7 @@ static void getprocstat(struct procstat *pst)
 
   // Memory stuff
   static long bufspace = 0;
-  static int memory_stats[7];
+  static int memory_stats[6];
 
   GETSYSCTL("vfs.bufspace", bufspace);
   GETSYSCTL("vm.stats.vm.v_active_count", memory_stats[0]);
@@ -282,7 +275,7 @@ void proc_listall(struct myproc **procs, struct procstat *stat)
     // exists already in our hash table. If it is not present yet, add
     // it to the table and increase the global process counter
     for(pp = pbase, i = 0; i < num_procs; pp++, i++) {
-      if(!proc_listcontains(procs, pp->ki_pid)) {
+      if(!proc_listcontains(procs, pp->ki_pid)){
         struct myproc *p = proc_new(pp);
 
         // TODO: (code from top)
@@ -345,7 +338,7 @@ static void proc_handle_rename(struct myproc *this)
         this->argv[i] = ustrdup(argv[i]);
       }
 
-      pos = strrchr(this->argv[0], '/');
+      pos = strrchr(this->argv[0], '/'); // locate the last '/' in argv[0], which is the full command path
 
       if(pos)
         this->basename_offset = pos - this->argv[0] + 1; /* space */
@@ -368,7 +361,7 @@ static void proc_handle_rename(struct myproc *this)
     free(this->cmd);
 
     if(this->flag & P_SYSTEM){ // it's a system process, render it nicely like top does
-      this->cmd = umalloc(strlen(this->basename)+2); // [this->basename]
+      cmd = this->cmd = umalloc(strlen(this->basename)+3); // [this->basename], [] + \0
       sprintf(this->cmd, "[%s]", this->basename);
     } else {
       cmd = this->cmd = umalloc(slen + 1);
@@ -440,8 +433,8 @@ const char *proc_str(struct myproc *p)
 	static char buf[256];
 
 	snprintf(buf, sizeof buf,
-			"{ pid=%d, ppid=%d, state=%d, cmd=\"%s\" }",
-           p->pid, p->ppid, (int)p->state, p->basename);
+			"{ pid=%d, ppid=%d, state=%d, cmd=\"%s\"}",
+           p->pid, p->ppid, (int)p->state, p->cmd);
 
 	return buf;
 }
