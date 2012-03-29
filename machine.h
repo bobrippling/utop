@@ -15,4 +15,8 @@ void init_machine(struct procstat *pst);
 const char *uptime_from_boottime(time_t boottime);
 const char* format_memory(int memory[6]);
 void getsysctl(const char *name, void *ptr, size_t len);
+void get_load_average(struct procstat *pst);
+void get_mem_usage(struct procstat *pst);
+void get_cpu_stats(struct procstat *pst);
+const char *proc_state_str(struct kinfo_proc *pp);
 #endif /* _MACHINE_H_ */

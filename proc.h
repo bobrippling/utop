@@ -67,9 +67,8 @@ struct procstat
 	struct timeval boottime;
   double loadavg[3];
   double fscale;
-	unsigned long cputime_total, cputime_period;
-
-  int memory[6];
+  long cpu_cycles[CPUSTATES];
+  int memory[7];
 };
 
 struct myproc **proc_init();

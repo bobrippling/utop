@@ -57,81 +57,16 @@ void proc_free(struct myproc *p)
 
 static void getprocstat(struct procstat *pst)
 {
-  struct loadavg sysload;
-  int i;
-  extern int pageshift; // defined in machine.h
+  // Implementation dependend code from machine.c:
 
-  // Load average
-  GETSYSCTL("vm.loadavg", sysload);
-  for (i = 0; i < 3; i++)
-    pst->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
+  // Populate load averge
+  get_load_average(pst);
 
-  pst->fscale = sysload.fscale;
+  /* // get the memory usage */
+  get_mem_usage(pst);
 
-  // Memory stuff
-  static long bufspace = 0;
-  static int memory_stats[6];
-
-  GETSYSCTL("vfs.bufspace", bufspace);
-  GETSYSCTL("vm.stats.vm.v_active_count", memory_stats[0]);
-  GETSYSCTL("vm.stats.vm.v_inactive_count", memory_stats[1]);
-  GETSYSCTL("vm.stats.vm.v_wire_count", memory_stats[2]);
-  GETSYSCTL("vm.stats.vm.v_cache_count", memory_stats[3]);
-  GETSYSCTL("vm.stats.vm.v_free_count", memory_stats[5]);
-  /* convert memory stats to Kbytes */
-  pst->memory[0] = pagetok(memory_stats[0]);
-  pst->memory[1] = pagetok(memory_stats[1]);
-  pst->memory[2] = pagetok(memory_stats[2]);
-  pst->memory[3] = pagetok(memory_stats[3]);
-  pst->memory[4] = bufspace / 1024;
-  pst->memory[5] = pagetok(memory_stats[5]);
-  pst->memory[6] = -1;
-
-  // Calculate total cpu utilization in % user, %nice, %system, %interrupt, %idle
-
-  /* static long cp_time[CPUSTATES], cp_time_old[CPUSTATES]; */
-  /* GETSYSCTL("kern.cp_time", cp_time); */
-  /* memcpy(cp_time_old, cp_time, sizeof cp_time); */
-}
-
-const char *proc_state_str(struct kinfo_proc *pp) {
-  static char status[10];
-  extern const char *state_abbrev[];
-
-  char state = pp->ki_stat;
-
-  if (pp) {
-    switch (state) {
-      case SRUN:
-        if (pp->ki_oncpu != 0xff)
-          sprintf(status, "CPU%d", pp->ki_oncpu);
-        else
-          strcpy(status, "RUN");
-        break;
-      case SLOCK:
-        if (pp->ki_kiflag & KI_LOCKBLOCK) {
-          sprintf(status, "*%.6s", pp->ki_lockname);
-          break;
-        }
-        /* fall through */
-      case SSLEEP:
-        if (pp->ki_wmesg != NULL) {
-          sprintf(status, "%.6s", pp->ki_wmesg);
-          break;
-        }
-        /* FALLTHROUGH */
-      default:
-        if (state >= 0)
-          sprintf(status, "%.6s", state_abbrev[(int)state]);
-        else
-          sprintf(status, "?%5d", state);
-        break;
-    }
-  } else {
-    strcpy(status, " ");
-  }
-
-  return status;
+  // TODO: get CPU utilization
+  /* get_cpu_stats(pst); */
 }
 
 struct myproc *proc_new(struct kinfo_proc *pp) {
@@ -208,6 +143,7 @@ struct myproc **proc_init()
   struct myproc **procs;
   struct myproc *root=NULL;
 
+  // TODO: move into init_machine
   if((kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL)) == NULL){
     perror("kd");
     abort();

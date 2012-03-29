@@ -24,9 +24,13 @@ const char *state_abbrev[] = {
 };
 
 /* these are for detailing the memory statistics */
-char *memorynames[] = {
+const char *memorynames[] = {
   "Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
   "Free", NULL
+};
+
+const char *cpustates[] = {
+  "user", "nice", "system", "interrupt", "idle", NULL
 };
 
 void init_machine(struct procstat *pst)
@@ -63,6 +67,9 @@ void init_machine(struct procstat *pst)
   ncpus = 0;
   GETSYSCTL("kern.smp.cpus", ncpus);
   pst->ncpus = ncpus;
+
+  // Populate cpu states once:
+  GETSYSCTL("kern.cp_time", pst->cpu_cycles);
 }
 
 const char *uptime_from_boottime(time_t boottime)
@@ -101,11 +108,11 @@ const char* format_memory(int memory[6])
   for(i=0; i<6; i++){
     int val = memory[i]; // default is KiloBytes
 
-    if(val/1024/1024 > 1){ // display GigaBytes
+    if(val/1024/1024 > 10){ // display GigaBytes
       prefix = 'G';
       val = val/(1024*1024);
     }
-    else if(val/1024 > 1){ // display MegaBytes
+    else if(val/1024 > 10){ // display MegaBytes
       prefix = 'M';
       val /= 1024;
     } else { // KiloBytes
@@ -139,4 +146,102 @@ void getsysctl(const char *name, void *ptr, size_t len)
             name, (unsigned long)len, (unsigned long)nlen);
     abort();
   }
+}
+
+void get_load_average(struct procstat *pst)
+{
+  struct loadavg sysload;
+  int i;
+  extern int pageshift; // defined in machine.h
+
+  // Load average
+  GETSYSCTL("vm.loadavg", sysload);
+  for (i = 0; i < 3; i++)
+    pst->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
+
+  pst->fscale = sysload.fscale;
+}
+
+void get_mem_usage(struct procstat *pst)
+{
+    // Memory stuff
+  long bufspace = 0;
+  int memory_stats[6];
+
+  GETSYSCTL("vfs.bufspace", bufspace);
+  GETSYSCTL("vm.stats.vm.v_active_count", memory_stats[0]);
+  GETSYSCTL("vm.stats.vm.v_inactive_count", memory_stats[1]);
+  GETSYSCTL("vm.stats.vm.v_wire_count", memory_stats[2]);
+  GETSYSCTL("vm.stats.vm.v_cache_count", memory_stats[3]);
+  GETSYSCTL("vm.stats.vm.v_free_count", memory_stats[5]);
+  /* convert memory stats to Kbytes */
+  pst->memory[0] = pagetok(memory_stats[0]);
+  pst->memory[1] = pagetok(memory_stats[1]);
+  pst->memory[2] = pagetok(memory_stats[2]);
+  pst->memory[3] = pagetok(memory_stats[3]);
+  pst->memory[4] = bufspace / 1024;
+  pst->memory[5] = pagetok(memory_stats[5]);
+  pst->memory[6] = -1;
+}
+
+void get_cpu_stats(struct procstat *pst)
+{
+  /* Calculate total cpu utilization in % user, %nice, %system, %interrupt, %idle */
+  int state;
+  long diff[CPUSTATES], cpu_cycles_now[CPUSTATES], cpu_pct[CPUSTATES];
+  long sum = 0;
+
+  GETSYSCTL("kern.cp_time", cpu_cycles_now); // old values in pst->cpu_time
+
+  for(state=0; state < CPUSTATES; state++) {
+    diff[state] = cpu_cycles_now[state] - pst->cpu_cycles[state];
+    pst->cpu_cycles[state] = cpu_cycles_now[state];
+    sum += cpu_cycles_now[state];
+  }
+
+  /* for(state=0; state < CPUSTATES; state++) { */
+  /*   double pct = 100.0L - (100.0L * cpu_cycles_now[CP_IDLE] / (sum ? (double) sum : 1.0L)); */
+  /*   /\* double pct = 100.0L - (int)((diff[state] * 100.0L + sum) / (sum ? (double) sum : 1.0L)); *\/ */
+  /*   fprintf(stderr, "cpu utilization %s: %7.3f\n",cpustates[state], pct); */
+  /* }  */
+}
+
+
+const char *proc_state_str(struct kinfo_proc *pp) {
+  static char status[10];
+
+  char state = pp->ki_stat;
+
+  if (pp) {
+    switch (state) {
+      case SRUN:
+        if (pp->ki_oncpu != 0xff)
+          sprintf(status, "CPU%d", pp->ki_oncpu);
+        else
+          strcpy(status, "RUN");
+        break;
+      case SLOCK:
+        if (pp->ki_kiflag & KI_LOCKBLOCK) {
+          sprintf(status, "*%.6s", pp->ki_lockname);
+          break;
+        }
+        /* fall through */
+      case SSLEEP:
+        if (pp->ki_wmesg != NULL) {
+          sprintf(status, "%.6s", pp->ki_wmesg);
+          break;
+        }
+        /* FALLTHROUGH */
+      default:
+        if (state >= 0)
+          sprintf(status, "%.6s", state_abbrev[(int)state]);
+        else
+          sprintf(status, "?%5d", state);
+        break;
+    }
+  } else {
+    strcpy(status, " ");
+  }
+
+  return status;
 }
