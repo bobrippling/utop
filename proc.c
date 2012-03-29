@@ -17,8 +17,9 @@
 #include "main.h"
 #include "machine.h"
 
+// start with 1, 0 is the dummy node
 #define ITER_PROCS(i, p, ps)                    \
-  for(i = 0; i < HASH_TABLE_SIZE; i++)          \
+  for(i = 1; i < HASH_TABLE_SIZE; i++)          \
     for(p = ps[i]; p; p = p->hash_next)
 
 /* Processes are saved into a hash table with size HASH_TABLE_SIZE and
@@ -174,10 +175,10 @@ struct myproc *proc_get(struct myproc **procs, pid_t pid)
 {
   struct myproc *p;
 
-  if(pid >= 0)
-    for(p = procs[pid % HASH_TABLE_SIZE]; p; p = p->hash_next)
-      if(p->pid == pid)
-        return p;
+  /* if(pid >= 0) */
+  for(p = procs[pid % HASH_TABLE_SIZE]; p; p = p->hash_next)
+    if(p->pid == pid)
+      return p;
 
   return NULL;
 }
@@ -205,12 +206,31 @@ void proc_addto(struct myproc **procs, struct myproc *p)
 // initialize hash table and kvm
 struct myproc **proc_init()
 {
+  struct myproc **procs;
+  struct myproc *root=NULL;
+
   if((kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL)) == NULL){
     perror("kd");
     abort();
   }
 
-  return umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
+  procs = umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
+
+  // Add a dummy process with pid 0 and ppid -1 to the list:
+  root = umalloc(sizeof(*root));
+
+  root->pid = 0;
+  root->ppid = -1;
+  root->basename = ustrdup("{root}");
+  root->argv = umalloc(2*sizeof(char*));
+  root->argv[0] = ustrdup(root->basename);
+  root->argv[1] = NULL;
+  root->state = 0;
+  root->cmd = ustrdup(root->basename);
+
+  proc_addto(procs, root);
+
+  return procs;
 }
 
 void proc_cleanup(struct myproc **procs)
@@ -386,7 +406,7 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs, struc
     devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
     proc->tty = ustrdup(buf);
 
-    if(proc->ppid && oldppid != proc->ppid){
+    if(oldppid != proc->ppid){
       struct myproc *parent = proc_get(procs, proc->ppid);
       struct myproc *iter;
 
@@ -428,11 +448,12 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 
   count = running = owned = zombies = 0;
 
-  for(i = 0; i < HASH_TABLE_SIZE; i++){
+  for(i = 1; i < HASH_TABLE_SIZE; i++){ // i=0 is the dummy node
     struct myproc **change_me;
     struct myproc *p;
 
     change_me = &procs[i];
+
     for(p = procs[i]; p; ) {
       if(kvm_getprocs(kd, KERN_PROC_PID, p->pid, &num_procs) == NULL) { // process doesn't exist anymore
         struct myproc *next = p->hash_next;
@@ -561,34 +582,11 @@ fin:
   return ret;
 }
 
-struct myproc *proc_any_unparented(struct myproc **procs)
+struct myproc *procs_find_root(struct myproc **procs)
 {
   struct myproc *p;
-  int i;
-  ITER_PROCS(i, p, procs){
-    struct myproc *parent = proc_get(procs, p->ppid);
-    if(!parent)
-      return p;
-  }
-
-  fputs("no procs\n", stderr);
-  abort();
-}
-
-void procs_mark_undisplayed(struct myproc **procs)
-{
-  struct myproc *p;
-  int i;
-  ITER_PROCS(i, p, procs)
-      p->displayed = 0;
-}
-
-struct myproc *proc_undisplayed(struct myproc **procs)
-{
-  struct myproc *p;
-  int i;
-  ITER_PROCS(i, p, procs)
-      if(!p->displayed)
-        return p;
+  p = procs[0];
+  if(p)
+    return p;
   return NULL;
 }

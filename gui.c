@@ -80,11 +80,7 @@ void gui_term()
 
 struct myproc *gui_proc_first(struct myproc **procs)
 {
-  struct myproc *init = proc_get(procs, 1);
-
-  if(!init)
-    return proc_any_unparented(procs);
-
+  struct myproc *init = proc_get(procs, 0); // the root node
   return init;
 }
 
@@ -93,13 +89,13 @@ int search_proc_to_idx(int *y, struct myproc **procs)
   struct myproc *init = gui_proc_first(procs);
   if(search_proc == init)
     return 0;
-  *y = 1;
+  *y = 1 + 1;
   return proc_to_idx(search_proc, init, y);
 }
 
 struct myproc *curproc(struct myproc **procs)
 {
-  int i = pos_y;
+  int i = pos_y + 1;
   return proc_from_idx(gui_proc_first(procs), &i);
 }
 
@@ -118,7 +114,7 @@ void position(int newy)
 
 void goto_proc(struct myproc **procs, struct myproc *p)
 {
-  int y = 1;
+  int y = 0; // was 1
   proc_to_idx(p, gui_proc_first(procs), &y);
   position(y);
 }
@@ -144,98 +140,97 @@ void showproc(struct myproc *proc, int *py, int indent)
   struct myproc *p;
   int y = *py;
 
-  proc->displayed = 1;
-
   if(y >= LINES)
     return; /* FIXME */
 
   if(y > 0){ // otherwise we're iterating over a process that's above pos_top
-    extern uid_t global_uid;
-    extern int max_unam_len, max_gnam_len;
+    if(proc->pid != 0) { //dummy root node excluded
+      extern uid_t global_uid;
+      extern int max_unam_len, max_gnam_len;
 
-    const int owned = proc->uid == global_uid;
-    char buf[256];
-    int len = LINES;
-    int lock = proc->pid == lock_proc_pid;
-    int x;
+      const int owned = proc->uid == global_uid;
+      char buf[256];
+      int len = LINES;
+      int lock = proc->pid == lock_proc_pid;
+      int x;
 
-    move(y, 0);
+      move(y, 0);
 
-    if(lock)
-      attron(ATTR_LOCK);
-    else if(proc == search_proc)
-      attron(ATTR_SEARCH);
-    else if(proc->flag & P_JAILED)
-      attron(ATTR_JAILED);
-    else if(!owned)
-      attron(ATTR_NOT_OWNED);
+      if(lock)
+        attron(ATTR_LOCK);
+      else if(proc == search_proc)
+        attron(ATTR_SEARCH);
+      else if(proc->flag & P_JAILED)
+        attron(ATTR_JAILED);
+      else if(!owned)
+        attron(ATTR_NOT_OWNED);
 
-    if(!(proc->flag & P_JAILED)){ // non-jailed processes
-      len -= snprintf(buf, sizeof buf,
-                      "% 7d       %-7s "
-                      "%-*s %-*s "
-                      "%.1f"
-                      ,
-                      proc->pid, proc->state_str,
-                      max_unam_len, proc->unam,
-                      max_gnam_len, proc->gnam,
-                      proc->pc_cpu
-                      );
-    } else { // processes in a jail; display Jail ID
-      len -= snprintf(buf, sizeof buf,
-                      "% 7d  %3d  %-7s "
-                      "%-*s %-*s "
-                      "%.1f"
-                      ,
-                      proc->pid, proc->jid, proc->state_str,
-                      max_unam_len, proc->unam,
-                      max_gnam_len, proc->gnam,
-                      proc->pc_cpu
-                      );
+      if(!(proc->flag & P_JAILED)){ // non-jailed processes
+        len -= snprintf(buf, sizeof buf,
+                        "% 7d       %-7s "
+                        "%-*s %-*s "
+                        "%3.1f"
+                        ,
+                        proc->pid, proc->state_str,
+                        max_unam_len, proc->unam,
+                        max_gnam_len, proc->gnam,
+                        proc->pc_cpu
+                        );
+      } else { // processes in a jail; display Jail ID
+        len -= snprintf(buf, sizeof buf,
+                        "% 7d  %3d  %-7s "
+                        "%-*s %-*s "
+                        "%3.1f"
+                        ,
+                        proc->pid, proc->jid, proc->state_str,
+                        max_unam_len, proc->unam,
+                        max_gnam_len, proc->gnam,
+                        proc->pc_cpu
+                        );
+      }
+      addstr(buf);
+
+      getyx(stdscr, y, x);
+
+      if(proc->state == SRUN){
+        mvchgat(y, 14, 7, 0, COLOR_RUNNING + 1, NULL);
+        move(y, x);
+      }
+      clrtoeol();
+
+      /* position for process name */
+      // TODO: add some define that adjusts offset here
+      x+=5; /* one after the state */
+      for(int indent_copy = indent; indent_copy > 0; indent_copy--)
+        x += INDENT;
+
+      mvprintw(y, x, "%s", proc->cmd, COLS - indent - len - 1);
+
+      /* basename shading */
+      if(owned && !lock){
+        const int bn_len = strlen(proc->basename);
+        int min_len = COLS - indent - len - 1;
+
+        if(min_len > bn_len)
+          min_len = bn_len;
+
+        x += proc->basename_offset;
+        attron(ATTR_BASENAME);
+        mvaddnstr(y, x, proc->basename, min_len);
+      }
+
+      if(lock)
+        attroff(ATTR_LOCK);
+      else if(proc == search_proc)
+        attroff(ATTR_SEARCH);
+      else if(owned)
+        attroff(ATTR_BASENAME);
+      else if(proc->flag & P_JAILED)
+        attroff(ATTR_JAILED);
+      else
+        attroff(ATTR_NOT_OWNED);
     }
-    addstr(buf);
-
-    getyx(stdscr, y, x);
-
-    if(proc->state == SRUN){
-      mvchgat(y, 14, 7, 0, COLOR_RUNNING + 1, NULL);
-      move(y, x);
-    }
-    clrtoeol();
-
-    /* position for process name */
-    // TODO: add some define that adjusts offset here
-    x+=5; /* one after the state */
-    for(int indent_copy = indent; indent_copy > 0; indent_copy--)
-      x += INDENT;
-
-    mvprintw(y, x, "%s", proc->cmd, COLS - indent - len - 1);
-
-    /* basename shading */
-    if(owned && !lock){
-      const int bn_len = strlen(proc->basename);
-      int min_len = COLS - indent - len - 1;
-
-      if(min_len > bn_len)
-        min_len = bn_len;
-
-      x += proc->basename_offset;
-      attron(ATTR_BASENAME);
-      mvaddnstr(y, x, proc->basename, min_len);
-    }
-
-    if(lock)
-      attroff(ATTR_LOCK);
-    else if(proc == search_proc)
-      attroff(ATTR_SEARCH);
-    else if(owned)
-      attroff(ATTR_BASENAME);
-    else if(proc->flag & P_JAILED)
-      attroff(ATTR_JAILED);
-    else
-      attroff(ATTR_NOT_OWNED);
   }
-
   /*
    * need to iterate over all children,
    * since we may currently be on a process above the top
@@ -251,13 +246,13 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 void showprocs(struct myproc **procs, struct procstat *pst)
 {
-  int y = -pos_top + 2; // 2 status lines
+  int y = -pos_top + 2 - 1; // 2 status lines
   struct myproc *topproc;
 
-  procs_mark_undisplayed(procs);
-
-  for(topproc = gui_proc_first(procs); topproc; topproc = proc_undisplayed(procs))
-    showproc(topproc, &y, 0);
+  // this fucks up everything. why?
+  /* for(topproc = gui_proc_first(procs)->child_first; topproc; topproc = topproc->child_next) */
+  topproc = gui_proc_first(procs);
+  showproc(topproc, &y, 0);
 
   if(++y < LINES){
     move(y, 0);

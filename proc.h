@@ -59,7 +59,6 @@ struct myproc
 
 	/* only used for arrangement */
 	struct myproc *next;
-	int displayed;
 };
 
 struct procstat
@@ -86,11 +85,7 @@ struct myproc  *proc_find_n(const char *, struct myproc **, int);
 const char   *proc_str(struct myproc *p);
 int           proc_to_idx(struct myproc *p, struct myproc *parent, int *y);
 struct myproc  *proc_from_idx(struct myproc *parent, int *idx);
-
-struct myproc *proc_any_unparented(        struct myproc **procs);
-struct myproc *proc_undisplayed(struct myproc **procs);
-
-void procs_mark_undisplayed(struct myproc **procs);
+struct myproc *procs_find_root(struct myproc **procs);
 
 void proc_dump(struct myproc **ps, FILE *f);
 
