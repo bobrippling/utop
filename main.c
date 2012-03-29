@@ -21,11 +21,11 @@ static struct myproc **proclist;
 
 void extra_init()
 {
-	global_uid = getuid();
+  global_uid = getuid();
 
-	/* for layout - username length */
-	max_unam_len = longest_passwd_line("/etc/passwd");
-	max_gnam_len = longest_passwd_line("/etc/group");
+  /* for layout - username length */
+  max_unam_len = longest_passwd_line("/etc/passwd");
+  max_gnam_len = longest_passwd_line("/etc/group");
 }
 
 void signal_handler(int sig) {
@@ -38,37 +38,37 @@ void signal_handler(int sig) {
 int main(int argc, char **argv)
 {
   struct sigaction action;
-	int i;
+  int i;
 
   action.sa_handler = signal_handler;
   sigaction(SIGABRT, &action, NULL);
   sigaction(SIGTERM, &action, NULL);
 
-	for(i = 1; i < argc; i++){
-		if(!strcmp(argv[i], "-f")){
-			global_force = 1;
-		}else if(!strcmp(argv[i], "-d")){
-			global_debug = 1;
-		}else{
-			fprintf(stderr,
-					"Usage: %s [-f] [-d]\n"
-					" -f: Don't prompt for lsof and strace\n"
-					" -d: Debug mode\n"
-					, *argv);
-			return 1;
-		}
-	}
+  for(i = 1; i < argc; i++){
+    if(!strcmp(argv[i], "-f")){
+      global_force = 1;
+    }else if(!strcmp(argv[i], "-d")){
+      global_debug = 1;
+    }else{
+      fprintf(stderr,
+              "Usage: %s [-f] [-d]\n"
+              " -f: Don't prompt for lsof and strace\n"
+              " -d: Debug mode\n"
+              , *argv);
+      return 1;
+    }
+  }
 
-	extra_init();
+  extra_init();
 
-	gui_init();
+  gui_init();
 
-	proclist = proc_init();
+  proclist = proc_init();
 
-	gui_run(proclist);
+  gui_run(proclist);
 
-	gui_term();
+  gui_term();
   proc_cleanup(proclist);
 
-	return 0;
+  return 0;
 }

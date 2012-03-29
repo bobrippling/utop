@@ -5,7 +5,7 @@
 
 #define GETSYSCTL(name, var) getsysctl(name, &(var), sizeof(var))
 
-int pageshift;		/* log base 2 of the pagesize */
+int pageshift;    /* log base 2 of the pagesize */
 
 /* define pagetok in terms of pageshift */
 #define LOG1024 10 // log_2(1024)

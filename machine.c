@@ -10,13 +10,13 @@
 #include "proc.h"
 
 // Process states - short form
-// SIDL	1		/* Process being created by fork. */
-// SRUN	2		/* Currently runnable. */
-// SSLEEP	3		/* Sleeping on an address. */
-// SSTOP	4		/* Process debugging or suspension. */
-// SZOMB	5		/* Awaiting collection by parent. */
-// SWAIT	6		/* Waiting or interrupt. */
-// SLOCK	7		/* Blocked on a lock. */
+// SIDL 1   /* Process being created by fork. */
+// SRUN 2   /* Currently runnable. */
+// SSLEEP 3   /* Sleeping on an address. */
+// SSTOP  4   /* Process debugging or suspension. */
+// SZOMB  5   /* Awaiting collection by parent. */
+// SWAIT  6   /* Waiting or interrupt. */
+// SLOCK  7   /* Blocked on a lock. */
 
 // Take from top(8)
 const char *state_abbrev[] = {
@@ -25,8 +25,8 @@ const char *state_abbrev[] = {
 
 /* these are for detailing the memory statistics */
 char *memorynames[] = {
-	"Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
-	"Free", NULL
+  "Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
+  "Free", NULL
 };
 
 void init_machine(struct procstat *pst)
@@ -34,30 +34,30 @@ void init_machine(struct procstat *pst)
   extern int pageshift; // defined in machine.h
   int mib[2], pagesize, ncpus;
   struct timeval boottime;
-	size_t bt_size;
+  size_t bt_size;
 
-	/* get the page size and calculate pageshift from it */
-	pagesize = getpagesize();
-	pageshift = 0;
-	while (pagesize > 1) {
-		pageshift++;
-		pagesize >>= 1;
-	}
+  /* get the page size and calculate pageshift from it */
+  pagesize = getpagesize();
+  pageshift = 0;
+  while (pagesize > 1) {
+    pageshift++;
+    pagesize >>= 1;
+  }
 
-	/* we only need the amount of log(2)1024 for our conversion */
-	pageshift -= LOG1024;
+  /* we only need the amount of log(2)1024 for our conversion */
+  pageshift -= LOG1024;
 
   // TODO: do this only once, not continously
   // Get the boottime from the kernel to calculate uptime
-	mib[0] = CTL_KERN;
-	mib[1] = KERN_BOOTTIME;
-	bt_size = sizeof(boottime);
-	if (sysctl(mib, 2, &boottime, &bt_size, NULL, 0) != -1 &&
-	    boottime.tv_sec != 0) {
-		pst->boottime = boottime;
-	} else {
-		pst->boottime.tv_sec = -1;
-	}
+  mib[0] = CTL_KERN;
+  mib[1] = KERN_BOOTTIME;
+  bt_size = sizeof(boottime);
+  if (sysctl(mib, 2, &boottime, &bt_size, NULL, 0) != -1 &&
+      boottime.tv_sec != 0) {
+    pst->boottime = boottime;
+  } else {
+    pst->boottime.tv_sec = -1;
+  }
 
   /* // Number of cpus */
   /* ncpus = 0; */
@@ -127,16 +127,16 @@ const char* format_memory(int memory[6])
 // Taken from top(8)
 void getsysctl(const char *name, void *ptr, size_t len)
 {
-	size_t nlen = len;
+  size_t nlen = len;
 
-	if (sysctlbyname(name, ptr, &nlen, NULL, 0) == -1) {
-		fprintf(stderr, "top: sysctl(%s...) failed: %s\n", name,
+  if (sysctlbyname(name, ptr, &nlen, NULL, 0) == -1) {
+    fprintf(stderr, "top: sysctl(%s...) failed: %s\n", name,
             strerror(errno));
     abort();
-	}
-	if (nlen != len) {
-		fprintf(stderr, "top: sysctl(%s...) expected %lu, got %lu\n",
+  }
+  if (nlen != len) {
+    fprintf(stderr, "top: sysctl(%s...) expected %lu, got %lu\n",
             name, (unsigned long)len, (unsigned long)nlen);
     abort();
-	}
+  }
 }
