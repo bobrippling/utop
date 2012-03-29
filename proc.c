@@ -197,8 +197,7 @@ void proc_addto(struct myproc **procs, struct myproc *p)
 		while(last->hash_next)
 			last = last->hash_next;
 		last->hash_next = p;
-	}else
-{
+	}else{
 		procs[p->pid % HASH_TABLE_SIZE] = p;
 	}
 }
