@@ -1,7 +1,8 @@
 CFLAGS  = -g -Wall -Wextra -pedantic -std=c99
 LDFLAGS = -g -lncurses -lkvm
 PREFIX  = /usr
-OBJ     = main.o proc.o gui.o util.o machine.o
+SRC     = main.c machine.c gui.c proc.c util.c
+OBJ     = ${SRC:.c=.o}
 
 .PHONY: clean install uninstall
 
@@ -23,4 +24,4 @@ gui.o: gui.c proc.h gui.h util.h config.h machine.c machine.h
 main.o: main.c proc.h gui.h config.h
 proc.o: proc.c proc.h util.h machine.c machine.h
 util.o: util.c util.h
-machine.o: machine.c
+machine.o: machine.c machine.h
