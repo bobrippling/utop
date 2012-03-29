@@ -33,6 +33,8 @@ const char *cpustates[] = {
   "user", "nice", "system", "interrupt", "idle", NULL
 };
 
+kvm_t *kd = NULL; // kvm handle
+
 void init_machine(struct procstat *pst)
 {
   extern int pageshift; // defined in machine.h
@@ -51,7 +53,6 @@ void init_machine(struct procstat *pst)
   /* we only need the amount of log(2)1024 for our conversion */
   pageshift -= LOG1024;
 
-  // TODO: do this only once, not continously
   // Get the boottime from the kernel to calculate uptime
   mib[0] = CTL_KERN;
   mib[1] = KERN_BOOTTIME;
@@ -70,6 +71,18 @@ void init_machine(struct procstat *pst)
 
   // Populate cpu states once:
   GETSYSCTL("kern.cp_time", pst->cpu_cycles);
+
+  // Finally, open kvm handle
+  if((kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL)) == NULL){
+    perror("kd");
+    abort();
+  }
+}
+
+void machine_cleanup()
+{
+  if(kd)
+    kvm_close(kd);
 }
 
 const char *uptime_from_boottime(time_t boottime)

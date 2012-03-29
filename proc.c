@@ -37,7 +37,7 @@
 static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *ps);
 static void proc_handle_rename(struct myproc *p);
 
-static kvm_t *kd = NULL; // kvm handle
+extern kvm_t *kd; // defined in machine.c
 
 void proc_free(struct myproc *p)
 {
@@ -143,12 +143,6 @@ struct myproc **proc_init()
   struct myproc **procs;
   struct myproc *root=NULL;
 
-  // TODO: move into init_machine
-  if((kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL)) == NULL){
-    perror("kd");
-    abort();
-  }
-
   procs = umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
 
   // Add a dummy process with pid 0 and ppid -1 to the list:
@@ -156,12 +150,13 @@ struct myproc **proc_init()
 
   root->pid = 0;
   root->ppid = -1;
-  root->basename = ustrdup("{root}");
-  root->argv = umalloc(2*sizeof(char*));
-  root->argv[0] = ustrdup(root->basename);
-  root->argv[1] = NULL;
-  root->state = 0;
-  root->cmd = ustrdup(root->basename);
+  // Probably not needed anymore
+  /* root->basename = ustrdup("{root}"); */
+  /* root->argv = umalloc(2*sizeof(char*)); */
+  /* root->argv[0] = ustrdup(root->basename); */
+  /* root->argv[1] = NULL; */
+  /* root->state = 0; */
+  /* root->cmd = ustrdup(root->basename); */
 
   proc_addto(procs, root);
 
@@ -174,11 +169,11 @@ void proc_cleanup(struct myproc **procs)
   int i;
 
   if(procs) {
+    proc_free(procs[0]); // root node
     ITER_PROCS(i, p, procs)
         proc_free(p);
   }
-  if(kd)
-    kvm_close(kd);
+  machine_cleanup();
 }
 
 void proc_listall(struct myproc **procs, struct procstat *stat)

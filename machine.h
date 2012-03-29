@@ -12,6 +12,7 @@ int pageshift;    /* log base 2 of the pagesize */
 #define pagetok(size) ((size) << pageshift)
 
 void init_machine(struct procstat *pst);
+void machine_cleanup();
 const char *uptime_from_boottime(time_t boottime);
 const char* format_memory(int memory[6]);
 void getsysctl(const char *name, void *ptr, size_t len);
