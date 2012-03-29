@@ -121,8 +121,7 @@ const char *proc_state_str(struct kinfo_proc *pp) {
         }
         /* FALLTHROUGH */
       default:
-        if (state >= 0 &&
-            state < (signed) (sizeof(char**) / sizeof(char*)))
+        if (state >= 0)
           sprintf(status, "%.6s", state_abbrev[(int)state]);
         else
           sprintf(status, "?%5d", state);

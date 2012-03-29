@@ -20,7 +20,7 @@
 
 // Take from top(8)
 const char *state_abbrev[] = {
-  "", "START", "RUN\0\0\0", "SLEEP", "STOP", "ZOMB", "WAIT", "LOCK"
+  "", "START", "RUN\0\0\0", "SLEEP", "STOP", "ZOMB", "WAIT", "LOCK", NULL
 };
 
 /* these are for detailing the memory statistics */
