@@ -59,10 +59,10 @@ void init_machine(struct procstat *pst)
     pst->boottime.tv_sec = -1;
   }
 
-  /* // Number of cpus */
-  /* ncpus = 0; */
-  /* GETSYSCTL("kern.smp.cpus", ncpus); */
-  /* pst->ncpus = ncpus; */
+  // Number of cpus
+  ncpus = 0;
+  GETSYSCTL("kern.smp.cpus", ncpus);
+  pst->ncpus = ncpus;
 }
 
 const char *uptime_from_boottime(time_t boottime)
