@@ -30,6 +30,8 @@ void extra_init()
 
 void signal_handler(int sig) {
   if (sig == SIGABRT || sig == SIGTERM) {
+    gui_term();
+    fprintf(stderr, "\nCaught signal %d. Bye!\n", sig);
     proc_cleanup(proclist);
     exit(EXIT_FAILURE);
   }

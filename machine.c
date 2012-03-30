@@ -113,10 +113,12 @@ const char *uptime_from_boottime(time_t boottime)
 
 const char* format_memory(int memory[6])
 {
-  int i, slen = 0;
+  int i;
   char prefix;
-  char buf[6][128];
-  static char *memory_string;
+  static char memory_string[128];
+  char *p;
+
+  p = memory_string;
 
   for(i=0; i<6; i++){
     int val = memory[i]; // default is KiloBytes
@@ -131,14 +133,8 @@ const char* format_memory(int memory[6])
     } else { // KiloBytes
       prefix = 'K';
     }
-    snprintf(buf[i], sizeof buf[i], "%d%c %s", val, prefix, memorynames[i]);
-    slen += strlen(buf[i]);
-  }
 
-  memory_string = umalloc(slen+1);
-  for(i=0; i<6; i++){
-    /* memory_string += sprintf(memory_string, "%s ", buf[i]); */
-    memory_string = strncat(memory_string, buf[i], strlen(buf[i]));
+    p += snprintf(p, sizeof memory_string, "%d%c %s", val, prefix, memorynames[i]);
   }
 
   return memory_string;

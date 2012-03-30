@@ -258,6 +258,7 @@ static void proc_handle_rename(struct myproc *this)
       if((pos = strchr(this->argv[0], ':'))){
         /* sshd: ... */
         *pos = '\0';
+        free(this->basename);
         this->basename = ustrdup(this->argv[0]);
         *pos = ':';
         this->basename_offset = 0;
@@ -268,6 +269,7 @@ static void proc_handle_rename(struct myproc *this)
         if(!pos++)
           pos = this->argv[0];
         this->basename_offset = pos - this->argv[0];
+        free(this->basename);
         this->basename = ustrdup(pos);
 
         if(*this->argv[0] == '-')
@@ -319,10 +321,14 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs, struc
 
   // Get the kinfo_proc pointer to the current PID
   if ( (pp = kvm_getprocs(kd, KERN_PROC_PID, proc->pid, &num_procs)) != NULL ) {
+    if(proc->basename)
+      free(proc->basename);
     proc->basename = ustrdup(pp->ki_comm);
     proc->pid = pp->ki_pid;
     proc->ppid = pp->ki_ppid;
     proc->state = pp->ki_stat;
+    if(proc->state_str)
+      free(proc->state_str);
     proc->state_str = ustrdup(proc_state_str(pp));
     proc->uid = pp->ki_ruid;
     proc->gid = pp->ki_rgid;
@@ -333,6 +339,8 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs, struc
     // Set tty
     char buf[8];
     devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
+    if(proc->tty)
+      free(proc->tty);
     proc->tty = ustrdup(buf);
 
     if(oldppid != proc->ppid){
