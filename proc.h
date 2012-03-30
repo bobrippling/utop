@@ -67,7 +67,8 @@ struct procstat
 	struct timeval boottime;
   double loadavg[3];
   double fscale;
-  long cpu_cycles[CPUSTATES];
+  long cpu_cycles[CPUSTATES]; // raw cpu counter
+  double cpu_pct[CPUSTATES]; // percentage
   int memory[7];
 };
 

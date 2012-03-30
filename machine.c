@@ -113,7 +113,7 @@ const char *uptime_from_boottime(time_t boottime)
 
 const char* format_memory(int memory[6])
 {
-  int i, slen;
+  int i, slen = 0;
   char prefix;
   char buf[6][128];
   static char *memory_string;
@@ -201,24 +201,40 @@ void get_cpu_stats(struct procstat *pst)
 {
   /* Calculate total cpu utilization in % user, %nice, %system, %interrupt, %idle */
   int state;
-  long diff[CPUSTATES], cpu_cycles_now[CPUSTATES], cpu_pct[CPUSTATES];
-  long sum = 0;
+  long diff[CPUSTATES], cpu_cycles_now[CPUSTATES];
+  long total_change = 0, half_total;
 
   GETSYSCTL("kern.cp_time", cpu_cycles_now); // old values in pst->cpu_time
 
+  // top's weird algorithm
   for(state=0; state < CPUSTATES; state++) {
     diff[state] = cpu_cycles_now[state] - pst->cpu_cycles[state];
-    pst->cpu_cycles[state] = cpu_cycles_now[state];
-    sum += cpu_cycles_now[state];
+    pst->cpu_cycles[state] = cpu_cycles_now[state]; // copy new values to old ones
+    total_change += diff[state];
   }
+  // don't divide by zero
+  if (total_change == 0)
+    total_change = 1;
 
-  /* for(state=0; state < CPUSTATES; state++) { */
-  /*   double pct = 100.0L - (100.0L * cpu_cycles_now[CP_IDLE] / (sum ? (double) sum : 1.0L)); */
-  /*   /\* double pct = 100.0L - (int)((diff[state] * 100.0L + sum) / (sum ? (double) sum : 1.0L)); *\/ */
-  /*   fprintf(stderr, "cpu utilization %s: %7.3f\n",cpustates[state], pct); */
-  /* }  */
+  half_total = total_change / 2l;
+
+  for(state=0; state < CPUSTATES; state++)
+    pst->cpu_pct[state] = (double)(diff[state] * 1000 + half_total)/total_change/10.0L;
 }
 
+const char* format_cpu_pct(double cpu_pct[CPUSTATES])
+{
+  static char buf[128];
+  char *p = buf;
+
+  int i;
+
+  for(i=0; i < CPUSTATES; i++) {
+    p += snprintf(p, sizeof buf, "%s %2.1f%% ", cpustates[i], cpu_pct[i]);
+  }
+
+  return buf;
+}
 
 const char *proc_state_str(struct kinfo_proc *pp) {
   static char status[10];

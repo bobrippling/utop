@@ -246,7 +246,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 void showprocs(struct myproc **procs, struct procstat *pst)
 {
-  int y = -pos_top + 2 - 1; // 2 status lines
+  int y = -pos_top + 3 - 1; // 3 status lines
   struct myproc *topproc;
 
   // this fucks up everything. why?
@@ -287,12 +287,14 @@ void showprocs(struct myproc **procs, struct procstat *pst)
     STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
            pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_from_boottime(pst->boottime.tv_sec));
 
-    /* // Mem stuf */
+    // Mem stuf
     STATUS(1, 0, "Mem: %s", format_memory(pst->memory));
 
+    // CPU %
+    STATUS(2,0, "CPU: %s", format_cpu_pct(pst->cpu_pct));
     clrtoeol();
 
-    y = 2 + pos_y - pos_top;
+    y = 3 + pos_y - pos_top;
 
     mvchgat(y, 0, 47, A_UNDERLINE, 0, NULL);
     move(y, 47);

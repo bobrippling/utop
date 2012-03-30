@@ -15,6 +15,7 @@ void init_machine(struct procstat *pst);
 void machine_cleanup();
 const char *uptime_from_boottime(time_t boottime);
 const char* format_memory(int memory[6]);
+const char* format_cpu_pct(double cpu_pct[CPUSTATES]);
 void getsysctl(const char *name, void *ptr, size_t len);
 void get_load_average(struct procstat *pst);
 void get_mem_usage(struct procstat *pst);

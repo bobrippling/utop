@@ -66,7 +66,7 @@ static void getprocstat(struct procstat *pst)
   get_mem_usage(pst);
 
   // TODO: get CPU utilization
-  /* get_cpu_stats(pst); */
+  get_cpu_stats(pst);
 }
 
 struct myproc *proc_new(struct kinfo_proc *pp) {
