@@ -16,6 +16,8 @@
 #include "machine.h"
 #include "util.h"
 
+#define TOP_OFFSET 3
+
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
 
@@ -89,13 +91,13 @@ int search_proc_to_idx(int *y, struct myproc **procs)
   struct myproc *init = gui_proc_first(procs);
   if(search_proc == init)
     return 0;
-  *y = 1 + 1;
+  *y = 0;
   return proc_to_idx(search_proc, init, y);
 }
 
 struct myproc *curproc(struct myproc **procs)
 {
-  int i = pos_y + 1;
+  int i = pos_y + 1; // ok
   return proc_from_idx(gui_proc_first(procs), &i);
 }
 
@@ -106,15 +108,15 @@ void position(int newy)
   if(pos_y < 0)
     pos_y = 0;
 
-  if(pos_y - LINES + 2 > pos_top)
-    pos_top = pos_y - LINES + 2;
+  if(pos_y - LINES + TOP_OFFSET > pos_top)
+    pos_top = pos_y - LINES + TOP_OFFSET;
   if(pos_y < pos_top)
     pos_top = pos_y;
 }
 
 void goto_proc(struct myproc **procs, struct myproc *p)
 {
-  int y = 0; // was 1
+  int y = TOP_OFFSET; // was 1
   proc_to_idx(p, gui_proc_first(procs), &y);
   position(y);
 }
@@ -246,7 +248,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 void showprocs(struct myproc **procs, struct procstat *pst)
 {
-  int y = -pos_top + 3 - 1; // 3 status lines
+  int y = -pos_top + TOP_OFFSET - 1;
   struct myproc *topproc;
 
   // this fucks up everything. why?
