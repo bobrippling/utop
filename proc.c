@@ -301,8 +301,7 @@ static void proc_handle_rename(struct myproc *this)
     if(global_debug){
       fprintf(stderr, "recreated argv for %s\n", this->basename);
       for(i = 0; this->argv[i]; i++)
-        fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
-      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
+        fprintf(stderr, "argv[%d] = %s\n", i, this->argv[i]);
     }
   }
 }
