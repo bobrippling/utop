@@ -233,7 +233,9 @@ const char* format_cpu_pct(double cpu_pct[CPUSTATES])
   int i;
 
   for(i=0; i < CPUSTATES; i++) {
-    p += snprintf(p, sizeof buf, "%s %2.1f%% ", cpustates[i], cpu_pct[i]);
+    p += snprintf(p, sizeof buf, "%s %2.1f%%", cpustates[i], cpu_pct[i]);
+    if (i != CPUSTATES -1 ) // not the last item
+      p += snprintf(p, sizeof buf, ", ");
   }
 
   return buf;
