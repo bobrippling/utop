@@ -13,6 +13,7 @@
 #include "gui.h"
 #include "util.h"
 #include "config.h"
+#include "main.h"
 
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
@@ -22,7 +23,7 @@ static int pos_top = 0, pos_y = 0;
 static int  search = 0;
 static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
-static struct proc *search_proc = NULL;
+static struct myproc *search_proc = NULL;
 
 static long last_name_refresh;
 
@@ -77,16 +78,16 @@ void gui_term()
 	endwin();
 }
 
-int search_proc_to_idx(int *y, struct proc **procs)
+int search_proc_to_idx(int *y, struct myproc **procs)
 {
-	struct proc *init = proc_get(procs, 1);
+	struct myproc *init = proc_get(procs, 1);
 	if(search_proc == init)
 		return 0;
 	*y = 1;
 	return proc_to_idx(search_proc, init, y);
 }
 
-struct proc *curproc(struct proc **procs)
+struct myproc *curproc(struct myproc **procs)
 {
 	int i = pos_y;
 	return proc_from_idx(proc_get(procs, 1), &i);
@@ -105,19 +106,19 @@ void position(int newy)
 		pos_top = pos_y;
 }
 
-void goto_proc(struct proc **procs, struct proc *p)
+void goto_proc(struct myproc **procs, struct myproc *p)
 {
 	int y = 1;
 	proc_to_idx(p, proc_get(procs, 1), &y);
 	position(y);
 }
 
-void goto_me(struct proc **procs)
+void goto_me(struct myproc **procs)
 {
 	goto_proc(procs, proc_get(procs, getpid()));
 }
 
-void goto_lock(struct proc **procs)
+void goto_lock(struct myproc **procs)
 {
 	if(lock_proc_pid == -1){
 		attron( COLOR_PAIR(1 + COLOR_RED));
@@ -151,18 +152,15 @@ const char *uptime_to_str(long unsigned diff_secs)
   return buf;
 }
 
-void showproc(struct proc *proc, int *py, int indent)
+void showproc(struct myproc *proc, int *py, int indent)
 {
-	struct proc *p;
+	struct myproc *p;
 	int y = *py;
 
 	if(y >= LINES)
 		return;
 
 	if(y > 0){ // otherwise we're iterating over a process that's above pos_top
-		extern int global_uid;
-		extern int max_unam_len, max_gnam_len;
-
 		const int owned = proc->uid == global_uid;
 		char buf[256];
 		int len = LINES;
@@ -181,7 +179,7 @@ void showproc(struct proc *proc, int *py, int indent)
 		len -= snprintf(buf, sizeof buf,
 				"% 7d %c "
 				"%-*s %-*s "
-				"% 4d"
+				"%04.1f"
 				,
 				proc->pid, proc->state,
 				max_unam_len, proc->unam,
@@ -242,7 +240,7 @@ void showproc(struct proc *proc, int *py, int indent)
 	*py = y;
 }
 
-void showprocs(struct proc **procs, struct procstat *pst)
+void showprocs(struct myproc **procs, struct procstat *pst)
 {
 	int y = -pos_top + 1;
 
@@ -320,7 +318,7 @@ int confirm(const char *fmt, ...)
 	return 0;
 }
 
-void delete(struct proc *p)
+void delete(struct myproc *p)
 {
 	char sig[8];
 	int i, wait = 0;
@@ -366,7 +364,7 @@ void delete(struct proc *p)
 	getch_delay(1);
 }
 
-void external(const char *cmd, struct proc *p)
+void external(const char *cmd, struct myproc *p)
 {
 	char buf[16];
 
@@ -381,17 +379,17 @@ void external(const char *cmd, struct proc *p)
 	gui_init();
 }
 
-void strace(struct proc *p)
+void strace(struct myproc *p)
 {
 	external("strace", p);
 }
 
-void lsof(struct proc *p)
+void lsof(struct myproc *p)
 {
 	external("lsof", p);
 }
 
-void info(struct proc *p)
+void info(struct myproc *p)
 {
 	int y, x;
 	int i;
@@ -417,11 +415,11 @@ void info(struct proc *p)
 	waitch(y + 1, 0);
 }
 
-void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc **procs)
+void on_curproc(const char *fstr, void (*f)(struct myproc *), int ask, struct myproc **procs)
 {
 	extern int global_force;
 
-	struct proc *p;
+	struct myproc *p;
 
 	if(lock_proc_pid == -1 || !(p = proc_get(procs, lock_proc_pid))){
 		p = search_proc ? search_proc : curproc(procs);
@@ -439,7 +437,7 @@ void on_curproc(const char *fstr, void (*f)(struct proc *), int ask, struct proc
 	}
 }
 
-void lock_to(struct proc *p)
+void lock_to(struct myproc *p)
 {
 	if(p){
 		if(lock_proc_pid == p->pid){
@@ -459,7 +457,7 @@ unlock:
 	}
 }
 
-void gui_search(int ch, struct proc **procs)
+void gui_search(int ch, struct myproc **procs)
 {
 	int do_lock = 0;
 
@@ -545,7 +543,7 @@ backspace:
 		lock_to(search_proc);
 }
 
-void gui_run(struct proc **procs)
+void gui_run(struct myproc **procs)
 {
 	struct procstat pst;
 	long last_update = 0;

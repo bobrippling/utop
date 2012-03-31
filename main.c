@@ -12,6 +12,7 @@
 
 int global_uid   = 0;
 int global_force = 0;
+int global_debug = 0;
 
 int max_unam_len, max_gnam_len;
 
@@ -26,7 +27,7 @@ void extra_init()
 
 int main(int argc, char **argv)
 {
-	static struct proc **proclist;
+	static struct myproc **proclist;
 	int i;
 
 	for(i = 1; i < argc; i++)

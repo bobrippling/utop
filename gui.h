@@ -3,6 +3,6 @@
 
 void gui_init();
 void gui_term();
-void gui_run(struct proc **);
+void gui_run(struct myproc **);
 
 #endif

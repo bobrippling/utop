@@ -1,52 +1,73 @@
 #ifndef PROC_H
 #define PROC_H
 
-struct proc
+#include <sys/time.h>
+#define CPUSTATES 5 // TODO
+
+struct myproc
 {
-	char *proc_path;
 	pid_t pid, ppid;
-	int uid, gid;
+	uid_t uid;
+  gid_t gid;
+  int jid; // Jail ID
 	char *unam, *gnam;
 
 	char *cmd;
 	char *basename;
 	char **argv;
+  int argc;
 	int basename_offset;
 
-	int state, tty, pgrp;
+  char state;
+	char *state_str;
+  char *tty;
+  gid_t pgrp;
+  signed char nice;
+  long flag; // P* flags
 
-	int pc_cpu;
+	double pc_cpu;
 	unsigned long utime, stime, cutime, cstime;
 
-	struct proc *hash_next; /* important */
+	/* important */
+	struct myproc *hash_next;
+	struct myproc *child_first, *child_next;
 
 	/* only used for arrangement */
-	struct proc *child_first, *child_next;
-	struct proc *next;
+	struct myproc *next;
 };
 
 struct procstat
 {
-	int count, running, owned, zombies;
-	double loadavg[3];
-	unsigned long cputime_total, cputime_period, uptime_secs;
+	int count, running, owned, zombies, ncpus;
+	struct timeval boottime;
+  double loadavg[3];
+  double fscale;
+	int uptime_secs; // TODO
+  long cpu_cycles[CPUSTATES]; // raw cpu counter
+  double cpu_pct[CPUSTATES]; // percentage
+  int memory[7];
 };
 
-struct proc **proc_init();
-struct proc  *proc_get(   struct proc **, pid_t);
-void          proc_update(struct proc **, struct procstat *);
-void          proc_handle_renames(struct proc **);
+struct myproc **proc_init();
+struct myproc  *proc_get(struct myproc **, pid_t);
+void          proc_update(struct myproc **, struct procstat *);
+void          proc_handle_renames(struct myproc **);
+void          proc_cleanup(struct myproc **);
+void          proc_handle_rename(struct myproc *this);
+void          proc_addto(struct myproc **procs, struct myproc *p);
 
-struct proc  *proc_to_list(struct proc **);
-struct proc  *proc_to_tree(struct proc **);
-struct proc  *proc_find(  const char *, struct proc **);
-struct proc  *proc_find_n(const char *, struct proc **, int);
-const char   *proc_str(struct proc *p);
-int           proc_to_idx(struct proc *p, struct proc *parent, int *y);
-struct proc  *proc_from_idx(struct proc *parent, int *idx);
+struct myproc  *proc_to_list(struct myproc **);
+struct myproc  *proc_to_tree(struct myproc **);
+struct myproc  *proc_find(  const char *, struct myproc **);
+struct myproc  *proc_find_n(const char *, struct myproc **, int);
+const char     *proc_str(struct myproc *p);
+int            proc_listcontains(struct myproc **procs, pid_t pid);
+int            proc_to_idx(struct myproc *p, struct myproc *parent, int *y);
+struct myproc  *proc_from_idx(struct myproc *parent, int *idx);
+struct myproc  *procs_find_root(struct myproc **procs);
 
-void proc_dump(struct proc **ps, FILE *f);
+void proc_dump(struct myproc **ps, FILE *f);
 
-#define NPROCS 128
+#define HASH_TABLE_SIZE 128
 
 #endif
