@@ -2,13 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/stat.h>
-/* #include <sys/types.h> */
-/* #include <sys/sysctl.h> */
-/* #include <sys/file.h> */
-/* #include <sys/proc.h> */
-/* #include <sys/resource.h> */
-/* #include <sys/user.h> */
+#include <kvm.h>
+#include <unistd.h>
+#include <paths.h>
+#include <pwd.h>
+#include <grp.h>
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <sys/stat.h> // S_IFCHR
+#include <sys/file.h> // O_RDONLY
 
 #include "util.h"
 #include "machine.h"

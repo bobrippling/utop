@@ -1,13 +1,4 @@
-#include <sys/param.h>
-#include <sys/errno.h>
 #include <sys/file.h>
-#include <sys/proc.h>
-#include <sys/resource.h>
-#include <sys/sysctl.h>
-#include <sys/time.h>
-#include <sys/user.h>
-#include <sys/vmmeter.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

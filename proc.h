@@ -1,32 +1,7 @@
 #ifndef PROC_H
 #define PROC_H
 
-#include <sys/param.h>
-#include <sys/errno.h>
-#include <sys/file.h>
-#include <sys/proc.h>
-#include <sys/resource.h>
-#include <sys/sysctl.h>
-#include <sys/time.h>
-#include <sys/user.h>
-#include <sys/vmmeter.h>
-
-#include <err.h>
-#include <kvm.h>
-#include <math.h>
-#include <nlist.h>
-#include <paths.h>
-#include <pwd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
-#include <vis.h>
-#include <grp.h>
-
-// defined in proc.c
-//extern char *state_abbrev[];
+#include <sys/user.h> // CPUSTATES
 
 struct myproc
 {
