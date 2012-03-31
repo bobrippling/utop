@@ -92,3 +92,9 @@ int longest_passwd_line(const char *fname)
 
 	return max;
 }
+
+// convert fixpt_t value to percentages
+double pctdouble(fixpt_t pc_cpu, double fscale)
+{
+  return ((double)pc_cpu/fscale)*100; // in %
+}

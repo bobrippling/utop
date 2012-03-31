@@ -34,11 +34,6 @@
 
 */
 
-static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *ps);
-static void proc_handle_rename(struct myproc *p);
-
-extern kvm_t *kd; // defined in machine.c
-
 void proc_free(struct myproc *p)
 {
   char **iter;
@@ -67,42 +62,6 @@ static void getprocstat(struct procstat *pst)
 
   // TODO: get CPU utilization
   get_cpu_stats(pst);
-}
-
-struct myproc *proc_new(struct kinfo_proc *pp) {
-  struct myproc *this = NULL;
-
-  this = umalloc(sizeof(*this));
-
-  this->basename = ustrdup(pp->ki_comm);
-  this->uid = pp->ki_uid;
-  this->gid = pp->ki_rgid;
-
-  struct passwd *passwd;
-  struct group  *group;
-
-#define GETPW(id, var, truct, fn, member)       \
-  truct = fn(id);                               \
-  if(truct){                                    \
-    var = ustrdup(truct->member);               \
-  }else{                                        \
-    char buf[8];                                \
-    snprintf(buf, sizeof buf, "%d", id);        \
-    var = ustrdup(buf);                         \
-  }                                             \
-
-  GETPW(this->uid, this->unam, passwd, getpwuid, pw_name);
-  GETPW(this->gid, this->gnam,  group, getgrgid, gr_name);
-
-  this->pid  = pp->ki_pid;
-  this->ppid = -1;
-  this->jid = pp->ki_jid;
-  this->state = pp->ki_stat;
-  this->flag = pp->ki_flag;
-
-  proc_handle_rename(this);
-
-  return this;
 }
 
 struct myproc *proc_get(struct myproc **procs, pid_t pid)
@@ -137,7 +96,7 @@ void proc_addto(struct myproc **procs, struct myproc *p)
   }
 }
 
-// initialize hash table and kvm
+// initialize hash table
 struct myproc **proc_init()
 {
   struct myproc **procs;
@@ -176,58 +135,9 @@ void proc_cleanup(struct myproc **procs)
   machine_cleanup();
 }
 
-void proc_listall(struct myproc **procs, struct procstat *stat)
+void proc_handle_rename(struct myproc *this)
 {
-  // This is the number of processes that kvm_getprocs returns
-  int num_procs = 0;
-
-  // get all processes
-  struct kinfo_proc *pbase; // defined in /usr/include/sys/user.h
-
-  if ((pbase = kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs) )) {
-    struct kinfo_proc *pp;
-    int i;
-
-    // We iterate over each kinfo_struct pointer and check if it
-    // exists already in our hash table. If it is not present yet, add
-    // it to the table and increase the global process counter
-    for(pp = pbase, i = 0; i < num_procs; pp++, i++) {
-      if(!proc_listcontains(procs, pp->ki_pid)){
-        struct myproc *p = proc_new(pp);
-
-        // TODO: (code from top)
-        /* if (!show_kidle && pp->ki_tdflags & TDF_IDLETD) */
-        /*   /\* skip kernel idle process *\/ */
-        /*   continue; */
-        /* if (pp->ki_stat == 0) */
-        /*   /\* not in use *\/ */
-        /*   continue; */
-
-        /* if (!show_self && pp->ki_pid == sel->self) */
-        /*   /\* skip self *\/ */
-        /*   continue; */
-
-        /* if (!show_system && (pp->ki_flag & P_SYSTEM)) */
-        /*   /\* skip system process *\/ */
-        /*   continue; */
-
-        if(p) {
-          proc_addto(procs, p);
-          stat->count++;
-          if(pp->ki_stat == SZOMB)
-            stat->zombies++;
-        }
-      }
-    }
-  }
-}
-
-static void proc_handle_rename(struct myproc *this)
-{
-  struct kinfo_proc *proc = NULL;
-  int num_procs = 0;
-
-  if((proc = kvm_getprocs(kd, KERN_PROC_PID, this->pid, &num_procs)) != NULL){
+  if(machine_proc_exists(this->pid) != NULL){
 
     char **iter, **argv;
 
@@ -235,7 +145,7 @@ static void proc_handle_rename(struct myproc *this)
     int i, argc, slen;
     char *cmd, *pos;
 
-    argv = kvm_getargv(kd, proc, 0);
+    argv = machine_get_argv(this->pid);
     argc = slen = 0;
 
     if(argv) {
@@ -308,41 +218,12 @@ static void proc_handle_rename(struct myproc *this)
   }
 }
 
-double pctdouble(fixpt_t pc_cpu, double fscale)
-{
-  return ((double)pc_cpu/fscale)*100; // in %
-}
-
 static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *pst)
 {
-  struct kinfo_proc *pp = NULL; // defined in /usr/include/sys/user.h
-  int num_procs = 0; // This is the number of processes that kvm_getprocs returns
   pid_t oldppid = proc->ppid;
 
   // Get the kinfo_proc pointer to the current PID
-  if ( (pp = kvm_getprocs(kd, KERN_PROC_PID, proc->pid, &num_procs)) != NULL ) {
-    if(proc->basename)
-      free(proc->basename);
-    proc->basename = ustrdup(pp->ki_comm);
-    proc->pid = pp->ki_pid;
-    proc->ppid = pp->ki_ppid;
-    proc->state = pp->ki_stat;
-    if(proc->state_str)
-      free(proc->state_str);
-    proc->state_str = ustrdup(proc_state_str(pp));
-    proc->uid = pp->ki_ruid;
-    proc->gid = pp->ki_rgid;
-    proc->nice = pp->ki_nice;
-    proc->pc_cpu = pctdouble(pp->ki_pctcpu, pst->fscale);
-    proc->flag = pp->ki_flag;
-
-    // Set tty
-    char buf[8];
-    devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
-    if(proc->tty)
-      free(proc->tty);
-    proc->tty = ustrdup(buf);
-
+  if ( machine_update_proc(proc, pst) == 0) {
     if(oldppid != proc->ppid){
       struct myproc *parent = proc_get(procs, proc->ppid);
       struct myproc *iter;
@@ -379,7 +260,6 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 {
   int i;
   int count, running, owned, zombies;
-  int num_procs = 0;
 
   getprocstat(pst);
 
@@ -392,7 +272,8 @@ void proc_update(struct myproc **procs, struct procstat *pst)
     change_me = &procs[i];
 
     for(p = procs[i]; p; ) {
-      if(kvm_getprocs(kd, KERN_PROC_PID, p->pid, &num_procs) == NULL) { // process doesn't exist anymore
+
+      if(machine_proc_exists(p->pid) == NULL) { // process doesn't exist anymore
         struct myproc *next = p->hash_next;
         struct myproc *parent = proc_get(procs, p->ppid);
 
@@ -435,7 +316,7 @@ void proc_update(struct myproc **procs, struct procstat *pst)
   pst->owned   = owned;
   pst->zombies = zombies;
 
-  proc_listall(procs, pst);
+  machine_proc_listall(procs, pst);
 }
 
 void proc_handle_renames(struct myproc **ps)

@@ -2,8 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/sysctl.h>
+#include <sys/stat.h>
+/* #include <sys/types.h> */
+/* #include <sys/sysctl.h> */
+/* #include <sys/file.h> */
+/* #include <sys/proc.h> */
+/* #include <sys/resource.h> */
+/* #include <sys/user.h> */
 
 #include "util.h"
 #include "machine.h"
@@ -269,4 +274,142 @@ const char *proc_state_str(struct kinfo_proc *pp) {
   }
 
   return status;
+}
+
+struct kinfo_proc *machine_proc_exists(pid_t pid)
+{
+  struct kinfo_proc *proc = NULL;
+  int num_procs = 0;
+
+  proc = kvm_getprocs(kd, KERN_PROC_PID, pid, &num_procs);
+
+  return proc;
+}
+
+char **machine_get_argv(pid_t pid)
+{
+  struct kinfo_proc *proc;
+  char **argv = NULL;
+
+  if((proc = machine_proc_exists(pid)) != NULL)
+    argv = kvm_getargv(kd, proc, 0);
+
+  return argv;
+}
+
+/* Update process fields. */
+/* Returns 0 on success, -1 on error */
+int machine_update_proc(struct myproc *proc, struct procstat *pst)
+{
+  struct kinfo_proc *pp;
+
+  if ( (pp = machine_proc_exists(proc->pid)) != NULL ) {
+    if(proc->basename)
+      free(proc->basename);
+    proc->basename = ustrdup(pp->ki_comm);
+    proc->pid = pp->ki_pid;
+    proc->ppid = pp->ki_ppid;
+    proc->state = pp->ki_stat;
+    if(proc->state_str)
+      free(proc->state_str);
+    proc->state_str = ustrdup(proc_state_str(pp));
+    proc->uid = pp->ki_ruid;
+    proc->gid = pp->ki_rgid;
+    proc->nice = pp->ki_nice;
+    proc->pc_cpu = pctdouble(pp->ki_pctcpu, pst->fscale);
+    proc->flag = pp->ki_flag;
+
+    // Set tty
+    char buf[8];
+    devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
+    if(proc->tty)
+      free(proc->tty);
+    proc->tty = ustrdup(buf);
+
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
+struct myproc *machine_proc_new(struct kinfo_proc *pp) {
+  struct myproc *this = NULL;
+
+  this = umalloc(sizeof(*this));
+
+  this->basename = ustrdup(pp->ki_comm);
+  this->uid = pp->ki_uid;
+  this->gid = pp->ki_rgid;
+
+  struct passwd *passwd;
+  struct group  *group;
+
+#define GETPW(id, var, truct, fn, member)       \
+  truct = fn(id);                               \
+  if(truct){                                    \
+    var = ustrdup(truct->member);               \
+  }else{                                        \
+    char buf[8];                                \
+    snprintf(buf, sizeof buf, "%d", id);        \
+    var = ustrdup(buf);                         \
+  }                                             \
+
+  GETPW(this->uid, this->unam, passwd, getpwuid, pw_name);
+  GETPW(this->gid, this->gnam,  group, getgrgid, gr_name);
+
+  this->pid  = pp->ki_pid;
+  this->ppid = -1;
+  this->jid = pp->ki_jid;
+  this->state = pp->ki_stat;
+  this->flag = pp->ki_flag;
+
+  proc_handle_rename(this);
+
+  return this;
+}
+
+void machine_proc_listall(struct myproc **procs, struct procstat *stat)
+{
+  // This is the number of processes that kvm_getprocs returns
+  int num_procs = 0;
+
+  // get all processes
+  struct kinfo_proc *pbase; // defined in /usr/include/sys/user.h
+
+  if ((pbase = kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs) )) {
+    struct kinfo_proc *pp;
+    int i;
+
+    // We iterate over each kinfo_struct pointer and check if it
+    // exists already in our hash table. If it is not present yet, add
+    // it to the table and increase the global process counter
+    for(pp = pbase, i = 0; i < num_procs; pp++, i++) {
+      if(!proc_listcontains(procs, pp->ki_pid)){
+        struct myproc *p = machine_proc_new(pp);
+
+        // TODO: (code from top)
+        /* if (!show_kidle && pp->ki_tdflags & TDF_IDLETD) */
+        /*   /\* skip kernel idle process *\/ */
+        /*   continue; */
+        /* if (pp->ki_stat == 0) */
+        /*   /\* not in use *\/ */
+        /*   continue; */
+
+        /* if (!show_self && pp->ki_pid == sel->self) */
+        /*   /\* skip self *\/ */
+        /*   continue; */
+
+        /* if (!show_system && (pp->ki_flag & P_SYSTEM)) */
+        /*   /\* skip system process *\/ */
+        /*   continue; */
+
+        if(p) {
+          proc_addto(procs, p);
+          stat->count++;
+          if(pp->ki_stat == SZOMB)
+            stat->zombies++;
+        }
+      }
+    }
+  }
 }
