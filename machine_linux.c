@@ -13,16 +13,16 @@
 #include <time.h>
 
 #include "util.h"
-#include "machine.h"
 #include "proc.h"
+#include "machine.h"
 
-void init_machine(struct procstat *pst)
+void machine_init(struct procstat *pst)
 {
 	(void)pst;
 	// nothing to do... for now.. dun dun..
 }
 
-void machine_cleanup()
+void machine_term()
 {
 }
 
@@ -55,7 +55,7 @@ const char *uptime_from_boottime(time_t boottime)
 const char* format_memory(int memory[6])
 {
 	(void)memory;
-	return "";
+	return "todo: mem";
 }
 
 // Taken from top(8)
@@ -92,15 +92,10 @@ void get_cpu_stats(struct procstat *pst)
 const char* format_cpu_pct(double cpu_pct[CPUSTATES])
 {
 	(void)cpu_pct;
-	return "";
+	return "todo: cpu pct";
 }
 
-const char *proc_state_str(void *pp) {
-	(void)pp;
-	return "";
-}
-
-struct kinfo_proc *machine_proc_exists(pid_t pid)
+int machine_proc_exists(pid_t pid)
 {
 	(void)pid;
 	return 0;
@@ -191,42 +186,6 @@ int machine_update_proc(struct myproc *proc, struct procstat *pst)
 	}else{
 		return -1;
 	}
-}
-
-struct myproc *machine_proc_new(struct kinfo_proc *pp) {
-  struct myproc *this = NULL;
-
-  this = umalloc(sizeof(*this));
-
-  //this->basename = ustrdup(pp->ki_comm);
-  //this->uid = pp->ki_uid;
-  //this->gid = pp->ki_rgid;
-
-  struct passwd *passwd;
-  struct group  *group;
-
-#define GETPW(id, var, truct, fn, member)       \
-  truct = fn(id);                               \
-  if(truct){                                    \
-    var = ustrdup(truct->member);               \
-  }else{                                        \
-    char buf[8];                                \
-    snprintf(buf, sizeof buf, "%d", id);        \
-    var = ustrdup(buf);                         \
-  }                                             \
-
-  GETPW(this->uid, this->unam, passwd, getpwuid, pw_name);
-  GETPW(this->gid, this->gnam,  group, getgrgid, gr_name);
-
-  //this->pid  = pp->ki_pid;
-  this->ppid = -1;
-  //this->jid = pp->ki_jid;
-  //this->state = pp->ki_stat;
-  //this->flag = pp->ki_flag;
-
-  proc_handle_rename(this);
-
-  return this;
 }
 
 void machine_proc_listall(struct myproc **procs, struct procstat *stat)

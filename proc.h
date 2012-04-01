@@ -18,7 +18,13 @@ struct myproc
   int argc;
 	int basename_offset;
 
-  char state;
+  enum
+	{
+		PROC_STATE_RUN,
+		PROC_STATE_SLEEP,
+		PROC_STATE_OTHER
+	} state;
+
 	char *state_str;
   char *tty;
   gid_t pgrp;
@@ -61,6 +67,7 @@ struct myproc  *proc_to_tree(struct myproc **);
 struct myproc  *proc_find(  const char *, struct myproc **);
 struct myproc  *proc_find_n(const char *, struct myproc **, int);
 const char     *proc_str(struct myproc *p);
+const char     *proc_state_str(struct myproc *p);
 int            proc_listcontains(struct myproc **procs, pid_t pid);
 int            proc_to_idx(struct myproc *p, struct myproc *parent, int *y);
 struct myproc  *proc_from_idx(struct myproc *parent, int *idx);

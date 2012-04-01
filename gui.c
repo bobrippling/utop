@@ -1,19 +1,25 @@
 #include <ncurses.h>
-#include <sys/types.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <errno.h>
 #include <stdlib.h>
+#include <string.h>
+#include <signal.h>
 #include <time.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <errno.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/types.h>
 
 #include "proc.h"
 #include "gui.h"
 #include "util.h"
 #include "config.h"
 #include "main.h"
+#include "machine.h"
+#include "util.h"
+
+#define TOP_OFFSET 3
 
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
@@ -24,8 +30,6 @@ static int  search = 0;
 static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
 static struct myproc *search_proc = NULL;
-
-static long last_name_refresh;
 
 static pid_t lock_proc_pid = -1;
 
@@ -78,19 +82,25 @@ void gui_term()
 	endwin();
 }
 
+struct myproc *gui_proc_first(struct myproc **procs)
+{
+	struct myproc *init = proc_get(procs, 0); // the root node
+	return init;
+}
+
 int search_proc_to_idx(int *y, struct myproc **procs)
 {
-	struct myproc *init = proc_get(procs, 1);
+	struct myproc *init = gui_proc_first(procs);
 	if(search_proc == init)
 		return 0;
-	*y = 1;
+	*y = 0;
 	return proc_to_idx(search_proc, init, y);
 }
 
 struct myproc *curproc(struct myproc **procs)
 {
-	int i = pos_y;
-	return proc_from_idx(proc_get(procs, 1), &i);
+	int i = pos_y + 1;
+	return proc_from_idx(gui_proc_first(procs), &i);
 }
 
 void position(int newy)
@@ -100,16 +110,16 @@ void position(int newy)
 	if(pos_y < 0)
 		pos_y = 0;
 
-	if(pos_y - LINES + 2 > pos_top)
-		pos_top = pos_y - LINES + 2;
+	if(pos_y - LINES + TOP_OFFSET > pos_top)
+		pos_top = pos_y - LINES + TOP_OFFSET;
 	if(pos_y < pos_top)
 		pos_top = pos_y;
 }
 
 void goto_proc(struct myproc **procs, struct myproc *p)
 {
-	int y = 1;
-	proc_to_idx(p, proc_get(procs, 1), &y);
+	int y = TOP_OFFSET;
+	proc_to_idx(p, gui_proc_first(procs), &y);
 	position(y);
 }
 
@@ -127,29 +137,6 @@ void goto_lock(struct myproc **procs)
 	}else{
 		goto_proc(procs, proc_get(procs, lock_proc_pid));
 	}
-}
-
-const char *uptime_to_str(long unsigned diff_secs)
-{
-  static char buf[64]; // Should be sufficient
-  time_t now;
-  struct tm *ltime;
-  unsigned long int rest;
-  unsigned int days, hours, minutes, seconds;
-
-  time(&now);
-  ltime = localtime(&now);
-
-  days = diff_secs/86400;
-  rest = diff_secs % 86400;
-  hours = rest / 3600;
-  rest = rest % 3600;
-  minutes = rest/60;
-  rest = rest % 60;
-  seconds = (unsigned int)rest;
-
-  snprintf(buf, sizeof buf, "up %d+%02d:%02d:%02d  %2d:%2d:%2d", days, hours, minutes, seconds, ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
-  return buf;
 }
 
 void showproc(struct myproc *proc, int *py, int indent)
@@ -173,32 +160,54 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attron(ATTR_LOCK);
 		else if(proc == search_proc)
 			attron(ATTR_SEARCH);
+#ifdef WITH_JAILED // TODO
+		else if(proc->flag & P_JAILED)
+			attron(ATTR_JAILED);
+#endif
 		else if(!owned)
 			attron(ATTR_NOT_OWNED);
 
-		len -= snprintf(buf, sizeof buf,
-				"% 7d %c "
-				"%-*s %-*s "
-				"%04.1f"
-				,
-				proc->pid, proc->state,
-				max_unam_len, proc->unam,
-				max_gnam_len, proc->gnam,
-				proc->pc_cpu);
+#ifdef WITH_JAILED // TODO
+		if(!(proc->flag & P_JAILED)){ // non-jailed processes
+			len -= snprintf(buf, sizeof buf,
+											"% 7d			 %-7s "
+											"%-*s %-*s "
+											"%3.1f"
+											,
+											proc->pid, proc->state_str,
+											max_unam_len, proc->unam,
+											max_gnam_len, proc->gnam,
+											proc->pc_cpu
+											);
+		} else
+#else
+		{ // processes in a jail; display Jail ID
+			len -= snprintf(buf, sizeof buf,
+											"% 7d	%3d	%-7s "
+											"%-*s %-*s "
+											"%3.1f"
+											,
+											proc->pid, proc->jid, proc->state_str,
+											max_unam_len, proc->unam,
+											max_gnam_len, proc->gnam,
+											proc->pc_cpu
+											);
+		}
+#endif
 
 		addstr(buf);
 
 		getyx(stdscr, y, x);
 
-		if(proc->state == 'R'){
-			mvchgat(y, 8, 1, 0, COLOR_GREEN + 1, NULL);
+		if(proc->state == PROC_STATE_RUN){
+			mvchgat(y, 14, 7, 0, COLOR_RUNNING + 1, NULL);
 			move(y, x);
 		}
 		clrtoeol();
 
-
 		/* position for process name */
-		x++; /* one after the state */
+		// TODO: add some define that adjusts offset here
+		x += 5; /* one after the state */
 		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
 			x += INDENT;
 
@@ -223,11 +232,13 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attroff(ATTR_SEARCH);
 		else if(owned)
 			attroff(ATTR_BASENAME);
+#ifdef WITH_JAILED
+		else if(proc->flag & P_JAILED)
+			attroff(ATTR_JAILED);
+#endif
 		else
 			attroff(ATTR_NOT_OWNED);
-
 	}
-
 	/*
 	 * need to iterate over all children,
 	 * since we may currently be on a process above the top
@@ -242,9 +253,9 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 void showprocs(struct myproc **procs, struct procstat *pst)
 {
-	int y = -pos_top + 1;
+	int y = -pos_top + TOP_OFFSET - 1;
 
-	showproc(proc_get(procs, 1), &y, 0);
+	showproc(gui_proc_first(procs), &y, 0);
 
 	if(++y < LINES){
 		move(y, 0);
@@ -272,15 +283,24 @@ void showprocs(struct myproc **procs, struct procstat *pst)
 
 	}else{
 		int y;
+		time_t now;
 
-		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2lf, %.2lf, %.2lf, uptime: %s",
-			pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_to_str(pst->uptime_secs));
+		time(&now);
+
+		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
+					 pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_from_boottime(pst->boottime.tv_sec));
+
+		// Mem stuf
+		STATUS(1, 0, "Mem: %s", format_memory(pst->memory));
+
+		// CPU %
+		STATUS(2,0, "CPU: %s", format_cpu_pct(pst->cpu_pct));
 		clrtoeol();
 
-		y = 1 + pos_y - pos_top;
+		y = 3 + pos_y - pos_top;
 
-		mvchgat(y, 0, 36, A_UNDERLINE, 0, NULL);
-		move(y, 35);
+		mvchgat(y, 0, 47, A_UNDERLINE, 0, NULL);
+		move(y, 47);
 	}
 }
 
@@ -364,6 +384,41 @@ void delete(struct myproc *p)
 	getch_delay(1);
 }
 
+void renice(struct myproc *p)
+{
+	char increment[3]; // -20 to 20
+	int i, wait = 0;
+
+	STATUS(0, 0, "renice %d (%s) with [-20:20]: ", p->pid, p->basename);
+	echo();
+	getnstr(increment, sizeof increment);
+	noecho();
+
+	if(!*increment)
+		return;
+
+	if(sscanf(increment, "%d", &i) != 1){
+		STATUS(0, 0, "not a number");
+		wait = 1;
+	}else{
+		if( (i < -20) || (i > 20) ){
+			i = -1;
+			STATUS(0, 0, "not a valid nice increment");
+			wait = 1;
+		}
+	}
+
+	if(!wait && i != -1)
+		if((setpriority(PRIO_PROCESS, p->pid, i)) != 0){
+			STATUS(0, 0, "renice: %s", strerror(errno));
+			wait = 1;
+		}
+
+	if(wait)
+		waitch(1, 0);
+	getch_delay(1);
+}
+
 void external(const char *cmd, struct myproc *p)
 {
 	char buf[16];
@@ -381,12 +436,20 @@ void external(const char *cmd, struct myproc *p)
 
 void strace(struct myproc *p)
 {
-	external("strace", p);
+	external(TRACE_TOOL, p);
 }
 
 void lsof(struct myproc *p)
 {
 	external("lsof", p);
+}
+
+void gdb(struct myproc *p)
+{
+	// Attach to a running process: gdb <name> <pid>
+	char cmd[256];
+	snprintf(cmd, sizeof cmd, "gdb %s", p->basename);
+	external(cmd, p);
 }
 
 void info(struct myproc *p)
@@ -396,15 +459,17 @@ void info(struct myproc *p)
 
 	clear();
 	mvprintw(0, 0,
-			"pid: %d, ppid: %d\n"
-			"uid: %d (%s), gid: %d (%s)\n"
-			"state: %c\n"
-			"tty: %d, pgrp: %d\n"
-			,
-			p->pid, p->ppid,
-			p->uid, p->unam, p->gid, p->gnam,
-			p->state,
-			p->tty, p->pgrp);
+					 "pid: %d, ppid: %d\n"
+					 "uid: %d (%s), gid: %d (%s)\n"
+					 "jid: %d\n"
+					 "state: %s (%s), nice: %d\n"
+					 "tty: %s\n"
+					 ,
+					 p->pid, p->ppid,
+					 p->uid, p->unam, p->gid, p->gnam,
+					 p->jid,
+					 p->state_str, proc_state_str(p), p->nice,
+					 p->tty);
 
 	for(i = 0; p->argv[i]; i++)
 		printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
@@ -480,7 +545,7 @@ void gui_search(int ch, struct myproc **procs)
 ins_char:
 				if(isprint(ch) && search_idx < (signed)sizeof search_str - 2){
 					search_str[search_idx++] = ch;
-					search_str[search_idx  ] = '\0';
+					search_str[search_idx	] = '\0';
 				}
 				break;
 
@@ -546,22 +611,22 @@ backspace:
 void gui_run(struct myproc **procs)
 {
 	struct procstat pst;
-	long last_update = 0;
+	long last_update = 0, last_full_refresh;
 	int fin = 0;
 
 	memset(&pst, 0, sizeof pst);
-
+	machine_init(&pst);
 	proc_update(procs, &pst);
 
-	last_name_refresh = mstime();
+	last_full_refresh = mstime();
 	do{
 		const long now = mstime();
 		int ch;
 
 		if(last_update + WAIT_TIME < now){
 			last_update = now;
-			if(last_name_refresh + FULL_WAIT_TIME < now){
-				last_name_refresh = now;
+			if(last_full_refresh + FULL_WAIT_TIME < now){
+				last_full_refresh = now;
 				proc_handle_renames(procs);
 			}
 			proc_update(procs, &pst);
@@ -643,11 +708,17 @@ void gui_run(struct myproc **procs)
 				case KILL_CHAR:
 					on_curproc("delete", delete, 0, procs);
 					break;
+				case RENICE_CHAR:
+					on_curproc("renice", renice, 0, procs);
+					break;
 				case LSOF_CHAR:
 					on_curproc("lsof", lsof, 1, procs);
 					break;
-				case STRACE_CHAR:
-					on_curproc("strace", strace, 1, procs);
+				case TRACE_CHAR:
+					on_curproc(TRACE_TOOL, strace, 1, procs);
+					break;
+				case 'a':
+					on_curproc("gdb", gdb, 1, procs);
 					break;
 
 				case GOTO_LOCKED_CHAR:
@@ -681,7 +752,7 @@ void gui_run(struct myproc **procs)
 
 				case REDRAW_CHAR:
 					/* redraw */
-					last_name_refresh = 0; /* force refresh */
+					last_full_refresh = 0; /* force refresh */
 					clear();
 					break;
 

@@ -1,7 +1,10 @@
-#include <sys/file.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include "proc.h"
 #include "util.h"
@@ -113,22 +116,54 @@ struct myproc **proc_init()
   return procs;
 }
 
-void proc_cleanup(struct myproc **procs)
+const char *proc_state_str(struct myproc *p)
 {
-  struct myproc *p;
-  int i;
+	(void)p;
+	return "todo: proc state";
+}
 
-  if(procs) {
-    proc_free(procs[0]); // root node
-    ITER_PROCS(i, p, procs)
-        proc_free(p);
-  }
-  machine_cleanup();
+struct myproc *proc_new(pid_t pid)
+{
+  struct myproc *this = NULL;
+
+	(void)pid;
+
+  this = umalloc(sizeof(*this));
+
+  //this->basename = ustrdup(pp->ki_comm);
+  //this->uid = pp->ki_uid;
+  //this->gid = pp->ki_rgid;
+
+  struct passwd *passwd;
+  struct group  *group;
+
+#define GETPW(id, var, truct, fn, member)       \
+  truct = fn(id);                               \
+  if(truct){                                    \
+    var = ustrdup(truct->member);               \
+  }else{                                        \
+    char buf[8];                                \
+    snprintf(buf, sizeof buf, "%d", id);        \
+    var = ustrdup(buf);                         \
+  }                                             \
+
+  GETPW(this->uid, this->unam, passwd, getpwuid, pw_name);
+  GETPW(this->gid, this->gnam,  group, getgrgid, gr_name);
+
+  //this->pid  = pp->ki_pid;
+  this->ppid = -1;
+  //this->jid = pp->ki_jid;
+  //this->state = pp->ki_stat;
+  //this->flag = pp->ki_flag;
+
+  proc_handle_rename(this);
+
+  return this;
 }
 
 void proc_handle_rename(struct myproc *this)
 {
-  if(machine_proc_exists(this->pid) != NULL){
+  if(machine_proc_exists(this->pid)){
 
     char **iter, **argv;
 
@@ -259,7 +294,7 @@ void proc_update(struct myproc **procs, struct procstat *pst)
 
     for(p = procs[i]; p; ) {
 
-      if(machine_proc_exists(p->pid) == NULL) { // process doesn't exist anymore
+      if(!machine_proc_exists(p->pid)) { // process doesn't exist anymore
         struct myproc *next = p->hash_next;
         struct myproc *parent = proc_get(procs, p->ppid);
 

@@ -11,6 +11,7 @@
 
 #define INDENT 4
 
+#define TRACE_TOOL "ktrace"
 // Key bindings
 #define CTRL_AND(c) ((c) & 037)
 
@@ -19,8 +20,9 @@
 #define DOWN_CHAR 'j'
 #define INFO_CHAR 'i'
 #define KILL_CHAR 'd'
+#define RENICE_CHAR 'r'
 #define LSOF_CHAR 'l'
-#define STRACE_CHAR 's'
+#define TRACE_CHAR 's'
 #define GOTO_LOCKED_CHAR 'o'
 #define GOTO_$$_CHAR 'O'
 #define SCROLL_TO_TOP_CHAR 'g'
@@ -55,9 +57,10 @@
 // COLOR_CYAN    6
 // COLOR_WHITE   7
 
+#define COLOR_RUNNING  COLOR_GREEN
 #define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
 #define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
 #define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
 #define ATTR_LOCK      A_BOLD | COLOR_PAIR(1 + COLOR_YELLOW)
-
+#define ATTR_JAILED    A_BOLD | COLOR_PAIR(1 + COLOR_BLUE)
 #endif
