@@ -30,49 +30,30 @@
 
 void proc_free(struct myproc *p)
 {
-  char **iter;
-  if (p->argv)
-    for(iter = p->argv; *iter; iter++)
-      free(*iter);
-  free(p->basename);
-  free(p->cmd);
-  free(p->state_str);
-  free(p->argv);
-  free(p->unam);
-  free(p->gnam);
-  free(p->tty);
-  free(p);
-}
+	free(p->unam);
+	free(p->gnam);
 
-static void getprocstat(struct procstat *pst)
-{
-  // Implementation dependend code from machine.c:
+	free(p->shell_cmd);
+	free(p->argv0_basename);
+	for(char **iter = p->argv; iter && *iter; iter++)
+		free(*iter);
+	free(p->argv);
 
-  // Populate load averge
-  get_load_average(pst);
+	free(p->tty);
 
-  /* // get the memory usage */
-  get_mem_usage(pst);
-
-  // TODO: get CPU utilization
-  get_cpu_stats(pst);
+	free(p);
 }
 
 struct myproc *proc_get(struct myproc **procs, pid_t pid)
 {
   struct myproc *p;
 
-  /* if(pid >= 0) */
-  for(p = procs[pid % HASH_TABLE_SIZE]; p; p = p->hash_next)
-    if(p->pid == pid)
-      return p;
+	if(pid >= 0)
+		for(p = procs[pid % HASH_TABLE_SIZE]; p; p = p->hash_next)
+			if(p->pid == pid)
+				return p;
 
   return NULL;
-}
-
-int proc_listcontains(struct myproc **procs, pid_t pid)
-{
-  return !!proc_get(procs, pid);
 }
 
 // Add a struct myproc pointer to the hash table
@@ -85,6 +66,7 @@ void proc_addto(struct myproc **procs, struct myproc *p)
     while(last->hash_next)
       last = last->hash_next;
     last->hash_next = p;
+		p->hash_next = NULL;
   }else{
     procs[p->pid % HASH_TABLE_SIZE] = p;
   }
@@ -93,27 +75,7 @@ void proc_addto(struct myproc **procs, struct myproc *p)
 // initialize hash table
 struct myproc **proc_init()
 {
-  struct myproc **procs;
-  struct myproc *root=NULL;
-
-  procs = umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
-
-  // Add a dummy process with pid 0 and ppid -1 to the list:
-  root = umalloc(sizeof(*root));
-
-  root->pid = 0;
-  root->ppid = -1;
-  // Probably not needed anymore
-  /* root->basename = ustrdup("{root}"); */
-  /* root->argv = umalloc(2*sizeof(char*)); */
-  /* root->argv[0] = ustrdup(root->basename); */
-  /* root->argv[1] = NULL; */
-  /* root->state = 0; */
-  /* root->cmd = ustrdup(root->basename); */
-
-  proc_addto(procs, root);
-
-  return procs;
+  return umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
 }
 
 const char *proc_state_str(struct myproc *p)
@@ -122,129 +84,32 @@ const char *proc_state_str(struct myproc *p)
 	return "todo: proc state";
 }
 
-struct myproc *proc_new(pid_t pid)
+void proc_handle_rename(struct myproc *this, struct myproc **procs)
 {
-  struct myproc *this = NULL;
+  if(machine_proc_exists(this)){
+    char *cmd;
+		int cmd_len;
 
-	(void)pid;
+		machine_update_proc(this, procs);
 
-  this = umalloc(sizeof(*this));
+    /* recreate this->shell_cmd from argv */
+		for(int i = cmd_len = 0; i < this->argc; i++)
+			cmd_len += strlen(this->argv[i]) + 1;
 
-  //this->basename = ustrdup(pp->ki_comm);
-  //this->uid = pp->ki_uid;
-  //this->gid = pp->ki_rgid;
+    free(this->shell_cmd);
+		this->shell_cmd = umalloc(cmd_len + 1);
 
-  struct passwd *passwd;
-  struct group  *group;
-
-#define GETPW(id, var, truct, fn, member)       \
-  truct = fn(id);                               \
-  if(truct){                                    \
-    var = ustrdup(truct->member);               \
-  }else{                                        \
-    char buf[8];                                \
-    snprintf(buf, sizeof buf, "%d", id);        \
-    var = ustrdup(buf);                         \
-  }                                             \
-
-  GETPW(this->uid, this->unam, passwd, getpwuid, pw_name);
-  GETPW(this->gid, this->gnam,  group, getgrgid, gr_name);
-
-  //this->pid  = pp->ki_pid;
-  this->ppid = -1;
-  //this->jid = pp->ki_jid;
-  //this->state = pp->ki_stat;
-  //this->flag = pp->ki_flag;
-
-  proc_handle_rename(this);
-
-  return this;
-}
-
-void proc_handle_rename(struct myproc *this)
-{
-  if(machine_proc_exists(this->pid)){
-
-    char **iter, **argv;
-
-    /* dup argv */
-    int i, argc, slen;
-    char *cmd, *pos;
-
-    argv = machine_get_argv(this->pid);
-    argc = slen = 0;
-
-    if(argv) {
-      /* free old argv */
-      for(i = 0; i < this->argc; i++)
-        free(this->argv[i]);
-      free(this->argv);
-
-
-      for(iter = argv; *iter; iter++)
-        argc++;
-
-      this->argv = umalloc((argc+1) * sizeof *this->argv); // + NULL terminator
-
-      for(i = 0; i < argc; i++){
-        slen += strlen(argv[i]) + 1 /* space */;
-        this->argv[i] = ustrdup(argv[i]);
-      }
-
-      if((pos = strchr(this->argv[0], ':'))){
-        /* sshd: ... */
-        *pos = '\0';
-        free(this->basename);
-        this->basename = ustrdup(this->argv[0]);
-        *pos = ':';
-        this->basename_offset = 0;
-      }else{
-        pos = strrchr(this->argv[0], '/'); // locate the last '/' in argv[0], which is the full command path
-
-        // malloc in just a second..
-        if(!pos++)
-          pos = this->argv[0];
-        this->basename_offset = pos - this->argv[0];
-        free(this->basename);
-        this->basename = ustrdup(pos);
-
-        if(*this->argv[0] == '-')
-          this->basename_offset++; /* login shell, basename offset needs increasing */
-      }
-
-      this->argv[argc] = NULL;
-      this->argc = argc;
-    } else { // argv is empty like for init for example
-      this->basename_offset = 0;
-      this->argv = umalloc((argc+2)*sizeof(char*));
-      this->argv[0] = ustrdup(this->basename);
-      this->argv[1] = NULL;
-
-      slen = strlen(this->basename);
-      argc = 1;
-    }
-
-    /* recreate this->cmd from argv */
-    free(this->cmd);
-
-		cmd = this->cmd = umalloc(slen + 1);
-		for(int i = 0; i < argc; i++)
+		cmd = this->shell_cmd;
+		for(int i = 0; i < this->argc; i++)
 			cmd += sprintf(cmd, "%s ", this->argv[i]);
-
-    if(global_debug){
-      fprintf(stderr, "recreated argv for %s\n", this->basename);
-      for(i = 0; this->argv[i]; i++)
-        fprintf(stderr, "argv[%d] = %s\n", i, this->argv[i]);
-    }
-  }
+	}
 }
 
-static void proc_update_single(struct myproc *proc, struct myproc **procs, struct procstat *pst)
+static void proc_update_single(struct myproc *proc, struct myproc **procs)
 {
-  pid_t oldppid = proc->ppid;
+  const pid_t oldppid = proc->ppid;
 
-  // Get the kinfo_proc pointer to the current PID
-  if ( machine_update_proc(proc, pst) == 0) {
+  if(machine_proc_exists(proc)){
     if(oldppid != proc->ppid){
       struct myproc *parent = proc_get(procs, proc->ppid);
       struct myproc *iter;
@@ -262,8 +127,9 @@ static void proc_update_single(struct myproc *proc, struct myproc **procs, struc
         }
       }
     }
-  } else // If KVM reports that the process isn't existing anymore, drop it.
+  }else{
     proc_free(proc);
+	}
 }
 
 const char *proc_str(struct myproc *p)
@@ -272,72 +138,55 @@ const char *proc_str(struct myproc *p)
 
   snprintf(buf, sizeof buf,
            "{ pid=%d, ppid=%d, state=%d, cmd=\"%s\"}",
-           p->pid, p->ppid, (int)p->state, p->cmd);
+           p->pid, p->ppid, (int)p->state, p->shell_cmd);
 
   return buf;
 }
 
-void proc_update(struct myproc **procs, struct procstat *pst)
+void proc_update(struct myproc **procs)
 {
   int i;
-  int count, running, owned, zombies;
 
-  getprocstat(pst);
-
-  count = running = owned = zombies = 0;
-
-  for(i = 1; i < HASH_TABLE_SIZE; i++){ // i=0 is the dummy node
+  for(i = 0; i < HASH_TABLE_SIZE; i++){
     struct myproc **change_me;
     struct myproc *p;
 
     change_me = &procs[i];
 
-    for(p = procs[i]; p; ) {
+    for(p = procs[i]; p; ){
+			if(p){
+				if(!machine_proc_exists(p)){
+					/* dead */
+					struct myproc *next = p->hash_next;
+					struct myproc *parent = proc_get(procs, p->ppid);
 
-      if(!machine_proc_exists(p->pid)) { // process doesn't exist anymore
-        struct myproc *next = p->hash_next;
-        struct myproc *parent = proc_get(procs, p->ppid);
+					if(parent){
+						struct myproc *iter, **prev;
 
-        if(parent){
-          struct myproc *iter, **prev;
+						prev = &parent->child_first;
+						for(iter = parent->child_first; iter; iter = iter->child_next)
+							if(iter->pid == p->pid){
+								*prev = iter->child_next;
+								break;
+							}else{
+								prev = &iter->child_next;
+							}
+					}
 
-          prev = &parent->child_first;
-          for(iter = parent->child_first; iter; iter = iter->child_next)
-            if(iter->pid == p->pid){
-              *prev = iter->child_next;
-              break;
-            }else{
-              prev = &iter->child_next;
-            }
-        }
+					*change_me = next;
+					proc_free(p);
+					p = next;
+				}else{
+					proc_update_single(p, procs);
 
-        *change_me = next;
-        proc_free(p);
-        pst->count--;
-        p = next;
-      }else{
-        if(p){
-          proc_update_single(p, procs, pst);
-          count++;
-
-          /*if(p->state == SRUN)
-            running++; TODO */
-          if(p->uid == global_uid)
-            owned++;
-        }
-
-        change_me = &p->hash_next;
-        p = p->hash_next;
-      }
+					change_me = &p->hash_next;
+					p = p->hash_next;
+				}
+			}
     }
   }
 
-  pst->count   = count;
-  pst->running = running;
-  pst->owned   = owned;
-  pst->zombies = zombies;
-
-  machine_proc_listall(procs, pst);
+  machine_proc_get_more(procs);
 }
 
 void proc_handle_renames(struct myproc **ps)
@@ -346,7 +195,7 @@ void proc_handle_renames(struct myproc **ps)
   int i;
 
   ITER_PROCS(i, p, ps)
-      proc_handle_rename(p);
+      proc_handle_rename(p, ps);
 }
 
 void proc_dump(struct myproc **ps, FILE *f)
@@ -365,16 +214,16 @@ struct myproc *proc_find(const char *str, struct myproc **ps)
 
 struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 {
-  struct myproc *p;
-  int i;
+	struct myproc *p;
+	int i;
 
-  if(str) {
-    ITER_PROCS(i, p, ps)
-        if(p->cmd && strstr(p->cmd, str) && n-- <= 0)
-          return p;
-  }
+	if(str) {
+		ITER_PROCS(i, p, ps)
+			if(p->shell_cmd && strstr(p->shell_cmd, str) && n-- <= 0)
+				return p;
+	}
 
-  return NULL;
+	return NULL;
 }
 
 int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
@@ -419,13 +268,4 @@ struct myproc *proc_from_idx(struct myproc *parent, int *idx)
 fin:
   *idx = i;
   return ret;
-}
-
-struct myproc *procs_find_root(struct myproc **procs)
-{
-  struct myproc *p;
-  p = procs[0];
-  if(p)
-    return p;
-  return NULL;
 }

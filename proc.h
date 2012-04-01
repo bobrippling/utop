@@ -7,16 +7,29 @@
 struct myproc
 {
 	pid_t pid, ppid;
+  int jid;
+
 	uid_t uid;
   gid_t gid;
-  int jid; // Jail ID
+  gid_t pgrp;
 	char *unam, *gnam;
 
-	char *cmd;
-	char *basename;
-	char **argv;
+	char *shell_cmd;      /* allocated, from argv */
+	char **argv;          /* allocated */
   int argc;
-	int basename_offset;
+	char *argv0_basename; /* pointer to somewhere in argv[0] */
+
+	enum gui_attr
+	{
+		gui_color_black,
+		gui_color_blue,
+		gui_color_cyan,
+		gui_color_green,
+		gui_color_magenta,
+		gui_color_red,
+		gui_color_white,
+		gui_color_yellow
+	} gui_attr;
 
   enum
 	{
@@ -25,11 +38,8 @@ struct myproc
 		PROC_STATE_OTHER
 	} state;
 
-	char *state_str;
   char *tty;
-  gid_t pgrp;
   signed char nice;
-  long flag; // P* flags
 
 	double pc_cpu;
 	unsigned long utime, stime, cutime, cstime;
@@ -40,26 +50,26 @@ struct myproc
 
 	/* only used for arrangement */
 	struct myproc *next;
-};
 
-struct procstat
-{
-	int count, running, owned, zombies, ncpus;
-	struct timeval boottime;
-  double loadavg[3];
-  double fscale;
-	int uptime_secs; // TODO
-  long cpu_cycles[CPUSTATES]; // raw cpu counter
-  double cpu_pct[CPUSTATES]; // percentage
-  int memory[7];
+	union
+	{
+		struct
+		{
+			int flag;
+		} freebsd;
+		struct
+		{
+			int unused;
+		} linux;
+	} machine;
 };
 
 struct myproc **proc_init();
 struct myproc  *proc_get(struct myproc **, pid_t);
-void          proc_update(struct myproc **, struct procstat *);
-void          proc_handle_renames(struct myproc **);
+void          proc_update(struct myproc **);
+void          proc_handle_rename(struct myproc *this, struct myproc **procs);
+void          proc_handle_renames(struct myproc **ps);
 void          proc_cleanup(struct myproc **);
-void          proc_handle_rename(struct myproc *this);
 void          proc_addto(struct myproc **procs, struct myproc *p);
 
 struct myproc  *proc_to_list(struct myproc **);

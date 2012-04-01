@@ -9,6 +9,7 @@
 #include "proc.h"
 #include "gui.h"
 #include "util.h"
+#include "machine.h"
 
 #define MS_TO_US(n) ((n) * 1000)
 
@@ -43,6 +44,8 @@ int main(int argc, char **argv)
 	struct sigaction action;
 	int i;
 
+	memset(&action, 0, sizeof action);
+
 	action.sa_handler = signal_handler;
 	sigaction(SIGABRT, &action, NULL);
 	sigaction(SIGTERM, &action, NULL);
@@ -64,12 +67,14 @@ int main(int argc, char **argv)
 
 	extra_init();
 	gui_init();
+	machine_init();
 
 	proclist = proc_init();
 
 	gui_run(proclist);
 
 	gui_term();
+	machine_term();
 
 	return 0;
 }

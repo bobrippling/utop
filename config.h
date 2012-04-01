@@ -57,10 +57,14 @@
 // COLOR_CYAN    6
 // COLOR_WHITE   7
 
-#define COLOR_RUNNING  COLOR_GREEN
+#define CFG_COLOR_RUNNING  gui_color_green
+#define CFG_COLOR_LOCK     gui_color_yellow
+#define CFG_COLOR_SEARCH   gui_color_blue
+
 #define ATTR_NOT_OWNED A_BOLD | COLOR_PAIR(1 + COLOR_BLACK)
 #define ATTR_SEARCH    A_BOLD | COLOR_PAIR(1 + COLOR_RED)
 #define ATTR_BASENAME  A_BOLD | COLOR_PAIR(1 + COLOR_CYAN)
 #define ATTR_LOCK      A_BOLD | COLOR_PAIR(1 + COLOR_YELLOW)
 #define ATTR_JAILED    A_BOLD | COLOR_PAIR(1 + COLOR_BLUE)
+
 #endif

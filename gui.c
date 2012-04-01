@@ -18,6 +18,7 @@
 #include "main.h"
 #include "machine.h"
 #include "util.h"
+#include "sys.h"
 
 #define TOP_OFFSET 3
 
@@ -82,9 +83,21 @@ void gui_term()
 	endwin();
 }
 
+void gui_attr_on(enum gui_attr a)
+{
+	//attron(a);
+	(void)a;
+}
+
+void gui_attr_off(enum gui_attr a)
+{
+	//attroff(a);
+	(void)a;
+}
+
 struct myproc *gui_proc_first(struct myproc **procs)
 {
-	struct myproc *init = proc_get(procs, 0); // the root node
+	struct myproc *init = proc_get(procs, 1); // TODO
 	return init;
 }
 
@@ -149,7 +162,6 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 	if(y > 0){ // otherwise we're iterating over a process that's above pos_top
 		const int owned = proc->uid == global_uid;
-		char buf[256];
 		int len = LINES;
 		int lock = proc->pid == lock_proc_pid;
 		int x;
@@ -157,50 +169,18 @@ void showproc(struct myproc *proc, int *py, int indent)
 		move(y, 0);
 
 		if(lock)
-			attron(ATTR_LOCK);
+			gui_attr_on(CFG_COLOR_LOCK);
 		else if(proc == search_proc)
-			attron(ATTR_SEARCH);
-#ifdef WITH_JAILED // TODO
-		else if(proc->flag & P_JAILED)
-			attron(ATTR_JAILED);
-#endif
-		else if(!owned)
-			attron(ATTR_NOT_OWNED);
+			gui_attr_on(CFG_COLOR_SEARCH);
+		else
+			gui_attr_on(proc->gui_attr);
 
-#ifdef WITH_JAILED // TODO
-		if(!(proc->flag & P_JAILED)){ // non-jailed processes
-			len -= snprintf(buf, sizeof buf,
-											"% 7d			 %-7s "
-											"%-*s %-*s "
-											"%3.1f"
-											,
-											proc->pid, proc->state_str,
-											max_unam_len, proc->unam,
-											max_gnam_len, proc->gnam,
-											proc->pc_cpu
-											);
-		} else
-#else
-		{ // processes in a jail; display Jail ID
-			len -= snprintf(buf, sizeof buf,
-											"% 7d	%3d	%-7s "
-											"%-*s %-*s "
-											"%3.1f"
-											,
-											proc->pid, proc->jid, proc->state_str,
-											max_unam_len, proc->unam,
-											max_gnam_len, proc->gnam,
-											proc->pc_cpu
-											);
-		}
-#endif
-
-		addstr(buf);
+		addstr(machine_proc_display_line(proc));
 
 		getyx(stdscr, y, x);
 
 		if(proc->state == PROC_STATE_RUN){
-			mvchgat(y, 14, 7, 0, COLOR_RUNNING + 1, NULL);
+			mvchgat(y, 14, 7, 0, CFG_COLOR_RUNNING + 1, NULL);
 			move(y, x);
 		}
 		clrtoeol();
@@ -211,11 +191,12 @@ void showproc(struct myproc *proc, int *py, int indent)
 		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
 			x += INDENT;
 
-		mvprintw(y, x, "%s", proc->cmd, COLS - indent - len - 1);
+		mvprintw(y, x, "%s", proc->shell_cmd, COLS - indent - len - 1);
 
 		/* basename shading */
+#if 0
 		if(owned && !lock){
-			const int bn_len = strlen(proc->basename);
+			const int bn_len = strlen(proc->argv0_basename);
 			int min_len = COLS - indent - len - 1;
 
 			if(min_len > bn_len)
@@ -223,8 +204,9 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 			x += proc->basename_offset;
 			attron(ATTR_BASENAME);
-			mvaddnstr(y, x, proc->basename, min_len);
+			mvaddnstr(y, x, proc->argv0_basename, min_len);
 		}
+#endif
 
 		if(lock)
 			attroff(ATTR_LOCK);
@@ -251,7 +233,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 	*py = y;
 }
 
-void showprocs(struct myproc **procs, struct procstat *pst)
+void showprocs(struct myproc **procs, struct sysinfo *info)
 {
 	int y = -pos_top + TOP_OFFSET - 1;
 
@@ -283,21 +265,17 @@ void showprocs(struct myproc **procs, struct procstat *pst)
 
 	}else{
 		int y;
-		time_t now;
 
-		time(&now);
+		/*STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
+					 info->count, info->running, info->owned, info->zombies,
+					 info->loadavg[0], info->loadavg[1], info->loadavg[2],
+					 uptime_from_boottime(info->boottime.tv_sec)); - broken */
 
-		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
-					 pst->count, pst->running, pst->owned, pst->zombies, pst->loadavg[0], pst->loadavg[1], pst->loadavg[2], uptime_from_boottime(pst->boottime.tv_sec));
-
-		// Mem stuf
-		STATUS(1, 0, "Mem: %s", format_memory(pst->memory));
-
-		// CPU %
-		STATUS(2,0, "CPU: %s", format_cpu_pct(pst->cpu_pct));
+		//STATUS(1, 0, "Mem: %s", machine_format_memory(pst->memory));
+		//STATUS(2, 0, "CPU: %s", machine_format_cpu_pct(pst->cpu_pct));
 		clrtoeol();
 
-		y = 3 + pos_y - pos_top;
+		y = TOP_OFFSET + pos_y - pos_top;
 
 		mvchgat(y, 0, 47, A_UNDERLINE, 0, NULL);
 		move(y, 47);
@@ -343,7 +321,7 @@ void delete(struct myproc *p)
 	char sig[8];
 	int i, wait = 0;
 
-	STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->basename);
+	STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->argv0_basename);
 	echo();
 	getnstr(sig, sizeof sig);
 	noecho();
@@ -389,7 +367,7 @@ void renice(struct myproc *p)
 	char increment[3]; // -20 to 20
 	int i, wait = 0;
 
-	STATUS(0, 0, "renice %d (%s) with [-20:20]: ", p->pid, p->basename);
+	STATUS(0, 0, "renice %d (%s) with [-20:20]: ", p->pid, p->argv0_basename);
 	echo();
 	getnstr(increment, sizeof increment);
 	noecho();
@@ -448,11 +426,11 @@ void gdb(struct myproc *p)
 {
 	// Attach to a running process: gdb <name> <pid>
 	char cmd[256];
-	snprintf(cmd, sizeof cmd, "gdb %s", p->basename);
+	snprintf(cmd, sizeof cmd, "gdb %s", p->argv0_basename);
 	external(cmd, p);
 }
 
-void info(struct myproc *p)
+void show_info(struct myproc *p)
 {
 	int y, x;
 	int i;
@@ -461,14 +439,18 @@ void info(struct myproc *p)
 	mvprintw(0, 0,
 					 "pid: %d, ppid: %d\n"
 					 "uid: %d (%s), gid: %d (%s)\n"
+#ifdef __FreeBSD__
 					 "jid: %d\n"
+#endif
 					 "state: %s (%s), nice: %d\n"
 					 "tty: %s\n"
 					 ,
 					 p->pid, p->ppid,
 					 p->uid, p->unam, p->gid, p->gnam,
+#ifdef __FreeBSD__
 					 p->jid,
-					 p->state_str, proc_state_str(p), p->nice,
+#endif
+					 proc_state_str(p), p->nice,
 					 p->tty);
 
 	for(i = 0; p->argv[i]; i++)
@@ -489,14 +471,14 @@ void on_curproc(const char *fstr, void (*f)(struct myproc *), int ask, struct my
 	if(lock_proc_pid == -1 || !(p = proc_get(procs, lock_proc_pid))){
 		p = search_proc ? search_proc : curproc(procs);
 	}else{
-		STATUS(0, 0, "using locked process %d, \"%s\", any key to continue", p->pid, p->basename);
+		STATUS(0, 0, "using locked process %d, \"%s\", any key to continue", p->pid, p->argv0_basename);
 		getch_delay(0);
 		getch();
 		getch_delay(1);
 	}
 
 	if(p){
-		if(ask && !global_force && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->basename))
+		if(ask && !global_force && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->argv0_basename))
 			return;
 		f(p);
 	}
@@ -610,13 +592,12 @@ backspace:
 
 void gui_run(struct myproc **procs)
 {
-	struct procstat pst;
+	struct sysinfo info;
 	long last_update = 0, last_full_refresh;
 	int fin = 0;
 
-	memset(&pst, 0, sizeof pst);
-	machine_init(&pst);
-	proc_update(procs, &pst);
+	memset(&info, 0, sizeof info);
+	proc_update(procs);
 
 	last_full_refresh = mstime();
 	do{
@@ -629,13 +610,15 @@ void gui_run(struct myproc **procs)
 				last_full_refresh = now;
 				proc_handle_renames(procs);
 			}
-			proc_update(procs, &pst);
+			proc_update(procs);
 		}
 
+#if 0
 		if(pos_y > pst.count - 1)
 			position(pst.count - 1);
+#endif
 
-		showprocs(procs, &pst);
+		showprocs(procs, &info);
 
 		ch = getch();
 		if(ch == -1)
@@ -661,7 +644,7 @@ void gui_run(struct myproc **procs)
 					position(0);
 					break;
 				case SCROLL_TO_BOTTOM_CHAR:
-					position(pst.count);
+					position(info.count);
 					break;
 
 				case BACKWARD_HALF_WINDOW_CHAR:
@@ -678,7 +661,7 @@ void gui_run(struct myproc **procs)
 					break;
 
 				case EXPOSE_ONE_MORE_LINE_BOTTOM_CHAR:
-					if(pos_top < pst.count - 1){
+					if(pos_top < info.count - 1){
 						pos_top++;
 						if(pos_y < pos_top)
 							pos_y = pos_top;
@@ -699,11 +682,11 @@ void gui_run(struct myproc **procs)
 					position(pos_top);
 					break;
 				case SCROLL_TO_MIDDLE_CHAR:
-					position(pos_top + (pst.count > LINES ? LINES : pst.count) / 2);
+					position(pos_top + (info.count > LINES ? LINES : info.count) / 2);
 					break;
 
 				case INFO_CHAR:
-					on_curproc("info", info, 0, procs);
+					on_curproc("info", show_info, 0, procs);
 					break;
 				case KILL_CHAR:
 					on_curproc("delete", delete, 0, procs);
