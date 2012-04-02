@@ -464,12 +464,14 @@ void info(struct myproc *p)
            "uid: %d (%s), gid: %d (%s)\n"
            "jid: %d\n"
            "state: %s (%s), nice: %d\n"
+           "CPU time: %s, MEM size: %s\n"
            "tty: %s\n"
            ,
            p->pid, p->ppid,
            p->uid, p->unam, p->gid, p->gnam,
            p->jid,
            p->state_str, state_abbrev[(int)p->state], p->nice,
+           format_seconds(p->cputime), format_kbytes(p->size),
            p->tty);
 
   for(i = 0; p->argv[i]; i++)

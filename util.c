@@ -98,3 +98,53 @@ double pctdouble(fixpt_t pc_cpu, double fscale)
 {
   return ((double)pc_cpu/fscale)*100; // in %
 }
+
+
+/* Convert a kbyte value to either Mega or GigaBytes */
+const char *format_kbytes(long unsigned val)
+{
+  char prefix;
+  static char buf[64];
+
+  if(val/1024/1024 > 10){ // display GigaBytes
+    prefix = 'G';
+    val = val/(1024*1024);
+  }
+  else if(val/1024 > 10){ // display MegaBytes
+    prefix = 'M';
+    val /= 1024;
+  } else { // KiloBytes
+    prefix = 'K';
+  }
+
+  snprintf(buf, sizeof buf, "%lu%c", val, prefix);
+
+  return buf;
+}
+
+const char *format_seconds(long unsigned timeval)
+{
+  unsigned long int rest;
+  unsigned int days, hours, minutes, seconds;
+  static char buf[128];
+  char *p;
+
+  p = &buf[0];
+
+  days = timeval/86400;
+  rest = timeval % 86400;
+  hours = rest / 3600;
+  rest = rest % 3600;
+  minutes = rest/60;
+  rest = rest % 60;
+  seconds = (unsigned int)rest;
+
+  if(days)
+    p += snprintf(p, sizeof p, "%d+", days);
+  if(hours)
+    p += snprintf(p, sizeof p, "%02d:", hours);
+
+  p += snprintf(p, sizeof p, "%02d:%02d", minutes, seconds);
+
+  return buf;
+}

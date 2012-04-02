@@ -16,6 +16,8 @@
 #include "machine.h"
 #include "proc.h"
 
+#define PROCSIZE(pp) ((pp)->ki_size / 1024)
+
 // Process states - short form
 // SIDL 1   /* Process being created by fork. */
 // SRUN 2   /* Currently runnable. */
@@ -98,51 +100,26 @@ const char *uptime_from_boottime(time_t boottime)
   time_t now;
   struct tm *ltime;
   unsigned long int diff_secs; // The difference between now and the epoch
-  unsigned long int rest;
-  unsigned int days, hours, minutes, seconds;
 
-  time(&now);
+time(&now);
   ltime = localtime(&now);
 
   diff_secs = now-boottime;
 
-  days = diff_secs/86400;
-  rest = diff_secs % 86400;
-  hours = rest / 3600;
-  rest = rest % 3600;
-  minutes = rest/60;
-  rest = rest % 60;
-  seconds = (unsigned int)rest;
-
-  snprintf(buf, sizeof buf, "up %d+%02d:%02d:%02d  %02d:%02d:%02d", days, hours, minutes, seconds, ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
+  snprintf(buf, sizeof buf, "up %s %02d:%02d:%02d", format_seconds(diff_secs), ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
   return buf;
 }
 
 const char* format_memory(int memory[6])
 {
   int i;
-  char prefix;
   static char memory_string[128];
   char *p;
 
   p = memory_string;
 
-  for(i=0; i<6; i++){
-    int val = memory[i]; // default is KiloBytes
-
-    if(val/1024/1024 > 10){ // display GigaBytes
-      prefix = 'G';
-      val = val/(1024*1024);
-    }
-    else if(val/1024 > 10){ // display MegaBytes
-      prefix = 'M';
-      val /= 1024;
-    } else { // KiloBytes
-      prefix = 'K';
-    }
-
-    p += snprintf(p, sizeof memory_string, "%d%c %s", val, prefix, memorynames[i]);
-  }
+  for(i=0; i<6; i++)
+    p += snprintf(p, sizeof memory_string, "%s %s", format_kbytes(memory[i]), memorynames[i]);
 
   return memory_string;
 }
@@ -322,6 +299,15 @@ int machine_update_proc(struct myproc *proc, struct procstat *pst)
     proc->nice = pp->ki_nice;
     proc->pc_cpu = pctdouble(pp->ki_pctcpu, pst->fscale);
     proc->flag = pp->ki_flag;
+
+    /*
+     * Convert the process's runtime from microseconds to seconds.  This
+     * time includes the interrupt time although that is not wanted here.
+     * ps(1) is similarly sloppy.
+     */
+    proc->cputime = (pp->ki_runtime + 500000) / 1000000;
+
+    proc->size = PROCSIZE(pp);
 
     // Set tty
     char buf[8];

@@ -23,6 +23,8 @@ struct myproc
   gid_t pgrp;
   signed char nice;
   long flag; // P* flags
+  long cputime;
+  long size;
 
 	double pc_cpu;
 	unsigned long utime, stime, cutime, cstime;

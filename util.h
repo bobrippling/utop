@@ -13,4 +13,6 @@ int str_to_sig(const char *);
 int longest_passwd_line(const char *fname);
 
 double pctdouble(fixpt_t pc_cpu, double fscale);
+const char* format_kbytes(long unsigned val);
+const char *format_seconds(long unsigned timeval);
 #endif
