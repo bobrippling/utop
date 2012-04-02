@@ -6,6 +6,8 @@ struct sysinfo
 	int count, running, owned, zombies;
 	int loadavg[3];
 
+	int ncpus;
+
 	struct timeval boottime;
 };
 

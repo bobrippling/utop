@@ -67,7 +67,6 @@ int main(int argc, char **argv)
 
 	extra_init();
 	gui_init();
-	machine_init();
 
 	proclist = proc_init();
 

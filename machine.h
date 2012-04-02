@@ -1,14 +1,15 @@
 #ifndef _MACHINE_H_
 #define _MACHINE_H_
 
-void machine_init(void);
+struct sysinfo;
+struct myproc;
+
+void machine_init(struct sysinfo *info);
 void machine_term(void);
 
 const char *uptime_from_boottime(time_t boottime);
 const char *format_memory(int memory[6]);
-const char *format_cpu_pct(double cpu_pct[CPUSTATES]);
-
-struct sysinfo;
+const char *format_cpu_pct(double *cpu_pct);
 
 void get_load_average(struct sysinfo *info);
 void get_mem_usage(   struct sysinfo *info);
