@@ -187,11 +187,11 @@ const char *machine_proc_display_line(struct myproc *p)
 	static char buf[64];
 
 	snprintf(buf, sizeof buf,
-		"% 7d %-7s "
+		"% 7d % 7d %-7s "
 		"%-*s %-*s "
 		"%3.1f"
 		,
-		p->pid, proc_state_str(p),
+		p->pid, p->ppid, proc_state_str(p),
 		max_unam_len, p->unam,
 		max_gnam_len, p->gnam,
 		p->pc_cpu

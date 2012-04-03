@@ -175,8 +175,8 @@ void showproc(struct myproc *proc, int *py, int indent)
 			mvchgat(y, 14, 7, 0, CFG_COLOR_RUNNING + 1, NULL);
 			move(y, x);
 		}
-		clrtoeol();
 #endif
+		clrtoeol();
 
 		/* position for process name */
 		// TODO: add some define that adjusts offset here
