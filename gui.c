@@ -1,3 +1,7 @@
+// enable ncurses printw() type checks
+#define GCC_PRINTF 1
+#define GCC_SCANF  1
+
 #include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,18 +87,6 @@ void gui_term()
 	endwin();
 }
 
-void gui_attr_on(enum gui_attr a)
-{
-	//attron(a);
-	(void)a;
-}
-
-void gui_attr_off(enum gui_attr a)
-{
-	//attroff(a);
-	(void)a;
-}
-
 struct myproc *gui_proc_first(struct myproc **procs)
 {
 	struct myproc *init = proc_get(procs, 1); // TODO
@@ -112,7 +104,7 @@ int search_proc_to_idx(int *y, struct myproc **procs)
 
 struct myproc *curproc(struct myproc **procs)
 {
-	int i = pos_y + 1;
+	int i = pos_y;
 	return proc_from_idx(gui_proc_first(procs), &i);
 }
 
@@ -162,28 +154,29 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 	if(y > 0){ // otherwise we're iterating over a process that's above pos_top
 		const int owned = proc->uid == global_uid;
-		int len = LINES;
 		int lock = proc->pid == lock_proc_pid;
 		int x;
 
 		move(y, 0);
 
 		if(lock)
-			gui_attr_on(CFG_COLOR_LOCK);
+			attron(CFG_COLOR_LOCK);
 		else if(proc == search_proc)
-			gui_attr_on(CFG_COLOR_SEARCH);
-		else
-			gui_attr_on(proc->gui_attr);
+			attron(CFG_COLOR_SEARCH);
+		else if(!owned)
+			attron(ATTR_NOT_OWNED);
 
 		addstr(machine_proc_display_line(proc));
 
 		getyx(stdscr, y, x);
 
+#if 0
 		if(proc->state == PROC_STATE_RUN){
 			mvchgat(y, 14, 7, 0, CFG_COLOR_RUNNING + 1, NULL);
 			move(y, x);
 		}
 		clrtoeol();
+#endif
 
 		/* position for process name */
 		// TODO: add some define that adjusts offset here
@@ -191,22 +184,14 @@ void showproc(struct myproc *proc, int *py, int indent)
 		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
 			x += INDENT;
 
-		mvprintw(y, x, "%s", proc->shell_cmd, COLS - indent - len - 1);
+		mvprintw(y, x, "%s", proc->shell_cmd);
 
 		/* basename shading */
-#if 0
 		if(owned && !lock){
-			const int bn_len = strlen(proc->argv0_basename);
-			int min_len = COLS - indent - len - 1;
-
-			if(min_len > bn_len)
-				min_len = bn_len;
-
-			x += proc->basename_offset;
+			x += proc->argv0_basename - proc->argv[0];
 			attron(ATTR_BASENAME);
-			mvaddnstr(y, x, proc->argv0_basename, min_len);
+			mvaddstr(y, x, proc->argv0_basename);
 		}
-#endif
 
 		if(lock)
 			attroff(ATTR_LOCK);
@@ -214,10 +199,6 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attroff(ATTR_SEARCH);
 		else if(owned)
 			attroff(ATTR_BASENAME);
-#ifdef WITH_JAILED
-		else if(proc->flag & P_JAILED)
-			attroff(ATTR_JAILED);
-#endif
 		else
 			attroff(ATTR_NOT_OWNED);
 	}
@@ -235,7 +216,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 void showprocs(struct myproc **procs, struct sysinfo *info)
 {
-	int y = -pos_top + TOP_OFFSET - 1;
+	int y = TOP_OFFSET - pos_top;
 
 	showproc(gui_proc_first(procs), &y, 0);
 
@@ -266,13 +247,15 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 	}else{
 		int y;
 
-		/*STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, load averages: %.2f, %.2f, %.2f, uptime: %s",
-					 info->count, info->running, info->owned, info->zombies,
-					 info->loadavg[0], info->loadavg[1], info->loadavg[2],
-					 uptime_from_boottime(info->boottime.tv_sec)); - broken */
+		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, "
+				"load averages: %.2f, %.2f, %.2f, "
+				"uptime: %s",
+				info->count, info->running, info->owned, info->zombies,
+				info->loadavg[0], info->loadavg[1], info->loadavg[2],
+				uptime_from_boottime(info->boottime.tv_sec));
 
-		//STATUS(1, 0, "Mem: %s", machine_format_memory(pst->memory));
-		//STATUS(2, 0, "CPU: %s", machine_format_cpu_pct(pst->cpu_pct));
+		STATUS(1, 0, "Mem: %s", machine_format_memory(info));
+		STATUS(2, 0, "CPU: %s", machine_format_cpu_pct(info));
 		clrtoeol();
 
 		y = TOP_OFFSET + pos_y - pos_top;
@@ -442,7 +425,7 @@ void show_info(struct myproc *p)
 #ifdef __FreeBSD__
 					 "jid: %d\n"
 #endif
-					 "state: %s (%s), nice: %d\n"
+					 "state: %s, nice: %d\n"
 					 "tty: %s\n"
 					 ,
 					 p->pid, p->ppid,
@@ -676,7 +659,7 @@ void gui_run(struct myproc **procs)
 					break;
 
 				case SCROLL_TO_LAST_CHAR:
-					position(pos_top + LINES - 2);
+					position(pos_top + LINES - TOP_OFFSET);
 					break;
 				case SCROLL_TO_FIRST_CHAR:
 					position(pos_top);

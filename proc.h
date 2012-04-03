@@ -19,18 +19,6 @@ struct myproc
   int argc;
 	char *argv0_basename; /* pointer to somewhere in argv[0] */
 
-	enum gui_attr
-	{
-		gui_color_black,
-		gui_color_blue,
-		gui_color_cyan,
-		gui_color_green,
-		gui_color_magenta,
-		gui_color_red,
-		gui_color_white,
-		gui_color_yellow
-	} gui_attr;
-
   enum
 	{
 		PROC_STATE_RUN,

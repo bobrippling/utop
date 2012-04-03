@@ -47,16 +47,11 @@ void get_cpu_stats(struct sysinfo *info)
 	(void)info;
 }
 
-const char* format_cpu_pct(double cpu_pct[CPUSTATES])
-{
-	(void)cpu_pct;
-	return "todo: cpu pct";
-}
-
 int machine_proc_exists(struct myproc *p)
 {
-	(void)p; /* we assume it always exists for linux */
-	return 1;
+	char buf[64];
+	snprintf(buf, sizeof buf, "/proc/%d", p->pid);
+	return access(buf, F_OK) == 0;
 }
 
 char **machine_get_argv(struct myproc *p)
@@ -191,7 +186,7 @@ const char *machine_proc_display_line(struct myproc *p)
 	static char buf[64];
 
 	snprintf(buf, sizeof buf,
-		"% 7d			 %-7s "
+		"% 7d %-7s "
 		"%-*s %-*s "
 		"%3.1f"
 		,

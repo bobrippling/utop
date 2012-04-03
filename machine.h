@@ -24,4 +24,7 @@ void machine_proc_get_more(struct myproc **);
 
 const char *machine_proc_display_line(struct myproc *);
 
+const char *machine_format_memory( struct sysinfo *);
+const char *machine_format_cpu_pct(struct sysinfo *);
+
 #endif

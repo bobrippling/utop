@@ -32,8 +32,14 @@ const char *uptime_from_boottime(time_t boottime)
 	return buf;
 }
 
-const char* format_memory(int memory[6])
+const char *machine_format_memory(struct sysinfo *info)
 {
-	(void)memory;
+	(void)info;
 	return "todo: mem";
+}
+
+const char *machine_format_cpu_pct(struct sysinfo *info)
+{
+	(void)info;
+	return "todo: cpu pct";
 }

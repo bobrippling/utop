@@ -80,8 +80,7 @@ struct myproc **proc_init()
 
 const char *proc_state_str(struct myproc *p)
 {
-	(void)p;
-	return "todo: proc state";
+	return (const char *[]){"R", "S", "?"}[p->state];
 }
 
 void proc_handle_rename(struct myproc *this, struct myproc **procs)

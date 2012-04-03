@@ -3,8 +3,14 @@
 
 struct sysinfo
 {
+	// process info
 	int count, running, owned, zombies;
-	int loadavg[3];
+
+	// machine info
+	float loadavg[3];
+	int memory[6];
+
+	float cpu_pct;
 
 	struct timeval boottime;
 };
