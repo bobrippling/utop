@@ -98,7 +98,7 @@ int str_to_sig(const char *s)
 		SIG(SEGV),  SIG(USR2),  SIG(PIPE),  SIG(ALRM),
 		SIG(TERM),  SIG(CHLD),  SIG(CONT),  SIG(STOP),
 		SIG(TSTP),  SIG(TTIN),  SIG(TTOU),
-#ifndef __FreeBSD__
+#ifdef __linux__
 		SIG(PWR),   SIG(SYS),   SIG(POLL),  SIG(WINCH),
 		SIG(PROF),  SIG(TRAP),  SIG(BUS),   SIG(STKFLT),
 		SIG(URG),   SIG(XCPU),  SIG(XFSZ),  SIG(VTALRM),

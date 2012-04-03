@@ -580,6 +580,7 @@ void gui_run(struct myproc **procs)
 	int fin = 0;
 
 	memset(&info, 0, sizeof info);
+	machine_init(&info);
 	proc_update(procs);
 
 	last_full_refresh = mstime();

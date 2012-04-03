@@ -1,4 +1,5 @@
 Mem%, CPU%
+	CPU utilization per CPU
 
 configurable keys
 
@@ -7,3 +8,9 @@ show threads (/proc/%d/task/*)
 fix shell-detach bug (SIGHUP?)
 
 option for clipping usernames, instead of expanding to the longest
+
+Column header bar
+
+Process time and memory consumption
+
+More configurable colours

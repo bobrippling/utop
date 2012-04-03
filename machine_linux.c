@@ -19,9 +19,10 @@
 #include "machine.h"
 #include "main.h"
 
-void machine_init()
+void machine_init(struct sysinfo *info)
 {
 	// nothing to do... for now.. dun dun..
+	(void)info;
 }
 
 void machine_term()

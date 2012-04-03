@@ -12,6 +12,8 @@ struct sysinfo
 
 	float cpu_pct;
 
+	int ncpus;
+
 	struct timeval boottime;
 };
 
