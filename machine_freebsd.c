@@ -3,17 +3,18 @@
 #include <string.h>
 #include <errno.h>
 
-#ifdef __FreeBSD
-#include <kvm.h>
-#endif
-
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
 
 #include <sys/types.h>
+#ifdef __FreeBSD__
+#  include <kvm.h>
+#endif
+#include <sys/param.h>
 #include <sys/sysctl.h>
+#include <sys/user.h>
 
 #include <paths.h>
 #include <sys/stat.h> // S_IFCHR
@@ -123,6 +124,8 @@ void getsysctl(const char *name, void *ptr, size_t len)
 
 void get_load_average(struct sysinfo *info)
 {
+#if 0
+// Flo?
   struct loadavg sysload;
   int i;
   extern int pageshift; // defined in machine.h
@@ -133,6 +136,7 @@ void get_load_average(struct sysinfo *info)
     info->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
 
   //info->fscale = sysload.fscale; TODO
+#endif
 }
 
 void get_mem_usage(struct sysinfo *info)

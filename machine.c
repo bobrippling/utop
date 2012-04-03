@@ -1,4 +1,4 @@
-#ifdef __FREEBSD__
+#ifdef __FreeBSD__
 #  include "machine_freebsd.c"
 #else
 #  ifdef __linux__
