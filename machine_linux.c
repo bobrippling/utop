@@ -133,10 +133,13 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 					char c;
 					sscanf(iter, "%c", &c);
 					switch(c){
-						case 'R': proc->state = PROC_STATE_RUN;   break;
-						case 'S': proc->state = PROC_STATE_SLEEP; break;
-						// TODO
-						default:  proc->state = PROC_STATE_OTHER; break;
+						case 'R': proc->state = PROC_STATE_RUN;     break;
+						case 'S': proc->state = PROC_STATE_SLEEP;   break;
+						case 'D': proc->state = PROC_STATE_DISK;    break;
+						case 'T': proc->state = PROC_STATE_STOPPED; break;
+						case 'Z': proc->state = PROC_STATE_ZOMBIE;  break;
+						case 'X': proc->state = PROC_STATE_DEAD;    break;
+						default:  proc->state = PROC_STATE_OTHER;   break;
 					}
 				}
 
