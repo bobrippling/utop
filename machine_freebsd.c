@@ -24,6 +24,7 @@
 #include "machine.h"
 #include "proc.h"
 #include "sys.h"
+#include "main.h"
 
 // Process states - short form
 // SIDL 1   /* Process being created by fork. */
@@ -349,7 +350,26 @@ struct myproc *machine_proc_new(struct kinfo_proc *pp, struct myproc **procs)
   return this;
 }
 
-void machine_proc_listall(struct myproc **procs, struct sysinfo *info)
+const char *machine_proc_display_line(struct myproc *p)
+{
+	// similar to linux, except with jid - TODO
+	static char buf[64];
+
+	snprintf(buf, sizeof buf,
+		"% 7d			 %-7s "
+		"%-*s %-*s "
+		"%3.1f"
+		,
+		p->pid, proc_state_str(p),
+		max_unam_len, p->unam,
+		max_gnam_len, p->gnam,
+		p->pc_cpu
+	);
+
+	return buf;
+}
+
+void machine_proc_get_more(struct myproc **procs)
 {
   // This is the number of processes that kvm_getprocs returns
   int num_procs = 0;
@@ -357,7 +377,7 @@ void machine_proc_listall(struct myproc **procs, struct sysinfo *info)
   // get all processes
   struct kinfo_proc *pbase; // defined in /usr/include/sys/user.h
 
-  if ((pbase = kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs) )) {
+  if((pbase = kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs) )){
     struct kinfo_proc *pp;
     int i;
 
@@ -365,7 +385,7 @@ void machine_proc_listall(struct myproc **procs, struct sysinfo *info)
     // exists already in our hash table. If it is not present yet, add
     // it to the table and increase the global process counter
     for(pp = pbase, i = 0; i < num_procs; pp++, i++) {
-      if(!proc_listcontains(procs, pp->ki_pid)){
+      if(!proc_get(procs, pp->ki_pid)){
         struct myproc *p = machine_proc_new(pp, procs);
 
         // TODO: (code from top)

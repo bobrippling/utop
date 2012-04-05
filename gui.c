@@ -87,15 +87,9 @@ void gui_term()
 	endwin();
 }
 
-struct myproc *gui_proc_first(struct myproc **procs)
-{
-	struct myproc *init = proc_get(procs, 1); // TODO
-	return init;
-}
-
 int search_proc_to_idx(int *y, struct myproc **procs)
 {
-	struct myproc *init = gui_proc_first(procs);
+	struct myproc *init = proc_first(procs);
 	if(search_proc == init)
 		return 0;
 	*y = 0;
@@ -105,7 +99,7 @@ int search_proc_to_idx(int *y, struct myproc **procs)
 struct myproc *curproc(struct myproc **procs)
 {
 	int i = pos_y;
-	return proc_from_idx(gui_proc_first(procs), &i);
+	return proc_from_idx(proc_first(procs), &i);
 }
 
 void position(int newy)
@@ -124,7 +118,7 @@ void position(int newy)
 void goto_proc(struct myproc **procs, struct myproc *p)
 {
 	int y = TOP_OFFSET;
-	proc_to_idx(p, gui_proc_first(procs), &y);
+	proc_to_idx(p, proc_first(procs), &y);
 	position(y);
 }
 
@@ -218,7 +212,7 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 {
 	int y = TOP_OFFSET - pos_top;
 
-	showproc(gui_proc_first(procs), &y, 0);
+	showproc(proc_first(procs), &y, 0);
 
 	if(++y < LINES){
 		move(y, 0);
@@ -582,6 +576,9 @@ void gui_run(struct myproc **procs)
 	memset(&info, 0, sizeof info);
 	machine_init(&info);
 	proc_update(procs);
+
+	fprintf(stderr, "proc_update:\n");
+	proc_dump(procs, stderr);
 
 	last_full_refresh = mstime();
 	do{

@@ -268,3 +268,26 @@ fin:
   *idx = i;
   return ret;
 }
+
+struct myproc *proc_first(struct myproc **procs)
+{
+	struct myproc *p = proc_get(procs, 1); /* init */
+	int i;
+
+	if(p)
+		return p;
+
+	/* the most parent-y */
+	ITER_PROCS(i, p, procs)
+		if(p->ppid == 0)
+			return p;
+
+	ITER_PROCS(i, p, procs)
+		if(p->ppid == 1)
+			return p;
+
+	ITER_PROCS(i, p, procs)
+		return p;
+
+	return NULL;
+}
