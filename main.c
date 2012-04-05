@@ -32,23 +32,17 @@ void extra_init()
 
 void signal_handler(int sig)
 {
-  if (sig == SIGABRT || sig == SIGTERM) {
-    gui_term();
-    fprintf(stderr, "\nCaught signal %d. Bye!\n", sig);
-    exit(EXIT_FAILURE);
-  }
+	gui_term();
+	fprintf(stderr, "Caught signal %d. Bye!\n", sig);
+	exit(EXIT_FAILURE);
 }
 
 int main(int argc, char **argv)
 {
-	struct sigaction action;
 	int i;
 
-	memset(&action, 0, sizeof action);
-
-	action.sa_handler = signal_handler;
-	sigaction(SIGABRT, &action, NULL);
-	sigaction(SIGTERM, &action, NULL);
+	signal(SIGINT,  signal_handler);
+	signal(SIGTERM, signal_handler);
 
 	for(i = 1; i < argc; i++){
 		if(!strcmp(argv[i], "-f")){
@@ -75,5 +69,5 @@ int main(int argc, char **argv)
 	gui_term();
 	machine_term();
 
-	return 0;
+	return EXIT_SUCCESS;
 }

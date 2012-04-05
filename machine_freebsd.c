@@ -23,7 +23,6 @@
 #include "util.h"
 #include "machine.h"
 #include "proc.h"
-#include "sys.h"
 #include "main.h"
 
 // Process states - short form

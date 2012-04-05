@@ -6,6 +6,7 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include "structs.h"
 #include "proc.h"
 #include "util.h"
 #include "main.h"
@@ -28,13 +29,79 @@
 
 */
 
-void proc_free(struct myproc *p)
+static void proc_add_child(struct myproc *parent, struct myproc *child)
 {
+	int n = 0;
+	struct myproc **i;
+
+	for(i = parent->children; i && *i; i++, n++);
+
+	n++; /* new */
+
+	parent->children = urealloc(parent->children, (n + 1) * sizeof *parent->children);
+	parent->children[n - 1] = child;
+	parent->children[n]     = NULL;
+}
+
+static void proc_rm_child(struct myproc *parent, struct myproc *p)
+{
+	int n, idx, found;
+	struct myproc **i;
+
+	n = idx = found = 0;
+
+	for(i = parent->children; i && *i; i++, n++)
+		if(*i == p)
+			found = 1;
+		else if(!found)
+			idx++;
+
+	if(!found)
+		return;
+
+	n--; /* gone */
+	if(n <= 0){
+		free(parent->children);
+		parent->children = NULL;
+	}else{
+		/*memmove(parent->children + idx,
+		 parent->children + idx + 1,
+		 n * sizeof *parent->children);*/
+		int i;
+		for(i = idx; i < n; i++)
+			parent->children[i] = parent->children[i + 1];
+
+		parent->children = urealloc(parent->children, (n + 1) * sizeof *parent->children);
+		parent->children[n] = NULL;
+	}
+}
+
+void proc_free(struct myproc *p, struct myproc **procs)
+{
+	struct myproc *i = proc_get(procs, p->ppid);
+
+	/* remove parent references */
+	if(i)
+		proc_rm_child(i, p);
+
+	/* remove hash-table references */
+
+	i = procs[p->pid % HASH_TABLE_SIZE];
+	if(i == p){
+		procs[p->pid % HASH_TABLE_SIZE] = p->hash_next;
+	}else{
+		while(i && i->hash_next != p)
+			i = i->hash_next;
+		if(i)
+			/* i->hash_next is p, reroute */
+			i->hash_next = p->hash_next;
+	}
+
 	free(p->unam);
 	free(p->gnam);
 
 	free(p->shell_cmd);
-	free(p->argv0_basename);
+	/*free(p->argv0_basename); - do not free*/
 	for(char **iter = p->argv; iter && *iter; iter++)
 		free(*iter);
 	free(p->argv);
@@ -60,6 +127,7 @@ struct myproc *proc_get(struct myproc **procs, pid_t pid)
 void proc_addto(struct myproc **procs, struct myproc *p)
 {
   struct myproc *last;
+#define parent last
 
   last = procs[p->pid % HASH_TABLE_SIZE];
   if(last){
@@ -70,6 +138,12 @@ void proc_addto(struct myproc **procs, struct myproc *p)
   }else{
     procs[p->pid % HASH_TABLE_SIZE] = p;
   }
+
+	parent = proc_get(procs, p->ppid);
+	if(parent)
+		proc_add_child(parent, p);
+
+#undef parent
 }
 
 // initialize hash table
@@ -80,7 +154,15 @@ struct myproc **proc_init()
 
 const char *proc_state_str(struct myproc *p)
 {
-	return (const char *[]){"R", "S", "?"}[p->state];
+	return (const char *[]){
+		"R",
+		"S",
+		"D",
+		"T",
+		"Z",
+		"X",
+		"?",
+	}[p->state];
 }
 
 void proc_handle_rename(struct myproc *this, struct myproc **procs)
@@ -104,30 +186,32 @@ void proc_handle_rename(struct myproc *this, struct myproc **procs)
 	}
 }
 
-static void proc_update_single(struct myproc *proc, struct myproc **procs)
+static void proc_update_single(
+		struct myproc *proc,
+		struct myproc **procs,
+		struct sysinfo *info)
 {
-  const pid_t oldppid = proc->ppid;
-
   if(machine_proc_exists(proc)){
+		const pid_t oldppid = proc->ppid;
+
+		machine_update_proc(proc, procs);
+
+		info->count++;
+		if(proc->uid == global_uid)
+			info->owned++;
+		info->procs_in_state[proc->state]++;
+
     if(oldppid != proc->ppid){
       struct myproc *parent = proc_get(procs, proc->ppid);
-      struct myproc *iter;
 
-      if (parent) {
-        if(parent->child_first){
-          iter = parent->child_first;
-
-          while(iter->child_next)
-            iter = iter->child_next;
-
-          iter->child_next = proc;
-        }else{
-          parent->child_first = proc;
-        }
-      }
+      if(parent){
+				proc_add_child(parent, proc);
+      }else{
+				/* TODO: reparent to init? */
+			}
     }
   }else{
-    proc_free(proc);
+    proc_free(proc, procs);
 	}
 }
 
@@ -142,41 +226,29 @@ const char *proc_str(struct myproc *p)
   return buf;
 }
 
-void proc_update(struct myproc **procs)
+void proc_update(struct myproc **procs, struct sysinfo *info)
 {
-  int i;
+	int i;
 
-  for(i = 0; i < HASH_TABLE_SIZE; i++){
-    struct myproc **change_me;
-    struct myproc *p;
+	info->count = info->owned = 0;
+	memset(info->procs_in_state, 0, sizeof info->procs_in_state);
 
-    change_me = &procs[i];
+	for(i = 0; i < HASH_TABLE_SIZE; i++){
+		struct myproc **change_me;
+		struct myproc *p;
 
-    for(p = procs[i]; p; ){
+		change_me = &procs[i];
+
+		for(p = procs[i]; p; ){
 			if(p){
 				if(!machine_proc_exists(p)){
 					/* dead */
 					struct myproc *next = p->hash_next;
-					struct myproc *parent = proc_get(procs, p->ppid);
-
-					if(parent){
-						struct myproc *iter, **prev;
-
-						prev = &parent->child_first;
-						for(iter = parent->child_first; iter; iter = iter->child_next)
-							if(iter->pid == p->pid){
-								*prev = iter->child_next;
-								break;
-							}else{
-								prev = &iter->child_next;
-							}
-					}
-
 					*change_me = next;
-					proc_free(p);
+					proc_free(p, procs);
 					p = next;
 				}else{
-					proc_update_single(p, procs);
+					proc_update_single(p, procs, info);
 
 					change_me = &p->hash_next;
 					p = p->hash_next;
@@ -227,7 +299,7 @@ struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 
 int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
 {
-  struct myproc *iter;
+  struct myproc **iter;
   int ret = 0;
   int y;
 
@@ -235,8 +307,8 @@ int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
     return 1;
 
   y = *py;
-  for(iter = parent->child_first; iter; iter = iter->child_next)
-    if(p == iter || (++y, proc_to_idx(p, iter, &y))){
+  for(iter = parent->children; iter && *iter; iter++)
+    if(p == *iter || (++y, proc_to_idx(p, *iter, &y))){
       ret = 1;
       break;
     }
@@ -247,18 +319,18 @@ int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
 
 struct myproc *proc_from_idx(struct myproc *parent, int *idx)
 {
-  struct myproc *iter, *ret = NULL;
+  struct myproc **iter, *ret = NULL;
   int i = *idx;
 #define RET(x) do{ ret = x; goto fin; }while(0)
 
   if(i <= 0)
     return parent;
 
-  for(iter = parent->child_first; iter; iter = iter->child_next){
+  for(iter = parent->children; iter && *iter; iter++){
     if(--i <= 0){
-      RET(iter);
+      RET(*iter);
     }else{
-      struct myproc *p = proc_from_idx(iter, &i);
+      struct myproc *p = proc_from_idx(*iter, &i);
       if(p)
         RET(p);
     }

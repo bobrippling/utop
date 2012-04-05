@@ -1,64 +1,11 @@
 #ifndef PROC_H
 #define PROC_H
 
-#include <sys/time.h>
-#define CPUSTATES 5 // TODO
-
-struct myproc
-{
-	pid_t pid, ppid;
-  int jid;
-
-	uid_t uid;
-  gid_t gid;
-  gid_t pgrp;
-	char *unam, *gnam;
-
-	char *shell_cmd;      /* allocated, from argv */
-	char **argv;          /* allocated */
-  int argc;
-	char *argv0_basename; /* pointer to somewhere in argv[0] */
-
-  enum
-	{
-		PROC_STATE_RUN,
-		PROC_STATE_SLEEP,
-		PROC_STATE_DISK,
-		PROC_STATE_STOPPED,
-		PROC_STATE_ZOMBIE,
-		PROC_STATE_DEAD,
-		PROC_STATE_OTHER,
-	} state;
-
-  char *tty;
-  signed char nice;
-
-	double pc_cpu;
-	unsigned long utime, stime, cutime, cstime;
-
-	/* important */
-	struct myproc *hash_next;
-	struct myproc *child_first, *child_next;
-
-	/* only used for arrangement */
-	struct myproc *next;
-
-	union
-	{
-		struct
-		{
-			int flag;
-		} freebsd;
-		struct
-		{
-			int unused;
-		} linux;
-	} machine;
-};
+struct sysinfo;
 
 struct myproc **proc_init();
 struct myproc  *proc_get(struct myproc **, pid_t);
-void          proc_update(struct myproc **);
+void          proc_update(struct myproc **procs, struct sysinfo *info);
 void          proc_handle_rename(struct myproc *this, struct myproc **procs);
 void          proc_handle_renames(struct myproc **ps);
 void          proc_cleanup(struct myproc **);

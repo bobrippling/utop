@@ -15,6 +15,8 @@
 #include <sys/types.h>
 #include <sys/types.h>
 
+#include "structs.h"
+
 #include "proc.h"
 #include "gui.h"
 #include "util.h"
@@ -22,7 +24,6 @@
 #include "main.h"
 #include "machine.h"
 #include "util.h"
-#include "sys.h"
 
 #define TOP_OFFSET 3
 
@@ -140,7 +141,6 @@ void goto_lock(struct myproc **procs)
 
 void showproc(struct myproc *proc, int *py, int indent)
 {
-	struct myproc *p;
 	int y = *py;
 
 	if(y >= LINES)
@@ -173,8 +173,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 		clrtoeol();
 
 		/* position for process name */
-		// TODO: add some define that adjusts offset here
-		x += 5; /* one after the state */
+		x += INDENT + 1;
 		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
 			x += INDENT;
 
@@ -185,6 +184,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 			x += proc->argv0_basename - proc->argv[0];
 			attron(ATTR_BASENAME);
 			mvaddstr(y, x, proc->argv0_basename);
+			attroff(ATTR_BASENAME);
 		}
 
 		if(lock)
@@ -200,9 +200,9 @@ void showproc(struct myproc *proc, int *py, int indent)
 	 * need to iterate over all children,
 	 * since we may currently be on a process above the top
 	 */
-	for(p = proc->child_first; p; p = p->child_next){
+	for(struct myproc **iter = proc->children; iter && *iter; iter++){
 		y++;
-		showproc(p, &y, indent + 1);
+		showproc(*iter, &y, indent + 1);
 	}
 
 	*py = y;
@@ -241,10 +241,12 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 	}else{
 		int y;
 
-		STATUS(0, 0, "%d processes, %d running, %d owned, %d zombies, "
+		STATUS(0, 0, "%d processes, %d running, "
+				"%d owned, %d zombies, "
 				"load averages: %.2f, %.2f, %.2f, "
 				"uptime: %s",
-				info->count, info->running, info->owned, info->zombies,
+				info->count, info->procs_in_state[PROC_STATE_RUN],
+				info->owned, info->procs_in_state[PROC_STATE_ZOMBIE],
 				info->loadavg[0], info->loadavg[1], info->loadavg[2],
 				uptime_from_boottime(info->boottime.tv_sec));
 
@@ -575,10 +577,7 @@ void gui_run(struct myproc **procs)
 
 	memset(&info, 0, sizeof info);
 	machine_init(&info);
-	proc_update(procs);
-
-	fprintf(stderr, "proc_update:\n");
-	proc_dump(procs, stderr);
+	proc_update(procs, &info);
 
 	last_full_refresh = mstime();
 	do{
@@ -591,7 +590,7 @@ void gui_run(struct myproc **procs)
 				last_full_refresh = now;
 				proc_handle_renames(procs);
 			}
-			proc_update(procs);
+			proc_update(procs, &info);
 		}
 
 #if 0

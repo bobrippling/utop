@@ -15,9 +15,9 @@
 
 #include "util.h"
 #include "proc.h"
-#include "sys.h"
 #include "machine.h"
 #include "main.h"
+#include "structs.h"
 
 void machine_init(struct sysinfo *info)
 {
@@ -71,7 +71,7 @@ void machine_read_argv(struct myproc *p)
 
 	if(fline(path, &cmd, &len)){
 		int i, nuls;
-		char *last;
+		char *last, *pos;
 
 		for(i = nuls = 0; i < len; i++)
 			if(cmd[i] == '\0')
@@ -93,19 +93,19 @@ void machine_read_argv(struct myproc *p)
 		}
 		p->argv[p->argc] = NULL;
 
-#if 0
-		if((pos = strchr(p->argv[0], ':'))){
-			/* sshd: ... */
-			p->argv0_basename = p->argv[0];
-		}else{
-			pos = strrchr(p->argv[0], '/'); /* locate the last '/' in argv[0], which is the full command path */
+		if(p->argv[0]){
+			if((pos = strchr(p->argv[0], ':'))){
+				/* sshd: ... */
+				p->argv0_basename = p->argv[0];
+			}else{
+				pos = strrchr(p->argv[0], '/'); /* locate the last '/' in argv[0], which is the full command path */
 
-			/* malloc in just a second.. */
-			if(!pos++)
-				pos = p->argv[0];
-			p->basename = pos;
+				/* malloc in just a second.. */
+				if(!pos++)
+					pos = p->argv[0];
+				p->argv0_basename = pos;
+			}
 		}
-#endif
 
 		free(cmd);
 	}
@@ -113,7 +113,6 @@ void machine_read_argv(struct myproc *p)
 
 int machine_update_proc(struct myproc *proc, struct myproc **procs)
 {
-	const pid_t old_ppid = proc->pid;
 	char *buf;
 	char path[64];
 
@@ -159,26 +158,6 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 	}else{
 		return -1;
 	}
-
-	if(proc->ppid && old_ppid != proc->ppid){
-		struct myproc *parent = proc_get(procs, proc->ppid);
-		struct myproc *iter;
-
-		if(!parent)
-			parent = proc_get(procs, 1); /* default to init */
-
-		if(parent->child_first){
-			iter = parent->child_first;
-
-			while(iter->child_next)
-				iter = iter->child_next;
-
-			iter->child_next = proc;
-		}else{
-			parent->child_first = proc;
-		}
-	}
-
 
 	machine_read_argv(proc);
 
