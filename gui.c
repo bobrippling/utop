@@ -202,14 +202,16 @@ void showproc(struct myproc *proc, int *py, int indent)
 		else
 			attroff(ATTR_NOT_OWNED);
 	}
+
+	// done with our proc, increment y
+	y++;
+
 	/*
 	 * need to iterate over all children,
 	 * since we may currently be on a process above the top
 	 */
-	for(struct myproc **iter = proc->children; iter && *iter; iter++){
-		y++;
+	for(struct myproc **iter = proc->children; iter && *iter; iter++)
 		showproc(*iter, &y, indent + 1);
-	}
 
 	*py = y;
 }
