@@ -14,3 +14,5 @@ Column header bar
 Process time and memory consumption
 
 More configurable colours
+
+Kernel threads - present but can't get info on them?
