@@ -26,6 +26,7 @@
 #include "util.h"
 
 #define TOP_OFFSET 3
+#define DRAW_SPACE (LINES - TOP_OFFSET - 1)
 
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
@@ -105,13 +106,14 @@ struct myproc *curproc(struct myproc **procs)
 
 void position(int newy)
 {
-	pos_y = newy; /* checked above */
+	pos_y = newy;
 
 	if(pos_y < 0)
 		pos_y = 0;
 
-	if(pos_y - LINES + TOP_OFFSET > pos_top)
-		pos_top = pos_y - LINES + TOP_OFFSET;
+	if(pos_y > pos_top + DRAW_SPACE)
+		pos_top = pos_y - DRAW_SPACE;
+
 	if(pos_y < pos_top)
 		pos_top = pos_y;
 }
@@ -650,19 +652,19 @@ void gui_run(struct myproc **procs)
 				case EXPOSE_ONE_MORE_LINE_TOP_CHAR:
 					if(pos_top > 0){
 						pos_top--;
-						if(pos_y > pos_top + LINES - 2)
-							pos_y = pos_top + LINES - 2;
+						if(pos_y > pos_top + DRAW_SPACE)
+							pos_y = pos_top + DRAW_SPACE;
 					}
 					break;
 
 				case SCROLL_TO_LAST_CHAR:
-					position(pos_top + LINES - TOP_OFFSET);
+					position(pos_top + DRAW_SPACE);
 					break;
 				case SCROLL_TO_FIRST_CHAR:
 					position(pos_top);
 					break;
 				case SCROLL_TO_MIDDLE_CHAR:
-					position(pos_top + (info.count > LINES ? LINES : info.count) / 2);
+					position(pos_top + DRAW_SPACE);
 					break;
 
 				case INFO_CHAR:
@@ -700,11 +702,11 @@ void gui_run(struct myproc **procs)
 							break;
 
 						case 'b':
-							pos_top = pos_y - LINES + 2;
+							pos_top = pos_y - DRAW_SPACE;
 							break;
 
 						case 'z':
-							pos_top = pos_y - LINES / 2 - 1;
+							pos_top = pos_y - DRAW_SPACE / 2;
 							break;
 
 					}
