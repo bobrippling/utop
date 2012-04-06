@@ -1,0 +1,28 @@
+#!/bin/sh
+
+if [ $# -ne 0 ]
+then
+	echo >&2 "$0: no args wanted"
+	exit 1
+fi
+
+set -e
+exec 3> config.mk
+
+arch=`uname -s`
+
+case $arch in
+	FreeBSD)
+		echo "LDFLAGS += -lkvm" >&3
+		;;
+	Linux)
+		echo "CFLAGS += -D_POSIX_SOURCE" >&3
+		;;
+	*)
+		echo "$0: unregonised platform" >&2
+		;;
+esac
+
+exec 3>&-
+
+echo Configured for $arch

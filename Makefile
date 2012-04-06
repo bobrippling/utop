@@ -3,12 +3,16 @@ LDFLAGS = -g -lncurses
 PREFIX  = /usr/local
 OBJ     = main.o proc.o gui.o util.o machine.o
 
-include config.mk
-
 .PHONY: clean install uninstall
 
 utop: ${OBJ}
 	${CC} ${LDFLAGS} -o $@ ${OBJ}
+
+config.mk:
+	@echo utop needs configuring
+	@false
+
+include config.mk
 
 clean:
 	@rm -f *.o utop
@@ -25,8 +29,9 @@ gui.o: gui.c structs.h proc.h gui.h util.h config.h main.h machine.h
 machine.o: machine.c machine_linux.c util.h proc.h machine.h main.h \
  structs.h
 machine_darwin.o: machine_darwin.c machine_freebsd.c util.h machine.h \
- proc.h main.h
-machine_freebsd.o: machine_freebsd.c util.h machine.h proc.h main.h
+ proc.h structs.h main.h
+machine_freebsd.o: machine_freebsd.c util.h machine.h proc.h structs.h \
+ main.h
 machine_linux.o: machine_linux.c util.h proc.h machine.h main.h structs.h
 main.o: main.c proc.h gui.h util.h machine.h
 proc.o: proc.c structs.h proc.h util.h main.h machine.h
