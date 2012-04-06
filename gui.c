@@ -668,7 +668,7 @@ void gui_run(struct myproc **procs)
 					position(pos_top);
 					break;
 				case SCROLL_TO_MIDDLE_CHAR:
-					position(pos_top + DRAW_SPACE);
+					position(pos_top + DRAW_SPACE / 2);
 					break;
 
 				case INFO_CHAR:
