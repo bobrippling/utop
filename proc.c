@@ -283,18 +283,39 @@ struct myproc *proc_find(const char *str, struct myproc **ps)
   return proc_find_n(str, ps, 0);
 }
 
-struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
+struct myproc *proc_find_n_child(const char *str, struct myproc *proc, int *n)
 {
-	struct myproc *p;
-	int i;
+	struct myproc **i;
 
-	if(str) {
-		ITER_PROCS(i, p, ps)
-			if(p->shell_cmd && strstr(p->shell_cmd, str) && n-- <= 0)
-				return p;
+	if(proc->shell_cmd && strstr(proc->shell_cmd, str) && --*n < 0)
+		return proc;
+
+	for(i = proc->children; i && *i; i++){
+		struct myproc *p = *i;
+
+		if((p = proc_find_n_child(str, p, n)))
+			return p;
 	}
 
 	return NULL;
+}
+
+struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
+{
+#ifdef HASH_TABLE_ORDER
+	struct myproc *p;
+	int i;
+
+	if(str)
+		ITER_PROCS(i, p, ps)
+			if(p->shell_cmd && strstr(p->shell_cmd, str) && n-- <= 0)
+				return p;
+
+	return NULL;
+#else
+	/* search in the same order the procs are displayed */
+	return proc_find_n_child(str, proc_first(ps), &n);
+#endif
 }
 
 int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
