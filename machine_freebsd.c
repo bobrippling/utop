@@ -9,9 +9,7 @@
 #include <time.h>
 
 #include <sys/types.h>
-#ifdef __FreeBSD__
-#  include <kvm.h>
-#endif
+#include <kvm.h>
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
@@ -126,8 +124,8 @@ void getsysctl(const char *name, void *ptr, size_t len)
   }
 }
 
-#if 0
-// Flo?
+void get_load_average(struct sysinfo *info)
+{
   struct loadavg sysload;
   int i;
 
@@ -136,8 +134,8 @@ void getsysctl(const char *name, void *ptr, size_t len)
   for (i = 0; i < 3; i++)
     info->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
 
-  //info->fscale = sysload.fscale; TODO
-#endif
+  /* info->fscale = sysload.fscale; TODO */
+}
 
 void get_mem_usage(struct sysinfo *info)
 {
@@ -189,6 +187,13 @@ void get_cpu_stats(struct sysinfo *info)
   for(state=0; state < CPUSTATES; state++)
     info->cpu_pct[state] = (double)(diff[state] * 1000 + half_total)/total_change/10.0L;
 #endif
+}
+
+void machine_update(struct sysinfo *info)
+{
+	get_load_average(info);
+	get_mem_usage(info);
+	get_cpu_stats(info);
 }
 
 const char* format_cpu_pct(double cpu_pct[CPUSTATES])

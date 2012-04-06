@@ -6,12 +6,11 @@ struct myproc;
 
 void machine_init(struct sysinfo *info);
 void machine_term(void);
+void machine_update(struct sysinfo *info);
 
 const char *uptime_from_boottime(time_t boottime);
 const char *format_memory(int memory[6]);
 const char *format_cpu_pct(double *cpu_pct);
-
-void machine_update(struct sysinfo *);
 
 int    machine_proc_exists(struct myproc *);
 
@@ -24,7 +23,4 @@ const char *machine_proc_display_line(struct myproc *);
 
 const char *machine_format_memory( struct sysinfo *);
 const char *machine_format_cpu_pct(struct sysinfo *);
-
-void machine_update(struct sysinfo *);
-
 #endif
