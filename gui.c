@@ -149,17 +149,18 @@ void showproc(struct myproc *proc, int *py, int indent)
 		return;
 
 	if(y > 0){ // otherwise we're iterating over a process that's above pos_top
-		const int owned = proc->uid == global_uid;
-		int lock = proc->pid == lock_proc_pid;
+		const int is_owned    = proc->uid == global_uid;
+		const int is_locked   = proc->pid == lock_proc_pid;
+		const int is_searched = proc      == search_proc;
 		int x;
 
 		move(y, 0);
 
-		if(lock)
+		if(is_locked)
 			attron(CFG_COLOR_LOCK);
-		else if(proc == search_proc)
+		else if(is_searched)
 			attron(CFG_COLOR_SEARCH);
-		else if(!owned)
+		else if(!is_owned)
 			attron(ATTR_NOT_OWNED);
 
 		addstr(machine_proc_display_line(proc));
@@ -182,18 +183,18 @@ void showproc(struct myproc *proc, int *py, int indent)
 		mvprintw(y, x, "%s", proc->shell_cmd);
 
 		/* basename shading */
-		if(owned && !lock){
+		if(is_owned && !is_locked && !is_searched){
 			x += proc->argv0_basename - proc->argv[0];
 			attron(ATTR_BASENAME);
 			mvaddstr(y, x, proc->argv0_basename);
 			attroff(ATTR_BASENAME);
 		}
 
-		if(lock)
+		if(is_locked)
 			attroff(ATTR_LOCK);
-		else if(proc == search_proc)
+		else if(is_searched)
 			attroff(ATTR_SEARCH);
-		else if(owned)
+		else if(is_owned)
 			attroff(ATTR_BASENAME);
 		else
 			attroff(ATTR_NOT_OWNED);
