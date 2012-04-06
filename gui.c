@@ -166,7 +166,6 @@ void showproc(struct myproc *proc, int *py, int indent)
 		addstr(machine_proc_display_line(proc));
 
 		getyx(stdscr, y, x);
-
 #if 0
 		if(proc->state == PROC_STATE_RUN){
 			mvchgat(y, 14, 7, 0, CFG_COLOR_RUNNING + 1, NULL);
@@ -244,7 +243,7 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 		}
 
 	}else{
-		int y;
+		int y, width;
 
 		STATUS(0, 0, "%d processes, %d running, "
 				"%d owned, %d zombies, "
@@ -261,8 +260,10 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 
 		y = TOP_OFFSET + pos_y - pos_top;
 
-		mvchgat(y, 0, 47, A_UNDERLINE, 0, NULL);
-		move(y, 47);
+		width = machine_display_width();
+
+		mvchgat(y, 0, width, A_UNDERLINE, 0, NULL);
+		move(y, width);
 	}
 }
 

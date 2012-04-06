@@ -207,18 +207,38 @@ const char *machine_proc_display_line(struct myproc *p)
 {
 	static char buf[64];
 
-	snprintf(buf, sizeof buf,
-		"% 7d % 7d %-7s "
-		"%-*s %-*s "
-		"%3.1f"
-		,
-		p->pid, p->ppid, proc_state_str(p),
-		max_unam_len, p->unam,
-		max_gnam_len, p->gnam,
-		p->pc_cpu
-	);
+	if(global_thin){
+		snprintf(buf, sizeof buf,
+			"% 7d %-1s "
+			"%-*s "
+			//"%3.1f"
+			,
+			p->pid, proc_state_str(p),
+			max_unam_len, p->unam
+			//p->pc_cpu
+		);
+	}else{
+		snprintf(buf, sizeof buf,
+			"% 7d % 7d %-1s " // 18
+			"%-*s %-*s "      // max_unam_len + max_gnam_len + 1
+			"%3.1f"           // 5
+			,
+			p->pid, p->ppid, proc_state_str(p),
+			max_unam_len, p->unam,
+			max_gnam_len, p->gnam,
+			p->pc_cpu
+		);
+	}
 
 	return buf;
+}
+
+int machine_display_width()
+{
+	if(global_thin)
+		return 9 + max_unam_len;
+	else
+		return 18 + max_unam_len + max_gnam_len + 1 + 5;
 }
 
 struct myproc *machine_proc_new(pid_t pid, struct myproc **procs)

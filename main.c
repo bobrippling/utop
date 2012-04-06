@@ -16,6 +16,7 @@
 uid_t global_uid   = 0;
 int   global_force = 0;
 int   global_debug = 0;
+int   global_thin  = 0;
 
 int max_unam_len, max_gnam_len;
 
@@ -49,11 +50,14 @@ int main(int argc, char **argv)
 			global_force = 1;
 		}else if(!strcmp(argv[i], "-d")){
 			global_debug = 1;
+		}else if(!strcmp(argv[i], "-t")){
+			global_thin = 1;
 		}else{
 			fprintf(stderr,
 							"Usage: %s [-f] [-d]\n"
 							" -f: Don't prompt for lsof and strace\n"
 							" -d: Debug mode\n"
+							" -t: Thin mode (for small screens)\n"
 							, *argv);
 			return 1;
 		}
