@@ -9,9 +9,7 @@
 #include <time.h>
 
 #include <sys/types.h>
-#ifdef __FreeBSD__
-#  include <kvm.h>
-#endif
+#include <kvm.h>
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
@@ -63,7 +61,24 @@ const char *cpustates[] = {
 
 kvm_t *kd = NULL; // kvm handle
 
-#define GETSYSCTL(...) // TODO
+// Taken from top(8)
+void getsysctl(const char *name, void *ptr, size_t len)
+{
+  size_t nlen = len;
+
+  if (sysctlbyname(name, ptr, &nlen, NULL, 0) == -1) {
+    fprintf(stderr, "utop: sysctl(%s...) failed: %s\n", name,
+            strerror(errno));
+    abort();
+  }
+  if (nlen != len) {
+    fprintf(stderr, "utop: sysctl(%s...) expected %lu, got %lu\n",
+            name, (unsigned long)len, (unsigned long)nlen);
+    abort();
+  }
+}
+
+#define GETSYSCTL(name, var) getsysctl(name, &(var), sizeof(var))
 
 #ifdef __NetBSD__
 #  define kinfo_proc kinfo_proc2
@@ -114,7 +129,10 @@ void machine_init(struct sysinfo *info)
   info->ncpus = ncpus;
 
   // Populate cpu states once:
+  // TODO:
   GETSYSCTL("kern.cp_time", info->cpu_cycles);
+
+  machine_update(info);
 
   // Finally, open kvm handle
 	//
@@ -138,25 +156,8 @@ void machine_term()
     kvm_close(kd);
 }
 
-// Taken from top(8)
-void getsysctl(const char *name, void *ptr, size_t len)
+void get_load_average(struct sysinfo *info)
 {
-  size_t nlen = len;
-
-  if (sysctlbyname(name, ptr, &nlen, NULL, 0) == -1) {
-    fprintf(stderr, "utop: sysctl(%s...) failed: %s\n", name,
-            strerror(errno));
-    abort();
-  }
-  if (nlen != len) {
-    fprintf(stderr, "utop: sysctl(%s...) expected %lu, got %lu\n",
-            name, (unsigned long)len, (unsigned long)nlen);
-    abort();
-  }
-}
-
-#if 0
-// Flo?
   struct loadavg sysload;
   int i;
 
@@ -165,8 +166,8 @@ void getsysctl(const char *name, void *ptr, size_t len)
   for (i = 0; i < 3; i++)
     info->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
 
-  //info->fscale = sysload.fscale; TODO
-#endif
+  /* info->fscale = sysload.fscale; */
+}
 
 void get_mem_usage(struct sysinfo *info)
 {
@@ -221,6 +222,13 @@ void get_cpu_stats(struct sysinfo *info)
   for(state=0; state < CPUSTATES; state++)
     info->cpu_pct[state] = (double)(diff[state] * 1000 + half_total)/total_change/10.0L;
 #endif
+}
+
+void machine_update(struct sysinfo *info)
+{
+	get_load_average(info);
+	get_mem_usage(info);
+	get_cpu_stats(info);
 }
 
 const char* format_cpu_pct(double cpu_pct[CPUSTATES])
@@ -524,17 +532,6 @@ const char *machine_format_memory(struct sysinfo *info)
   static char memory_string[128];
   char *p;
   int i;
-
-	/* these are for detailing the memory statistics */
-	const char *memorynames[] = {
-		  "Active, ",
-			"Inact, ",
-			"Wired, ",
-			"Cache, ",
-			"Buf, ",
-			"Free",
-			NULL
-	};
 
   p = memory_string;
 
