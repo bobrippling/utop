@@ -22,7 +22,9 @@ int            proc_listcontains(struct myproc **procs, pid_t pid);
 int            proc_to_idx(struct myproc *p, struct myproc *parent, int *y);
 struct myproc  *proc_from_idx(struct myproc *parent, int *idx);
 
-struct myproc  *proc_first(struct myproc **procs);
+struct myproc  *proc_first(     struct myproc **procs);
+struct myproc  *proc_first_next(struct myproc **procs);
+void            proc_unmark(struct myproc **procs);
 
 void proc_dump(struct myproc **ps, FILE *f);
 

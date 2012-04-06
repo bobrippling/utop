@@ -145,6 +145,8 @@ void showproc(struct myproc *proc, int *py, int indent)
 {
 	int y = *py;
 
+	proc->mark = 1;
+
 	if(y >= LINES)
 		return;
 
@@ -216,7 +218,10 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 {
 	int y = TOP_OFFSET - pos_top;
 
-	showproc(proc_first(procs), &y, 0);
+	proc_unmark(procs);
+
+	for(struct myproc *p = proc_first(procs); p; p = proc_first_next(procs))
+		showproc(p, &y, 0);
 
 	if(++y < LINES){
 		move(y, 0);

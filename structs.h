@@ -41,6 +41,7 @@ struct myproc
 	/* important */
 	struct myproc *hash_next;
 	struct myproc **children;
+	int mark;
 
 	union
 	{
@@ -63,10 +64,15 @@ struct sysinfo
 
 	// machine info
 	float loadavg[3];
-	long unsigned memory[6];
+
+#ifndef __LP64__
+	long
+#endif
+	unsigned memory[6];
 
 	float cpu_pct;
 
+	unsigned long cpu_cycles;
 	int ncpus;
 
 	struct timeval boottime;

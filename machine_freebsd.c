@@ -130,7 +130,7 @@ void machine_init(struct sysinfo *info)
 
   // Populate cpu states once:
   // TODO:
-  GETSYSCTL("kern.cp_time", info->cpu_cycles);
+  //GETSYSCTL("kern.cp_time", info->cpu_cycles);
 
   machine_update(info);
 
@@ -173,15 +173,14 @@ void get_mem_usage(struct sysinfo *info)
 {
     // Memory stuff
   long bufspace = 0;
-  int memory_stats[6];
 
 #ifndef __NetBSD__
   GETSYSCTL("vfs.bufspace", bufspace);
-  GETSYSCTL("vm.stats.vm.v_active_count", memory_stats[0]);
-  GETSYSCTL("vm.stats.vm.v_inactive_count", memory_stats[1]);
-  GETSYSCTL("vm.stats.vm.v_wire_count", memory_stats[2]);
-  GETSYSCTL("vm.stats.vm.v_cache_count", memory_stats[3]);
-  GETSYSCTL("vm.stats.vm.v_free_count", memory_stats[5]);
+  GETSYSCTL("vm.stats.vm.v_active_count",   info->memory[0]);
+  GETSYSCTL("vm.stats.vm.v_inactive_count", info->memory[1]);
+  GETSYSCTL("vm.stats.vm.v_wire_count",     info->memory[2]);
+  GETSYSCTL("vm.stats.vm.v_cache_count",    info->memory[3]);
+  GETSYSCTL("vm.stats.vm.v_free_count",     info->memory[5]);
 
   /* convert memory stats to Kbytes */
 #if 0
@@ -192,15 +191,14 @@ void get_mem_usage(struct sysinfo *info)
   info->memory[3] = pagetok(memory_stats[3]);
   info->memory[4] = bufspace / 1024;
   info->memory[5] = pagetok(memory_stats[5]);
-  info->memory[6] = -1;
 #endif
 #endif
 }
 
 void get_cpu_stats(struct sysinfo *info)
 {
-  /* Calculate total cpu utilization in % user, %nice, %system, %interrupt, %idle */
 #if 0
+  /* Calculate total cpu utilization in % user, %nice, %system, %interrupt, %idle */
   int state;
   long diff[CPUSTATES], cpu_cycles_now[CPUSTATES];
   long total_change = 0, half_total;
@@ -221,6 +219,8 @@ void get_cpu_stats(struct sysinfo *info)
 
   for(state=0; state < CPUSTATES; state++)
     info->cpu_pct[state] = (double)(diff[state] * 1000 + half_total)/total_change/10.0L;
+#else
+	(void)info;
 #endif
 }
 
@@ -249,6 +249,7 @@ const char* format_cpu_pct(double cpu_pct[CPUSTATES])
 
 const char *machine_proc_state_str(struct kinfo_proc *pp)
 {
+	(void)pp;
 	return "";
 	// TODO
 #if 0
@@ -310,8 +311,11 @@ void argv_dup(struct myproc *proc, char **argv)
 
 	for(i = argv, n = 0; i && *i; i++, n++);
 
-	if(!n)
-			return NULL;
+	if(!n){
+		proc->argv = NULL;
+		proc->argc = 0;
+		return;
+	}
 
 	ret = umalloc((n + 1) * sizeof *ret);
 
@@ -329,7 +333,15 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
   int n = 0;
   struct kinfo_proc *pp;
 
-  if((pp = kvm_getprocs(kd, KERN_PROC_PID, proc->pid, &n)) != NULL){
+	(void)procs;
+
+#ifdef __NetBSD__
+	pp = kvm_getprocs2(kd, KERN_PROC_PID, proc->pid, sizeof(*pp), &n);
+#else
+	pp = kvm_getprocs(kd, KERN_PROC_PID, proc->pid, &n);
+#endif
+
+  if(pp != NULL){
     /* proc->basename = ustrdup(pp->ki_comm); */
     char buf[8];
 
@@ -470,6 +482,11 @@ const char *machine_proc_display_line(struct myproc *p)
 	);
 
 	return buf;
+}
+
+int machine_display_width()
+{
+	return 18 + max_unam_len + max_gnam_len + 1 + 5;
 }
 
 void machine_proc_get_more(struct myproc **procs)

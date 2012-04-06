@@ -364,6 +364,8 @@ struct myproc *proc_from_idx(struct myproc *parent, int *idx)
 fin:
   *idx = i;
   return ret;
+
+#undef RET
 }
 
 struct myproc *proc_first(struct myproc **procs)
@@ -387,4 +389,29 @@ struct myproc *proc_first(struct myproc **procs)
 		return p;
 
 	return NULL;
+}
+
+struct myproc *proc_first_next(struct myproc **procs)
+{
+	struct myproc *p;
+	int i;
+
+	ITER_PROCS(i, p, procs)
+		if(!p->mark && !proc_get(procs, p->ppid))
+			return p;
+
+	ITER_PROCS(i, p, procs)
+		if(!p->mark)
+			return p;
+
+	return NULL;
+}
+
+void proc_unmark(struct myproc **procs)
+{
+	struct myproc *p;
+	int i;
+
+	ITER_PROCS(i, p, procs)
+		p->mark = 0;
 }
