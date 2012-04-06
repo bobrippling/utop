@@ -21,19 +21,53 @@
 
 void machine_init(struct sysinfo *info)
 {
-	// nothing to do... for now.. dun dun..
-	(void)info;
+  // get uptime and calculate bootime from it 
+  FILE *f;
+  char buf[64];
+  time_t now;
+
+  time(&now);
+
+  if((f = fopen("/proc/uptime", "r"))){
+    for(;;){
+      unsigned long uptime_secs;
+      if(!fgets(buf, sizeof buf - 1, f))
+        break;
+
+      if(sscanf(buf, "%lu", &uptime_secs))
+        info->boottime.tv_sec = now - uptime_secs;
+
+      break;
+    }
+  }
+  fclose(f);
 }
 
 void machine_term()
 {
 }
 
-// Taken from top(8)
 void get_load_average(struct sysinfo *info)
 {
-	// TODO
-	(void)info;
+  FILE *f;
+  char buf[64];
+
+  if((f = fopen("/proc/loadavg", "r"))){
+    for(;;){
+      double avg_1, avg_5, avg_15;
+
+      if(!fgets(buf, sizeof buf -1, f))
+        break;
+
+      if(sscanf(buf, "%lf %lf %lf", &avg_1, &avg_5, &avg_15)){
+        info->loadavg[0] = avg_1;
+        info->loadavg[1] = avg_5;
+        info->loadavg[2] = avg_15;
+      }
+      break;
+    }
+  }
+  fclose(f);
 }
 
 void get_mem_usage(struct sysinfo *info)
