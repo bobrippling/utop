@@ -15,6 +15,7 @@
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
+#include <sys/time.h>
 
 #include <paths.h>
 #include <sys/stat.h> // S_IFCHR
@@ -23,6 +24,7 @@
 #include "util.h"
 #include "machine.h"
 #include "proc.h"
+#include "structs.h"
 #include "main.h"
 
 // Process states - short form
@@ -122,13 +124,10 @@ void getsysctl(const char *name, void *ptr, size_t len)
   }
 }
 
-void get_load_average(struct sysinfo *info)
-{
 #if 0
 // Flo?
   struct loadavg sysload;
   int i;
-  extern int pageshift; // defined in machine.h
 
   // Load average
   GETSYSCTL("vm.loadavg", sysload);
@@ -137,7 +136,6 @@ void get_load_average(struct sysinfo *info)
 
   //info->fscale = sysload.fscale; TODO
 #endif
-}
 
 void get_mem_usage(struct sysinfo *info)
 {
@@ -258,48 +256,67 @@ int machine_proc_exists(struct myproc *p)
   return !!kvm_getprocs(kd, KERN_PROC_PID, p->pid, &num_procs);
 }
 
-char **machine_get_argv(struct myproc *p)
+/* Update process fields. */
+char **argv_dup(char **argv)
 {
-	int n = 0;
-  struct kinfo_proc *proc = kvm_getprocs(kd, KERN_PROC_PID, p->pid, &n);
-	return kvm_getargv(kd, proc, 0);
+	int n;
+	char **i, **ret;
+
+	for(i = argv, n = 0; i && *i; i++, n++);
+
+	if(!n)
+			return NULL;
+
+	ret = umalloc((n + 1) * sizeof *ret);
+
+	for(i = argv, n = 0; *i; i++, n++)
+		ret[n] = ustrdup(argv[n]);
+	ret[n] = NULL;
+
+	return ret;
 }
 
-/* Update process fields. */
 /* Returns 0 on success, -1 on error */
 int machine_update_proc(struct myproc *proc, struct myproc **procs)
 {
-	int n = 0;
+  int n = 0;
   struct kinfo_proc *pp;
 
   if((pp = kvm_getprocs(kd, KERN_PROC_PID, proc->pid, &n)) != NULL){
+    /* proc->basename = ustrdup(pp->ki_comm); */
 
-#if 0
-    if(proc->basename)
-      free(proc->basename);
-    proc->basename = ustrdup(pp->ki_comm);
+    proc->pid   = pp->ki_pid;
+    proc->ppid  = pp->ki_ppid;
+    proc->uid   = pp->ki_ruid;
+    proc->gid   = pp->ki_rgid;
+    proc->nice  = pp->ki_nice;
 
-    if(proc->state_str)
-      free(proc->state_str);
-    proc->state_str = ustrdup(proc_state_str(pp));
+    //proc->flag  = pp->ki_flag;
 
-    proc->pid = pp->ki_pid;
-    proc->ppid = pp->ki_ppid;
+#define MAP(a, b) if(pp->ki_stat == a) proc->state = b
+
+    MAP(SRUN,   PROC_STATE_RUN);
+    MAP(SSLEEP, PROC_STATE_SLEEP);
+    MAP(SSTOP,  PROC_STATE_STOPPED);
+    MAP(SZOMB,  PROC_STATE_ZOMBIE);
+    MAP(SWAIT,  PROC_STATE_DISK);
+
+    // TODO?
+    MAP(SLOCK,  PROC_STATE_OTHER);
+    MAP(SIDL,   PROC_STATE_OTHER);
+
     proc->state = pp->ki_stat;
-    proc->uid = pp->ki_ruid;
-    proc->gid = pp->ki_rgid;
-    proc->nice = pp->ki_nice;
-    proc->flag = pp->ki_flag;
 
-    proc->pc_cpu = pctdouble(pp->ki_pctcpu, pst->fscale);
+    //proc->pc_cpu = pctdouble(pp->ki_pctcpu, info->fscale);
 
-    // Set tty
     char buf[8];
     devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
     if(proc->tty)
       free(proc->tty);
     proc->tty = ustrdup(buf);
-#endif
+
+    proc->argv = argv_dup(kvm_getargv(kd, pp, 0));
+		proc_create_shell_cmd(proc);
 
     return 0;
   } else {
@@ -338,7 +355,7 @@ struct myproc *machine_proc_new(struct kinfo_proc *pp, struct myproc **procs)
   this->pid  = pp->ki_pid;
   this->ppid = -1;
 #ifdef __FreeBSD__
-	// TODO
+  // TODO
   this->jid = pp->ki_jid;
 #endif
   this->state = pp->ki_stat;
@@ -355,11 +372,11 @@ const char *machine_proc_display_line(struct myproc *p)
 	static char buf[64];
 
 	snprintf(buf, sizeof buf,
-		"% 7d			 %-7s "
+		"% 7d % 7d %-7s "
 		"%-*s %-*s "
 		"%3.1f"
 		,
-		p->pid, proc_state_str(p),
+		p->pid, p->jid, proc_state_str(p),
 		max_unam_len, p->unam,
 		max_gnam_len, p->gnam,
 		p->pc_cpu
@@ -370,47 +387,38 @@ const char *machine_proc_display_line(struct myproc *p)
 
 void machine_proc_get_more(struct myproc **procs)
 {
-  // This is the number of processes that kvm_getprocs returns
   int num_procs = 0;
 
-  // get all processes
-  struct kinfo_proc *pbase; // defined in /usr/include/sys/user.h
+  struct kinfo_proc *pbase; /* defined in /usr/include/sys/user.h */
 
-  if((pbase = kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs) )){
+  if((pbase = kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs))){
     struct kinfo_proc *pp;
     int i;
 
-    // We iterate over each kinfo_struct pointer and check if it
-    // exists already in our hash table. If it is not present yet, add
-    // it to the table and increase the global process counter
-    for(pp = pbase, i = 0; i < num_procs; pp++, i++) {
+    /*
+     * iterate over each kinfo_struct pointer and check if it
+     * exists already in our hash table. If it is not present, add it
+     */
+    for(pp = pbase, i = 0; i < num_procs; pp++, i++){
       if(!proc_get(procs, pp->ki_pid)){
         struct myproc *p = machine_proc_new(pp, procs);
 
-        // TODO: (code from top)
-        /* if (!show_kidle && pp->ki_tdflags & TDF_IDLETD) */
-        /*   /\* skip kernel idle process *\/ */
-        /*   continue; */
-        /* if (pp->ki_stat == 0) */
-        /*   /\* not in use *\/ */
-        /*   continue; */
+#ifdef BSD_TODO
+        if(!show_kidle && pp->ki_tdflags & TDF_IDLETD)
+          continue; /* skip kernel idle process */
 
-        /* if (!show_self && pp->ki_pid == sel->self) */
-        /*   /\* skip self *\/ */
-        /*   continue; */
+        if(pp->ki_stat == 0)
+          continue; /* not in use */
 
-        /* if (!show_system && (pp->ki_flag & P_SYSTEM)) */
-        /*   /\* skip system process *\/ */
-        /*   continue; */
+        if (!show_self && pp->ki_pid == sel->self)
+          continue; /* skip self */
 
-        if(p) {
-          proc_addto(procs, p);
-#if 0
-          stat->count++;
-          if(pp->ki_stat == SZOMB)
-            stat->zombies++;
+        if (!show_system && (pp->ki_flag & P_SYSTEM))
+          continue; /* skip system process */
 #endif
-        }
+
+        if(p)
+          proc_addto(procs, p);
       }
     }
   }

@@ -184,11 +184,13 @@ void showproc(struct myproc *proc, int *py, int indent)
 
 		/* basename shading */
 		if(is_owned && !is_locked && !is_searched){
-			x += proc->argv0_basename - proc->argv[0];
-			attron(ATTR_BASENAME);
-			mvaddstr(y, x, proc->argv0_basename);
-			attroff(ATTR_BASENAME);
-		}
+      if(proc->argv){
+        x += proc->argv0_basename - proc->argv[0];
+        attron(ATTR_BASENAME);
+        mvaddstr(y, x, proc->argv0_basename);
+        attroff(ATTR_BASENAME);
+      }
+    }
 
 		if(is_locked)
 			attroff(ATTR_LOCK);
@@ -435,8 +437,9 @@ void show_info(struct myproc *p)
 					 proc_state_str(p), p->nice,
 					 p->tty);
 
-	for(i = 0; p->argv[i]; i++)
-		printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
+  if(p->argv)
+    for(i = 0; p->argv[i]; i++)
+      printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
 
 	getyx(stdscr, y, x);
 	(void)x;

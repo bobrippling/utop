@@ -10,6 +10,7 @@ void          proc_handle_rename(struct myproc *this, struct myproc **procs);
 void          proc_handle_renames(struct myproc **ps);
 void          proc_cleanup(struct myproc **);
 void          proc_addto(struct myproc **procs, struct myproc *p);
+void          proc_create_shell_cmd(struct myproc *this);
 
 struct myproc  *proc_to_list(struct myproc **);
 struct myproc  *proc_to_tree(struct myproc **);

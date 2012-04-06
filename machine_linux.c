@@ -55,11 +55,6 @@ int machine_proc_exists(struct myproc *p)
 	return access(buf, F_OK) == 0;
 }
 
-char **machine_get_argv(struct myproc *p)
-{
-  return p->argv;
-}
-
 void machine_read_argv(struct myproc *p)
 {
 	// cmdline
@@ -155,13 +150,12 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 			}
 		}
 		free(buf);
+
+    machine_read_argv(proc);
+    return 0;
 	}else{
 		return -1;
 	}
-
-	machine_read_argv(proc);
-
-	return 0;
 }
 
 const char *machine_proc_display_line(struct myproc *p)

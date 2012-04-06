@@ -15,7 +15,6 @@ void get_load_average(struct sysinfo *info);
 void get_mem_usage(   struct sysinfo *info);
 void get_cpu_stats(   struct sysinfo *info);
 
-char **machine_get_argv(   struct myproc *);
 int    machine_proc_exists(struct myproc *);
 
 int    machine_update_proc(struct myproc *proc, struct myproc **procs);

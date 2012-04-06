@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-//#include <sys/file.h>
 #include <pwd.h>
 #include <grp.h>
 
@@ -165,24 +164,29 @@ const char *proc_state_str(struct myproc *p)
 	}[p->state];
 }
 
+void proc_create_shell_cmd(struct myproc *this)
+{
+	char *cmd;
+	int cmd_len;
+
+	/* recreate this->shell_cmd from argv */
+	for(int i = cmd_len = 0; i < this->argc; i++)
+		cmd_len += strlen(this->argv[i]) + 1;
+
+	free(this->shell_cmd);
+	this->shell_cmd = umalloc(cmd_len + 1);
+
+	cmd = this->shell_cmd;
+	for(int i = 0; i < this->argc; i++)
+		cmd += sprintf(cmd, "%s ", this->argv[i]);
+}
+
 void proc_handle_rename(struct myproc *this, struct myproc **procs)
 {
-  if(machine_proc_exists(this)){
-    char *cmd;
-		int cmd_len;
-
+	if(machine_proc_exists(this)){
 		machine_update_proc(this, procs);
 
-    /* recreate this->shell_cmd from argv */
-		for(int i = cmd_len = 0; i < this->argc; i++)
-			cmd_len += strlen(this->argv[i]) + 1;
-
-    free(this->shell_cmd);
-		this->shell_cmd = umalloc(cmd_len + 1);
-
-		cmd = this->shell_cmd;
-		for(int i = 0; i < this->argc; i++)
-			cmd += sprintf(cmd, "%s ", this->argv[i]);
+		proc_create_shell_cmd(this);
 	}
 }
 
