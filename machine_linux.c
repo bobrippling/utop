@@ -115,9 +115,7 @@ void machine_read_argv(struct myproc *p)
 			if(cmd[i] == '\0')
 				nuls++;
 
-		for(i = 0; i < p->argc; i++)
-			free(p->argv[i]);
-		free(p->argv);
+		argv_free(p->argc, p->argv);
 
 		p->argc = nuls;
 		p->argv = umalloc((p->argc + 1) * sizeof *p->argv);

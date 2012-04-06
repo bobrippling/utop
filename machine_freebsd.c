@@ -17,9 +17,15 @@
 #include <sys/user.h>
 #include <sys/time.h>
 
+#ifdef __NetBSD__
+#  include <sys/lwp.h>
+#endif
+
 #include <paths.h>
 #include <sys/stat.h> // S_IFCHR
 #include <sys/file.h> // O_RDONLY
+#include <sys/user.h> // CPUSTATES
+#include <sys/sched.h> // CPUSTATES
 
 #include "util.h"
 #include "machine.h"
@@ -59,6 +65,18 @@ kvm_t *kd = NULL; // kvm handle
 
 #define GETSYSCTL(...) // TODO
 
+#ifdef __NetBSD__
+#  define kinfo_proc kinfo_proc2
+#  define SRUN        LSRUN
+#  define SSLEEP      LSSLEEP
+#  define SSTOP       LSSTOP
+#  define SZOMB       LSZOMB
+#  define SWAIT       LSWAIT
+#  define SLOCK       LSLOCK
+#  define SIDL        LSIDL
+#endif
+
+
 void machine_init(struct sysinfo *info)
 {
   int pageshift;
@@ -90,14 +108,25 @@ void machine_init(struct sysinfo *info)
 
   // Number of cpus
   ncpus = 0;
+#ifndef __NetBSD__
   GETSYSCTL("kern.smp.cpus", ncpus);
+#endif
   info->ncpus = ncpus;
 
   // Populate cpu states once:
   GETSYSCTL("kern.cp_time", info->cpu_cycles);
 
   // Finally, open kvm handle
-  if((kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL)) == NULL){
+	//
+	//
+#ifdef __FreeBSD__
+	kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL);
+#else
+	// netbsd
+  kd = kvm_open(NULL, NULL, NULL, KVM_NO_FILES, "kvm_open");
+#endif
+
+  if(kd == NULL){
     perror("kd");
     abort();
   }
@@ -115,12 +144,12 @@ void getsysctl(const char *name, void *ptr, size_t len)
   size_t nlen = len;
 
   if (sysctlbyname(name, ptr, &nlen, NULL, 0) == -1) {
-    fprintf(stderr, "top: sysctl(%s...) failed: %s\n", name,
+    fprintf(stderr, "utop: sysctl(%s...) failed: %s\n", name,
             strerror(errno));
     abort();
   }
   if (nlen != len) {
-    fprintf(stderr, "top: sysctl(%s...) expected %lu, got %lu\n",
+    fprintf(stderr, "utop: sysctl(%s...) expected %lu, got %lu\n",
             name, (unsigned long)len, (unsigned long)nlen);
     abort();
   }
@@ -145,12 +174,14 @@ void get_mem_usage(struct sysinfo *info)
   long bufspace = 0;
   int memory_stats[6];
 
+#ifndef __NetBSD__
   GETSYSCTL("vfs.bufspace", bufspace);
   GETSYSCTL("vm.stats.vm.v_active_count", memory_stats[0]);
   GETSYSCTL("vm.stats.vm.v_inactive_count", memory_stats[1]);
   GETSYSCTL("vm.stats.vm.v_wire_count", memory_stats[2]);
   GETSYSCTL("vm.stats.vm.v_cache_count", memory_stats[3]);
   GETSYSCTL("vm.stats.vm.v_free_count", memory_stats[5]);
+
   /* convert memory stats to Kbytes */
 #if 0
 	// TODO
@@ -161,6 +192,7 @@ void get_mem_usage(struct sysinfo *info)
   info->memory[4] = bufspace / 1024;
   info->memory[5] = pagetok(memory_stats[5]);
   info->memory[6] = -1;
+#endif
 #endif
 }
 
@@ -255,11 +287,15 @@ int machine_proc_exists(struct myproc *p)
 {
   int num_procs = 0;
 
+#ifdef __FreeBSD__
   return !!kvm_getprocs(kd, KERN_PROC_PID, p->pid, &num_procs);
+#else
+  return !!kvm_getprocs2(kd, KERN_PROC_PID, p->pid, sizeof(struct kinfo_proc2), &num_procs);
+#endif
 }
 
 /* Update process fields. */
-char **argv_dup(char **argv)
+void argv_dup(struct myproc *proc, char **argv)
 {
 	int n;
 	char **i, **ret;
@@ -275,7 +311,8 @@ char **argv_dup(char **argv)
 		ret[n] = ustrdup(argv[n]);
 	ret[n] = NULL;
 
-	return ret;
+	proc->argv = ret;
+	proc->argc = n;
 }
 
 /* Returns 0 on success, -1 on error */
@@ -286,7 +323,9 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 
   if((pp = kvm_getprocs(kd, KERN_PROC_PID, proc->pid, &n)) != NULL){
     /* proc->basename = ustrdup(pp->ki_comm); */
+    char buf[8];
 
+#ifdef __FreeBSD__
     proc->pid   = pp->ki_pid;
     proc->ppid  = pp->ki_ppid;
     proc->uid   = pp->ki_ruid;
@@ -294,9 +333,33 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
     proc->nice  = pp->ki_nice;
 
     //proc->flag  = pp->ki_flag;
+    proc->state = pp->ki_stat;
+    /*
+     * Convert the process's runtime from microseconds to seconds.  This
+     * time includes the interrupt time although that is not wanted here.
+     * ps(1) is similarly sloppy.
+     */
+    proc->cputime = (pp->ki_runtime + 500000) / 1000000;
+
+    devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
+    if(proc->tty)
+      free(proc->tty);
+#else
+    proc->pid = pp->p_pid;
+    proc->ppid = pp->p_ppid;
+    proc->uid = pp->p_ruid;
+    proc->gid = pp->p_rgid;
+    proc->nice = pp->p_nice;
+
+    proc->state = pp->p_stat;
+
+    proc->pc_cpu = pctdouble(pp->p_pctcpu, pst->fscale);
+#endif
+
+    proc->tty = ustrdup(buf);
+    //proc->size = PROCSIZE(pp);
 
 #define MAP(a, b) if(pp->ki_stat == a) proc->state = b
-
     MAP(SRUN,   PROC_STATE_RUN);
     MAP(SSLEEP, PROC_STATE_SLEEP);
     MAP(SSTOP,  PROC_STATE_STOPPED);
@@ -306,26 +369,20 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
     // TODO?
     MAP(SLOCK,  PROC_STATE_OTHER);
     MAP(SIDL,   PROC_STATE_OTHER);
-
-    proc->state = pp->ki_stat;
-
-    /*
-     * Convert the process's runtime from microseconds to seconds.  This
-     * time includes the interrupt time although that is not wanted here.
-     * ps(1) is similarly sloppy.
-     */
-    proc->cputime = (pp->ki_runtime + 500000) / 1000000;
-
-    //proc->size = PROCSIZE(pp);
+#undef MAP
 
 
-    char buf[8];
-    devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
-    if(proc->tty)
-      free(proc->tty);
-    proc->tty = ustrdup(buf);
+		char **argv;
+#ifdef __FreeBSD__
+		argv = kvm_getargv(kd, pp, 0);
+#else
+		argv = kvm_getargv(kd, pp, 0);
+#endif
 
-    proc->argv = argv_dup(kvm_getargv(kd, pp, 0));
+		argv_free(proc->argc, proc->argv);
+
+    argv_dup(proc, argv);
+
 		proc_create_shell_cmd(proc);
 
     return 0;
@@ -343,8 +400,14 @@ struct myproc *machine_proc_new(struct kinfo_proc *pp, struct myproc **procs)
 #if 0
   this->basename = ustrdup(pp->ki_comm);
 #endif
+
+#ifdef __FreeBSD__
   this->uid = pp->ki_uid;
   this->gid = pp->ki_rgid;
+#else
+  this->uid = pp->p_uid;
+  this->gid = pp->p_rgid;
+#endif
 
   struct passwd *passwd;
   struct group  *group;
@@ -362,14 +425,20 @@ struct myproc *machine_proc_new(struct kinfo_proc *pp, struct myproc **procs)
   GETPW(this->uid, this->unam, passwd, getpwuid, pw_name);
   GETPW(this->gid, this->gnam,  group, getgrgid, gr_name);
 
+#ifdef __NetBSD__
+  this->pid  = pp->p_pid;
+  this->ppid = -1;
+  this->jid = 0;
+  this->state = pp->p_stat;
+  this->flag = pp->p_flag;
+#else
   this->pid  = pp->ki_pid;
   this->ppid = -1;
 #ifdef __FreeBSD__
-  // TODO
   this->jid = pp->ki_jid;
 #endif
   this->state = pp->ki_stat;
-  //this->flag = pp->ki_flag; TODO
+#endif
 
   proc_handle_rename(this, procs);
 
@@ -401,7 +470,13 @@ void machine_proc_get_more(struct myproc **procs)
 
   struct kinfo_proc *pbase; /* defined in /usr/include/sys/user.h */
 
-  if((pbase = kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs))){
+#ifdef __NetBSD__
+  pbase = kvm_getproc2(kd, KERN_PROC_ALL, 0, sizeof(struct kinfo_proc2), &num_procs);
+#else
+	pbase = kvm_getprocs(kd, KERN_PROC_PROC, 0, &num_procs);
+#endif
+
+  if(pbase){
     struct kinfo_proc *pp;
     int i;
 
@@ -410,20 +485,30 @@ void machine_proc_get_more(struct myproc **procs)
      * exists already in our hash table. If it is not present, add it
      */
     for(pp = pbase, i = 0; i < num_procs; pp++, i++){
-      if(!proc_get(procs, pp->ki_pid)){
+#ifdef __NetBSD__
+#  define FLAGS pp->p_tdflags
+#  define PID   pp->p_pid
+#  define FLAG  pp->p_flag
+#else
+#  define FLAGS pp->ki_tdflags
+#  define PID   pp->ki_pid
+#  define FLAG  pp->ki_flag
+#endif
+
+      if(!proc_get(procs, PID)){
         struct myproc *p = machine_proc_new(pp, procs);
 
 #ifdef BSD_TODO
-        if(!show_kidle && pp->ki_tdflags & TDF_IDLETD)
+        if(!show_kidle && FLAGS & TDF_IDLETD)
           continue; /* skip kernel idle process */
 
         if(pp->ki_stat == 0)
           continue; /* not in use */
 
-        if (!show_self && pp->ki_pid == sel->self)
+        if (!show_self && PID == sel->self)
           continue; /* skip self */
 
-        if (!show_system && (pp->ki_flag & P_SYSTEM))
+        if (!show_system && (FLAG & P_SYSTEM))
           continue; /* skip system process */
 #endif
 

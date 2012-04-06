@@ -1,3 +1,6 @@
+// visible to all
+void argv_free(int argc, char **argv);
+
 #ifdef __FreeBSD__
 #  include "machine_freebsd.c"
 #else
@@ -37,4 +40,11 @@ const char *uptime_from_boottime(time_t boottime)
 			ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 
   return buf;
+}
+
+void argv_free(int argc, char **argv)
+{
+	for(int i = 0; i < argc; i++)
+		free(argv[i]);
+	free(argv);
 }
