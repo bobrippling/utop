@@ -111,6 +111,8 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 	char *buf;
 	char path[64];
 
+	(void)procs;
+
 	snprintf(path, sizeof path, "/proc/%d/stat", proc->pid);
 
 	if(fline(path, &buf, NULL)){
