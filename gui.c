@@ -427,6 +427,7 @@ void show_info(struct myproc *p)
 					 "jid: %d\n"
 #endif
 					 "state: %s, nice: %d\n"
+					 "CPU time: %s, MEM size: %s\n"
 					 "tty: %s\n"
 					 ,
 					 p->pid, p->ppid,
@@ -435,6 +436,7 @@ void show_info(struct myproc *p)
 					 p->jid,
 #endif
 					 proc_state_str(p), p->nice,
+					 format_seconds(p->cputime), format_kbytes(p->memsize),
 					 p->tty);
 
   if(p->argv)

@@ -289,3 +289,15 @@ void machine_proc_get_more(struct myproc **procs)
 
 	closedir(d);
 }
+
+const char *machine_format_memory(struct sysinfo *info)
+{
+	(void)info;
+	return "todo: linux mem";
+}
+
+const char *machine_format_cpu_pct(struct sysinfo *info)
+{
+	(void)info;
+	return "todo: linux cpu pct";
+}

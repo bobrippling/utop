@@ -36,6 +36,8 @@
 // SWAIT  6   /* Waiting or interrupt. */
 // SLOCK  7   /* Blocked on a lock. */
 
+#define PROCSIZE(pp) ((pp)->ki_size / 1024)
+
 // Take from top(8)
 const char *state_abbrev[] = {
   "", "START", "RUN\0\0\0", "SLEEP", "STOP", "ZOMB", "WAIT", "LOCK", NULL
@@ -307,7 +309,15 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 
     proc->state = pp->ki_stat;
 
-    //proc->pc_cpu = pctdouble(pp->ki_pctcpu, info->fscale);
+    /*
+     * Convert the process's runtime from microseconds to seconds.  This
+     * time includes the interrupt time although that is not wanted here.
+     * ps(1) is similarly sloppy.
+     */
+    proc->cputime = (pp->ki_runtime + 500000) / 1000000;
+
+    //proc->size = PROCSIZE(pp);
+
 
     char buf[8];
     devname_r(pp->ki_tdev, S_IFCHR, buf, 8);
@@ -422,4 +432,36 @@ void machine_proc_get_more(struct myproc **procs)
       }
     }
   }
+}
+
+const char *machine_format_memory(struct sysinfo *info)
+{
+  static char memory_string[128];
+  char *p;
+  int i;
+
+	/* these are for detailing the memory statistics */
+	const char *memorynames[] = {
+		  "Active, ",
+			"Inact, ",
+			"Wired, ",
+			"Cache, ",
+			"Buf, ",
+			"Free",
+			NULL
+	};
+
+  p = memory_string;
+
+  for(i=0; i<6; i++)
+    p += snprintf(p, (sizeof memory_string) - (p - memory_string),
+				"%s %s", format_kbytes(info->memory[i]), memorynames[i]);
+
+  return memory_string;
+}
+
+const char *machine_format_cpu_pct(struct sysinfo *info)
+{
+	(void)info;
+	return "todo: cpu pct";
 }

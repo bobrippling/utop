@@ -35,6 +35,8 @@ struct myproc
 
 	double pc_cpu;
 	unsigned long utime, stime, cutime, cstime;
+	unsigned long cputime;
+	unsigned long memsize;
 
 	/* important */
 	struct myproc *hash_next;
