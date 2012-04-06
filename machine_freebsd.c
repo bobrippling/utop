@@ -55,7 +55,24 @@ const char *cpustates[] = {
 
 kvm_t *kd = NULL; // kvm handle
 
-#define GETSYSCTL(...) // TODO
+// Taken from top(8)
+void getsysctl(const char *name, void *ptr, size_t len)
+{
+  size_t nlen = len;
+
+  if (sysctlbyname(name, ptr, &nlen, NULL, 0) == -1) {
+    fprintf(stderr, "top: sysctl(%s...) failed: %s\n", name,
+            strerror(errno));
+    abort();
+  }
+  if (nlen != len) {
+    fprintf(stderr, "top: sysctl(%s...) expected %lu, got %lu\n",
+            name, (unsigned long)len, (unsigned long)nlen);
+    abort();
+  }
+}
+
+#define GETSYSCTL(name, var) getsysctl(name, &(var), sizeof(var))
 
 void machine_init(struct sysinfo *info)
 {
@@ -92,7 +109,10 @@ void machine_init(struct sysinfo *info)
   info->ncpus = ncpus;
 
   // Populate cpu states once:
-  GETSYSCTL("kern.cp_time", info->cpu_cycles);
+  // TODO:
+  /* GETSYSCTL("kern.cp_time", info->cpu_cycles); */
+
+  machine_update(info);
 
   // Finally, open kvm handle
   if((kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, NULL)) == NULL){
@@ -107,23 +127,6 @@ void machine_term()
     kvm_close(kd);
 }
 
-// Taken from top(8)
-void getsysctl(const char *name, void *ptr, size_t len)
-{
-  size_t nlen = len;
-
-  if (sysctlbyname(name, ptr, &nlen, NULL, 0) == -1) {
-    fprintf(stderr, "top: sysctl(%s...) failed: %s\n", name,
-            strerror(errno));
-    abort();
-  }
-  if (nlen != len) {
-    fprintf(stderr, "top: sysctl(%s...) expected %lu, got %lu\n",
-            name, (unsigned long)len, (unsigned long)nlen);
-    abort();
-  }
-}
-
 void get_load_average(struct sysinfo *info)
 {
   struct loadavg sysload;
@@ -134,7 +137,7 @@ void get_load_average(struct sysinfo *info)
   for (i = 0; i < 3; i++)
     info->loadavg[i] = (double)sysload.ldavg[i] / sysload.fscale;
 
-  /* info->fscale = sysload.fscale; TODO */
+  /* info->fscale = sysload.fscale; */
 }
 
 void get_mem_usage(struct sysinfo *info)
