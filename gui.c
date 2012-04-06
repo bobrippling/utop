@@ -265,7 +265,7 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 
 		y = TOP_OFFSET + pos_y - pos_top;
 
-		width = machine_display_width();
+		width = machine_proc_display_width();
 
 		mvchgat(y, 0, width, A_UNDERLINE, 0, NULL);
 		move(y, width);

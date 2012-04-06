@@ -20,7 +20,7 @@ int    machine_update_proc(struct myproc *proc, struct myproc **procs);
 void machine_proc_get_more(struct myproc **);
 
 const char *machine_proc_display_line(struct myproc *p);
-int machine_display_width(void);
+int machine_proc_display_width(void);
 
 const char *machine_format_memory( struct sysinfo *);
 const char *machine_format_cpu_pct(struct sysinfo *);

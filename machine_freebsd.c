@@ -484,7 +484,7 @@ const char *machine_proc_display_line(struct myproc *p)
 	return buf;
 }
 
-int machine_display_width()
+int machine_proc_display_width()
 {
 	return 18 + max_unam_len + max_gnam_len + 1 + 5;
 }

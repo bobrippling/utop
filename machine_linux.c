@@ -297,7 +297,7 @@ const char *machine_proc_display_line(struct myproc *p)
 	return buf;
 }
 
-int machine_display_width()
+int machine_proc_display_width()
 {
 	if(global_thin)
 		return 9 + max_unam_len;
