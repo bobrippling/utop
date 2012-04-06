@@ -599,12 +599,9 @@ void gui_run(struct myproc **procs)
 			proc_update(procs, &info);
 		}
 
-#if 0
-		if(pos_y > pst.count - 1)
-			position(pst.count - 1);
-#endif
-
 		showprocs(procs, &info);
+
+		machine_update(&info);
 
 		ch = getch();
 		if(ch == -1)

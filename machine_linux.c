@@ -21,7 +21,7 @@
 
 void machine_init(struct sysinfo *info)
 {
-  // get uptime and calculate bootime from it 
+  // get uptime and calculate bootime from it
   FILE *f;
   char buf[64];
   time_t now;
@@ -39,15 +39,17 @@ void machine_init(struct sysinfo *info)
 
       break;
     }
+    fclose(f);
   }
-  fclose(f);
+
+  machine_update(info);
 }
 
 void machine_term()
 {
 }
 
-void get_load_average(struct sysinfo *info)
+static void get_load_average(struct sysinfo *info)
 {
   FILE *f;
   char buf[64];
@@ -70,16 +72,23 @@ void get_load_average(struct sysinfo *info)
   fclose(f);
 }
 
-void get_mem_usage(struct sysinfo *info)
+static void get_mem_usage(struct sysinfo *info)
 {
 	// TODO
 	(void)info;
 }
 
-void get_cpu_stats(struct sysinfo *info)
+static void get_cpu_stats(struct sysinfo *info)
 {
 	// TODO
 	(void)info;
+}
+
+void machine_update(struct sysinfo *info)
+{
+	get_load_average(info);
+	get_mem_usage(info);
+	get_cpu_stats(info);
 }
 
 int machine_proc_exists(struct myproc *p)

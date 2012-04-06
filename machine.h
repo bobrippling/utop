@@ -11,9 +11,7 @@ const char *uptime_from_boottime(time_t boottime);
 const char *format_memory(int memory[6]);
 const char *format_cpu_pct(double *cpu_pct);
 
-void get_load_average(struct sysinfo *info);
-void get_mem_usage(   struct sysinfo *info);
-void get_cpu_stats(   struct sysinfo *info);
+void machine_update(struct sysinfo *);
 
 int    machine_proc_exists(struct myproc *);
 
@@ -26,5 +24,7 @@ const char *machine_proc_display_line(struct myproc *);
 
 const char *machine_format_memory( struct sysinfo *);
 const char *machine_format_cpu_pct(struct sysinfo *);
+
+void machine_update(struct sysinfo *);
 
 #endif
