@@ -448,17 +448,6 @@ const char *machine_format_memory(struct sysinfo *info)
   char *p;
   int i;
 
-	/* these are for detailing the memory statistics */
-	const char *memorynames[] = {
-		  "Active, ",
-			"Inact, ",
-			"Wired, ",
-			"Cache, ",
-			"Buf, ",
-			"Free",
-			NULL
-	};
-
   p = memory_string;
 
   for(i=0; i<6; i++)

@@ -19,6 +19,12 @@
 #include "main.h"
 #include "structs.h"
 
+/* these are for detailing the memory statistics */
+const char *memorynames[] = {
+  "Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
+  "Free", NULL
+};
+
 void machine_init(struct sysinfo *info)
 {
   // get uptime and calculate bootime from it
@@ -74,8 +80,68 @@ static void get_load_average(struct sysinfo *info)
 
 static void get_mem_usage(struct sysinfo *info)
 {
-	// TODO
-	(void)info;
+  FILE *f;
+  char buf[256];
+  long unsigned mem_val = 0;
+
+  if((f = fopen("/proc/meminfo", "r"))){
+    while (!feof(f)) {
+
+      char *c, *key, *mem;
+
+      if(!fgets(buf, sizeof buf -1, f))
+        break;
+
+      c = strchr(buf, ':');
+      if (c != NULL) {
+	key = buf; // left of ':'
+	mem = c + 1; // right of ':'
+
+	*c = '\0';
+	while (*--c == ' ')
+	  *c = '\0';
+
+	while (*mem == ' ')
+	  *mem++ = '\0';
+
+	c = mem;
+	while (*c != '\0')
+	  c++;
+
+	while (*--c == ' ' || *--c == '\n')
+	  *c = '\0';
+
+	if (*c == 'B' && *(c - 1) == 'k' && *(c - 2) == ' ') {
+	  *(c - 2) = '\0';
+
+	  if (!strcmp("Active", key)) {
+	    if (sscanf(mem, "%lu", &mem_val))
+		info->memory[0] = mem_val;
+	  }
+	  if (!strcmp("Inactive", key)) {
+	    if (sscanf(mem, "%lu", &mem_val))
+		info->memory[1] = mem_val;
+	  }
+	  // TODO: Wired?
+	  info->memory[2] = 0;
+
+	  if (!strcmp("Cached", key)) {
+	    if (sscanf(mem, "%lu", &mem_val))
+	      info->memory[3] = mem_val;
+	  }
+	  if (!strcmp("Buffers", key)) {
+	    if (sscanf(mem, "%lu", &mem_val))
+	      info->memory[4] = mem_val;
+	  }
+	  if (!strcmp("MemFree", key)) {
+	    if (sscanf(mem, "%lu", &mem_val))
+	      info->memory[5] = mem_val;
+	  }
+	}
+      }
+    }
+  }
+  fclose(f);
 }
 
 static void get_cpu_stats(struct sysinfo *info)
@@ -292,8 +358,17 @@ void machine_proc_get_more(struct myproc **procs)
 
 const char *machine_format_memory(struct sysinfo *info)
 {
-	(void)info;
-	return "todo: linux mem";
+  static char memory_string[128];
+  char *p;
+  int i;
+
+  p = memory_string;
+
+  for(i=0; i<6; i++)
+    p += snprintf(p, (sizeof memory_string) - (p - memory_string),
+				"%s %s", format_kbytes(info->memory[i]), memorynames[i]);
+
+  return memory_string;
 }
 
 const char *machine_format_cpu_pct(struct sysinfo *info)

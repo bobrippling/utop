@@ -63,7 +63,7 @@ struct sysinfo
 
 	// machine info
 	float loadavg[3];
-	int memory[6];
+	long unsigned memory[6];
 
 	float cpu_pct;
 
