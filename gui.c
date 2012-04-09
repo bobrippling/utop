@@ -68,6 +68,10 @@ void gui_init()
 
 		getch_delay(1);
 
+#ifndef OLD_CURSOR
+		curs_set(0);
+#endif
+
 		if(has_colors()){
 			start_color();
 			use_default_colors();
@@ -269,7 +273,11 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 
 		width = machine_proc_display_width();
 
+#ifdef OLD_CURSOR
 		mvchgat(y, 0, width, A_UNDERLINE, 0, NULL);
+#else
+		mvchgat(y, 0, COLS, A_UNDERLINE, 0, NULL);
+#endif
 		move(y, width);
 	}
 }
