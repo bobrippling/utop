@@ -12,6 +12,7 @@
 #include <sys/file.h> // O_RDONLY
 #include <time.h>
 #include <dirent.h>
+#include <ctype.h>
 
 #include "util.h"
 #include "proc.h"
@@ -92,52 +93,46 @@ static void get_mem_usage(struct sysinfo *info)
       if(!fgets(buf, sizeof buf -1, f))
         break;
 
-      c = strchr(buf, ':');
-      if (c != NULL) {
-	key = buf; // left of ':'
-	mem = c + 1; // right of ':'
+      /* Format:
+         Key:     val kB
+      */
 
-	*c = '\0';
-	while (*--c == ' ')
-	  *c = '\0';
+      c = strchr(buf, ':'); // find ':' seperator
 
-	while (*mem == ' ')
-	  *mem++ = '\0';
+      if(!c)
+        break;
 
-	c = mem;
-	while (*c != '\0')
-	  c++;
+      key = buf; // pointer to the beginning of the line
+      mem = c+1; // mem points to char after ':'
+      *c = '\0'; // terminate key string
 
-	while (*--c == ' ' || *--c == '\n')
-	  *c = '\0';
+      while(isspace(*c++)); // Skip whitespaces
+      mem = c+1; // Pointer to the beginning of the numerical value
 
-	if (*c == 'B' && *(c - 1) == 'k' && *(c - 2) == ' ') {
-	  *(c - 2) = '\0';
+      if (key && mem) {
+        if (!strcmp("Active", key)) {
+          if (sscanf(mem, "%lu", &mem_val))
+            info->memory[0] = mem_val;
+        }
+        if (!strcmp("Inactive", key)) {
+          if (sscanf(mem, "%lu", &mem_val))
+            info->memory[1] = mem_val;
+        }
+        // TODO: Wired?
+        info->memory[2] = 0;
 
-	  if (!strcmp("Active", key)) {
-	    if (sscanf(mem, "%lu", &mem_val))
-		info->memory[0] = mem_val;
-	  }
-	  if (!strcmp("Inactive", key)) {
-	    if (sscanf(mem, "%lu", &mem_val))
-		info->memory[1] = mem_val;
-	  }
-	  // TODO: Wired?
-	  info->memory[2] = 0;
-
-	  if (!strcmp("Cached", key)) {
-	    if (sscanf(mem, "%lu", &mem_val))
-	      info->memory[3] = mem_val;
-	  }
-	  if (!strcmp("Buffers", key)) {
-	    if (sscanf(mem, "%lu", &mem_val))
-	      info->memory[4] = mem_val;
-	  }
-	  if (!strcmp("MemFree", key)) {
-	    if (sscanf(mem, "%lu", &mem_val))
-	      info->memory[5] = mem_val;
-	  }
-	}
+        if (!strcmp("Cached", key)) {
+          if (sscanf(mem, "%lu", &mem_val))
+            info->memory[3] = mem_val;
+        }
+        if (!strcmp("Buffers", key)) {
+          if (sscanf(mem, "%lu", &mem_val))
+            info->memory[4] = mem_val;
+        }
+        if (!strcmp("MemFree", key)) {
+          if (sscanf(mem, "%lu", &mem_val))
+            info->memory[5] = mem_val;
+        }
       }
     }
   }
