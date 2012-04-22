@@ -181,15 +181,6 @@ void proc_create_shell_cmd(struct myproc *this)
 		cmd += sprintf(cmd, "%s ", this->argv[i]);
 }
 
-void proc_handle_rename(struct myproc *this, struct myproc **procs)
-{
-	if(machine_proc_exists(this)){
-		machine_update_proc(this, procs);
-
-		proc_create_shell_cmd(this);
-	}
-}
-
 static void proc_update_single(
 		struct myproc *proc,
 		struct myproc **procs,
@@ -214,6 +205,8 @@ static void proc_update_single(
 				/* TODO: reparent to init? */
 			}
     }
+
+		proc_create_shell_cmd(proc);
   }else{
     proc_free(proc, procs);
 	}
@@ -264,15 +257,6 @@ void proc_update(struct myproc **procs, struct sysinfo *info)
   machine_proc_get_more(procs);
 }
 
-void proc_handle_renames(struct myproc **ps)
-{
-  struct myproc *p;
-  int i;
-
-  ITER_PROCS(i, p, ps)
-      proc_handle_rename(p, ps);
-}
-
 void proc_dump(struct myproc **ps, FILE *f)
 {
   struct myproc *p;
@@ -318,12 +302,14 @@ struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 	return NULL;
 #else
 	/* search in the same order the procs are displayed */
+	// TODO: multiple parents
 	return proc_find_n_child(str, proc_first(ps), &n);
 #endif
 }
 
 int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
 {
+	// TODO: multiple parents
   struct myproc **iter;
   int ret = 0;
   int y;
@@ -344,6 +330,7 @@ int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
 
 struct myproc *proc_from_idx(struct myproc *parent, int *idx)
 {
+	// TODO: multiple parents
   struct myproc **iter, *ret = NULL;
   int i = *idx;
 #define RET(x) do{ ret = x; goto fin; }while(0)
@@ -386,7 +373,8 @@ struct myproc *proc_first(struct myproc **procs)
 			return p;
 
 	ITER_PROCS(i, p, procs)
-		return p;
+		if(!proc_get(procs, p->ppid))
+			return p;
 
 	return NULL;
 }

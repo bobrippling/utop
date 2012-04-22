@@ -6,8 +6,6 @@ struct sysinfo;
 struct myproc **proc_init();
 struct myproc  *proc_get(struct myproc **, pid_t);
 void          proc_update(struct myproc **procs, struct sysinfo *info);
-void          proc_handle_rename(struct myproc *this, struct myproc **procs);
-void          proc_handle_renames(struct myproc **ps);
 void          proc_cleanup(struct myproc **);
 void          proc_addto(struct myproc **procs, struct myproc *p);
 void          proc_create_shell_cmd(struct myproc *this);

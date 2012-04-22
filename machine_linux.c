@@ -300,7 +300,7 @@ int machine_proc_display_width()
 		return 18 + max_unam_len + max_gnam_len + 1 + 5;
 }
 
-struct myproc *machine_proc_new(pid_t pid, struct myproc **procs)
+struct myproc *machine_proc_new(pid_t pid)
 {
 	struct myproc *this = NULL;
 	char cmdln[32];
@@ -332,8 +332,6 @@ struct myproc *machine_proc_new(pid_t pid, struct myproc **procs)
 	this->pid       = pid;
 	this->ppid      = -1;
 
-	proc_handle_rename(this, procs);
-
 	return this;
 }
 
@@ -353,7 +351,7 @@ void machine_proc_get_more(struct myproc **procs)
 
 		if(sscanf(ent->d_name, "%d", &pid) == 1
 		&& !proc_get(procs, pid)){
-			struct myproc *p = machine_proc_new(pid, procs);
+			struct myproc *p = machine_proc_new(pid);
 
 			if(p){
 				proc_addto(procs, p);

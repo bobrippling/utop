@@ -596,24 +596,19 @@ backspace:
 void gui_run(struct myproc **procs)
 {
 	struct sysinfo info;
-	long last_update = 0, last_full_refresh;
+	long last_update = 0;
 	int fin = 0;
 
 	memset(&info, 0, sizeof info);
 	machine_init(&info);
 	proc_update(procs, &info);
 
-	last_full_refresh = mstime();
 	do{
 		const long now = mstime();
 		int ch;
 
 		if(last_update + WAIT_TIME < now){
 			last_update = now;
-			if(last_full_refresh + FULL_WAIT_TIME < now){
-				last_full_refresh = now;
-				proc_handle_renames(procs);
-			}
 			proc_update(procs, &info);
 		}
 
@@ -736,7 +731,7 @@ void gui_run(struct myproc **procs)
 
 				case REDRAW_CHAR:
 					/* redraw */
-					last_full_refresh = 0; /* force refresh */
+					last_update = 0; /* force refresh */
 					clear();
 					break;
 

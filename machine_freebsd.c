@@ -411,7 +411,7 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
   }
 }
 
-struct myproc *machine_proc_new(struct kinfo_proc *pp, struct myproc **procs)
+struct myproc *machine_proc_new(struct kinfo_proc *pp)
 {
   struct myproc *this = NULL;
 
@@ -459,8 +459,6 @@ struct myproc *machine_proc_new(struct kinfo_proc *pp, struct myproc **procs)
 #endif
   this->state = pp->ki_stat;
 #endif
-
-  proc_handle_rename(this, procs);
 
   return this;
 }
@@ -521,7 +519,7 @@ void machine_proc_get_more(struct myproc **procs)
 #endif
 
       if(!proc_get(procs, PID)){
-        struct myproc *p = machine_proc_new(pp, procs);
+        struct myproc *p = machine_proc_new(pp);
 
 #ifdef BSD_TODO
         if(!show_kidle && FLAGS & TDF_IDLETD)
