@@ -232,10 +232,8 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 	for(struct myproc *p = proc_first(procs); p; p = proc_first_next(procs))
 		showproc(p, &y, 0);
 
-	if(++y < LINES){
-		move(y, 0);
-		clrtobot();
-	}
+	move(y, 0);
+	clrtobot();
 
 	if(search){
 		const int red = !search_proc && *search_str;;
@@ -270,7 +268,6 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 
 		STATUS(1, 0, "Mem: %s", machine_format_memory(info));
 		STATUS(2, 0, "CPU: %s", machine_format_cpu_pct(info));
-		clrtoeol();
 
 		y = TOP_OFFSET + pos_y - pos_top;
 
