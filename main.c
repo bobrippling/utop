@@ -13,10 +13,11 @@
 
 #define MS_TO_US(n) ((n) * 1000)
 
-uid_t global_uid   = 0;
-int   global_force = 0;
-int   global_debug = 0;
-int   global_thin  = 0;
+uid_t global_uid     = 0;
+int   global_force   = 0;
+int   global_debug   = 0;
+int   global_thin    = 0;
+int   global_kernel  = 0;
 
 int max_unam_len, max_gnam_len;
 
@@ -52,12 +53,15 @@ int main(int argc, char **argv)
 			global_debug = 1;
 		}else if(!strcmp(argv[i], "-t")){
 			global_thin = 1;
+		}else if(!strcmp(argv[i], "-k")){
+			global_kernel = 1;
 		}else{
 			fprintf(stderr,
 							"Usage: %s [-f] [-d]\n"
 							" -f: Don't prompt for lsof and strace\n"
 							" -d: Debug mode\n"
 							" -t: Thin mode (for small screens)\n"
+							" -k: Show kernel threads\n"
 							, *argv);
 			return 1;
 		}

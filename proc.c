@@ -401,5 +401,19 @@ void proc_unmark(struct myproc **procs)
 	int i;
 
 	ITER_PROCS(i, p, procs)
-		p->mark = 0;
+		/* unmark everything except those whose ppids we don't have yet */
+		p->mark = p->ppid == -1;
+}
+
+void proc_mark_kernel(struct myproc **procs)
+{
+	struct myproc *p;
+	int i;
+
+	ITER_PROCS(i, p, procs)
+		switch(p->ppid){
+			case 0:
+			case 2:
+				p->mark = 1;
+		}
 }

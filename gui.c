@@ -226,6 +226,9 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 
 	proc_unmark(procs);
 
+	if(!global_kernel)
+		proc_mark_kernel(procs);
+
 	for(struct myproc *p = proc_first(procs); p; p = proc_first_next(procs))
 		showproc(p, &y, 0);
 
