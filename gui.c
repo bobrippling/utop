@@ -31,6 +31,8 @@
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
 
+#define SEARCH_ON(on) do{ gui_text_entry(on); search = on; }while(0)
+
 static int pos_top = 0, pos_y = 0;
 
 static int  search = 0;
@@ -46,6 +48,15 @@ void getch_delay(int on)
 		halfdelay(HALF_DELAY_TIME); /* x/10s of a second wait */
 	else
 		cbreak();
+}
+
+void gui_text_entry(int on)
+{
+	if(on)
+		echo();
+	else
+		noecho();
+	curs_set(on);
 }
 
 void gui_init()
@@ -69,7 +80,7 @@ void gui_init()
 		getch_delay(1);
 
 #ifndef OLD_CURSOR
-		curs_set(0);
+		gui_text_entry(0);
 #endif
 
 		if(has_colors()){
@@ -285,9 +296,11 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 int waitgetch()
 {
 	int ret;
+	gui_text_entry(1);
 	getch_delay(0);
 	ret = getch();
 	getch_delay(1);
+	gui_text_entry(0);
 	return ret;
 }
 
@@ -322,9 +335,9 @@ void delete(struct myproc *p)
 	int i, wait = 0;
 
 	STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->argv0_basename);
-	echo();
+	gui_text_entry(1);
 	getnstr(sig, sizeof sig);
-	noecho();
+	gui_text_entry(0);
 
 	if(!*sig)
 		return;
@@ -368,9 +381,9 @@ void renice(struct myproc *p)
 	int i, wait = 0;
 
 	STATUS(0, 0, "renice %d (%s) with [-20:20]: ", p->pid, p->argv0_basename);
-	echo();
+	gui_text_entry(1);
 	getnstr(increment, sizeof increment);
-	noecho();
+	gui_text_entry(0);
 
 	if(!*increment)
 		return;
@@ -523,7 +536,8 @@ void gui_search(int ch, struct myproc **procs)
 		else if(ch == LOCK_CHAR)
 			goto lock_proc;
 
-		search_offset = search = 0;
+		search_offset = 0;
+		SEARCH_ON(0);
 	}else{
 		switch(ch){
 			default:
@@ -543,7 +557,8 @@ ins_char:
 				/* fall */
 
 			case CTRL_AND('['):
-				search = search_offset = 0;
+				SEARCH_ON(0);
+				search_offset = 0;
 				break;
 			}
 
@@ -568,7 +583,7 @@ backspace:
 				if(search_idx > 0)
 					search_str[--search_idx] = '\0';
 				else
-					search = 0;
+					SEARCH_ON(0);
 				break;
 
 			case RESET_SEARCH_CHAR:
@@ -745,7 +760,7 @@ void gui_run(struct myproc **procs)
 					*search_str = '\0';
 					search_idx = 0;
 					search_pid = ch == '?';
-					search = 1;
+					SEARCH_ON(1);
 					move(0, 0);
 					clrtoeol();
 					break;
