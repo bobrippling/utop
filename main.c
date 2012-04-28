@@ -55,6 +55,9 @@ int main(int argc, char **argv)
 			global_thin = 1;
 		}else if(!strcmp(argv[i], "-k")){
 			global_kernel = 1;
+		}else if(!strcmp(argv[i], "-v")){
+			fprintf(stderr, "utop %s\n", "0.9");
+			return 0;
 		}else{
 			fprintf(stderr,
 							"Usage: %s [-f] [-d]\n"

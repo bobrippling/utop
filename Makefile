@@ -2,6 +2,7 @@ CFLAGS  = -g -Wall -Wextra -pedantic -std=c99
 LDFLAGS = -g -lncurses
 PREFIX  = /usr/local
 OBJ     = main.o proc.o gui.o util.o machine.o
+VERSION = 0.9
 
 .PHONY: clean install uninstall
 
@@ -20,7 +21,7 @@ clean:
 install: utop
 	cp utop ${PREFIX}/bin
 	mkdir -p ${PREFIX}/share/man/man1/
-	cp utop.1 ${PREFIX}/share/man/man1/
+	sed "s/UTOP_VERSION/${VERSION}/g" utop.1 > ${PREFIX}/share/man/man1/utop.1
 
 uninstall:
 	rm -f ${PREFIX}/bin/utop ${PREFIX}/share/man/man1/
