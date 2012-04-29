@@ -655,7 +655,7 @@ void gui_run(struct myproc **procs)
 					position(0);
 					break;
 				case SCROLL_TO_BOTTOM_CHAR:
-					position(info.count);
+					position(info.count); /* FIXME: info.count - (show_kthreads ? 0 : info.kthread_count) */
 					break;
 
 				case BACKWARD_HALF_WINDOW_CHAR:
