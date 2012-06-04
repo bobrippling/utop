@@ -1,5 +1,10 @@
 #!/bin/sh
 
+trace_tool(){
+	sed 's/TRACE_TOOL .*/TRACE_TOOL "'"$1"'"/' config.h > /tmp/$$
+	mv /tmp/$$ config.h
+}
+
 if [ $# -ne 0 ]
 then
 	echo >&2 "$0: no args wanted"
@@ -14,9 +19,11 @@ arch=`uname -s`
 case $arch in
 	FreeBSD)
 		echo "LDFLAGS += -lkvm" >&3
+		trace_tool ktrace
 		;;
 	Linux)
 		echo "CFLAGS += -D_POSIX_SOURCE" >&3
+		trace_tool strace
 		;;
 	*)
 		echo "$0: unregonised platform" >&2
