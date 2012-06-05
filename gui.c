@@ -274,11 +274,11 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 		int y, width;
 
 		STATUS(0, 0, "%d processes, %d running, "
-				"%d owned, %d zombies, "
+				"%d owned, %d kernel, %d zombies, "
 				"load averages: %.2f, %.2f, %.2f, "
 				"uptime: %s",
 				info->count, info->procs_in_state[PROC_STATE_RUN],
-				info->owned, info->procs_in_state[PROC_STATE_ZOMBIE],
+				info->owned, info->count_kernel, info->procs_in_state[PROC_STATE_ZOMBIE],
 				info->loadavg[0], info->loadavg[1], info->loadavg[2],
 				uptime_from_boottime(info->boottime.tv_sec));
 
@@ -660,7 +660,7 @@ void gui_run(struct myproc **procs)
 					position(0);
 					break;
 				case SCROLL_TO_BOTTOM_CHAR:
-					position(info.count); /* FIXME: info.count - (show_kthreads ? 0 : info.kthread_count) */
+					position(info.count - (global_kernel ? 0 : info.count_kernel));
 					break;
 
 				case BACKWARD_HALF_WINDOW_CHAR:

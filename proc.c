@@ -11,6 +11,8 @@
 #include "main.h"
 #include "machine.h"
 
+#define PROC_IS_KERNEL(p) ((p)->ppid == 0 || (p)->ppid == 2)
+
 // start with 1, 0 is the dummy node
 #define ITER_PROCS(i, p, ps)                    \
   for(i = 1; i < HASH_TABLE_SIZE; i++)          \
@@ -192,6 +194,10 @@ static void proc_update_single(
 		machine_update_proc(proc, procs);
 
 		info->count++;
+
+		if(PROC_IS_KERNEL(proc))
+			info->count_kernel++;
+
 		if(proc->uid == global_uid)
 			info->owned++;
 		info->procs_in_state[proc->state]++;
@@ -227,7 +233,7 @@ void proc_update(struct myproc **procs, struct sysinfo *info)
 {
 	int i;
 
-	info->count = info->owned = 0;
+	info->count = info->count_kernel = info->owned = 0;
 	memset(info->procs_in_state, 0, sizeof info->procs_in_state);
 
 	for(i = 0; i < HASH_TABLE_SIZE; i++){
@@ -411,9 +417,6 @@ void proc_mark_kernel(struct myproc **procs)
 	int i;
 
 	ITER_PROCS(i, p, procs)
-		switch(p->ppid){
-			case 0:
-			case 2:
-				p->mark = 1;
-		}
+		if(PROC_IS_KERNEL(p))
+			p->mark = 1;
 }

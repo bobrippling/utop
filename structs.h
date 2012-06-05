@@ -59,7 +59,7 @@ struct myproc
 struct sysinfo
 {
 	// process info
-	int count, owned;
+	int count, count_kernel, owned;
 	int procs_in_state[PROC_N_STATES]; /* number of PROC_STATE */
 
 	// machine info
