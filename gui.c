@@ -31,7 +31,7 @@
 #define STATUS(y, x, ...) do{ mvprintw(y, x, __VA_ARGS__); clrtoeol(); }while(0)
 #define WAIT_STATUS(...) do{ STATUS(0, 0, __VA_ARGS__); ungetch(getch()); }while(0)
 
-#define SEARCH_ON(on) do{ gui_text_entry(on); search = on; }while(0)
+#define SEARCH_ON(on) do{ gui_text_entry(on); search = on; *search_str = '\0'; }while(0)
 
 static int pos_top = 0, pos_y = 0;
 
@@ -107,9 +107,11 @@ void gui_term()
 int search_proc_to_idx(int *y, struct myproc **procs)
 {
 	struct myproc *init = proc_first(procs);
-	if(search_proc == init)
-		return 0;
-	*y = 0;
+	if(search_proc == init){
+		*y = 0;
+		return 1;
+	}
+	*y = 1;
 	return proc_to_idx(search_proc, init, y);
 }
 
