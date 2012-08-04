@@ -244,6 +244,7 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 						case 'T': proc->state = PROC_STATE_STOPPED; break;
 						case 'Z': proc->state = PROC_STATE_ZOMBIE;  break;
 						case 'X': proc->state = PROC_STATE_DEAD;    break;
+						case 't': proc->state = PROC_STATE_TRACE;   break;
 						default:  proc->state = PROC_STATE_OTHER;   break;
 					}
 				}

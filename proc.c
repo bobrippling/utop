@@ -162,6 +162,7 @@ const char *proc_state_str(struct myproc *p)
 		"T",
 		"Z",
 		"X",
+		"t",
 		"?",
 	}[p->state];
 }
