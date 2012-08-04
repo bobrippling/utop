@@ -176,6 +176,13 @@ void machine_read_argv(struct myproc *p)
 			if(cmd[i] == '\0')
 				nuls++;
 
+		if(len && nuls == 0){
+			/* rewritten and there are no nuls */
+			cmd = urealloc(cmd, ++len);
+			cmd[len-1] = '\0';
+			nuls++;
+		}
+
 		argv_free(p->argc, p->argv);
 
 		p->argc = nuls;
