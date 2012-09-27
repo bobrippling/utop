@@ -3,6 +3,8 @@ Mem%, CPU%
 
 search proc info in the two blank lines
 
+better integration of search mode - when leaving, should position cursor/not jump back
+
 'G' should go to the last process, not counting kernel threads (see TODO in gui.c)
 
 configurable keys
@@ -14,8 +16,6 @@ fix shell-detach bug (SIGHUP?)
 option for clipping usernames, instead of expanding to the longest
 
 Column header bar
-
-Process time and memory consumption
 
 More configurable colours
 
