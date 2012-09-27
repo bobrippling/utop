@@ -167,7 +167,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 	if(y >= LINES)
 		return;
 
-	if(y > 0){ // otherwise we're iterating over a process that's above pos_top
+	if(y >= TOP_OFFSET){ // otherwise we're iterating over a process that's above pos_top
 		const int is_owned         = proc->uid == global_uid;
 		const int is_locked        = proc->pid == lock_proc_pid;
 		const int is_searched      = proc      == search_proc;
