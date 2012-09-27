@@ -256,6 +256,11 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 	if(search){
 		const int red = !search_proc && *search_str;;
 
+		move(1, 0); // TODO: search_proc info here
+		clrtoeol();
+		move(2, 0);
+		clrtoeol();
+
 		if(red)
 			attron(COLOR_PAIR(1 + COLOR_RED));
 		mvprintw(0, 0, "%d %c%s", search_offset, "/?"[search_pid], search_str);

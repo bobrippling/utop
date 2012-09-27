@@ -1,6 +1,8 @@
 Mem%, CPU%
 	CPU utilization per CPU
 
+search proc info in the two blank lines
+
 'G' should go to the last process, not counting kernel threads (see TODO in gui.c)
 
 configurable keys
