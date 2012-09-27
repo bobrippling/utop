@@ -263,15 +263,6 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 			attroff(COLOR_PAIR(1 + COLOR_RED));
 		clrtoeol();
 
-		if(search_proc){
-			int ty;
-			if(search_proc_to_idx(&ty, procs)){
-				pos_top = ty - LINES / 2;
-				if(pos_top < 0)
-					pos_top = 0;
-			}
-		}
-
 	}else{
 		int y, width;
 
@@ -609,6 +600,16 @@ backspace:
 		int pid;
 		sscanf(search_str, "%d", &pid);
 		search_proc = proc_get(procs, pid);
+	}
+
+	if(search_proc){
+		int ty;
+		if(search_proc_to_idx(&ty, procs)){
+			// could use position(), but give a bit of context
+			pos_top = ty - LINES / 2;
+			if(pos_top < 0)
+				pos_top = 0;
+		}
 	}
 
 	if(do_lock)
