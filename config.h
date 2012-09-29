@@ -15,14 +15,10 @@
 // Key bindings
 #define CTRL_AND(c) ((c) & 037)
 
+#define INFO_CHAR 'i'
 #define QUIT_CHAR 'q'
 #define UP_CHAR 'k'
 #define DOWN_CHAR 'j'
-#define INFO_CHAR 'i'
-#define KILL_CHAR 'd'
-#define RENICE_CHAR 'r'
-#define LSOF_CHAR 'l'
-#define TRACE_CHAR 's'
 #define GOTO_LOCKED_CHAR 'o'
 #define GOTO_$$_CHAR 'O'
 #define SCROLL_TO_TOP_CHAR 'g'
@@ -37,7 +33,6 @@
 #define SEARCH_NEXT_CHAR CTRL_AND('n')
 #define SEARCH_PREVIOUS_CHAR CTRL_AND('p')
 #define RESET_SEARCH_CHAR CTRL_AND('u')
-// #define KILL_CHAR CTRL_AND('d')
 #define EXPOSE_ONE_MORE_LINE_BOTTOM_CHAR CTRL_AND('e')
 #define EXPOSE_ONE_MORE_LINE_TOP_CHAR CTRL_AND('y')
 #define BACKWARD_WINDOW_CHAR CTRL_AND('b')
@@ -64,5 +59,24 @@
 #define ATTR_BASENAME       COLOR_PAIR(1 + COLOR_CYAN) | A_BOLD
 #define ATTR_LOCK           COLOR_PAIR(1 + COLOR_MAGENTA)
 #define ATTR_JAILED         COLOR_PAIR(1 + COLOR_BLUE) | A_BOLD
+
+
+typedef void proc_handler(struct myproc *, struct myproc **);
+
+proc_handler delete, renice, lsof, strace, gdb;
+
+struct
+{
+	proc_handler *handler;
+	char ch;
+
+} externals[] = {
+	{ delete,  'd' },
+	{ renice,  'r' },
+	{ lsof,    'l' },
+	{ strace,  's' },
+	{ gdb,     'a' },
+	{ NULL,     0  }
+};
 
 #endif

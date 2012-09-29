@@ -332,10 +332,12 @@ int confirm(const char *fmt, ...)
 	return 0;
 }
 
-void delete(struct myproc *p)
+void delete(struct myproc *p, struct myproc **ps)
 {
 	char sig[8];
 	int i, wait = 0;
+
+	(void)ps;
 
 	STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->argv0_basename);
 	gui_text_entry(1);
@@ -378,10 +380,12 @@ void delete(struct myproc *p)
 	getch_delay(1);
 }
 
-void renice(struct myproc *p)
+void renice(struct myproc *p, struct myproc **ps)
 {
 	char increment[3]; // -20 to 20
 	int i, wait = 0;
+
+	(void)ps;
 
 	STATUS(0, 0, "renice %d (%s) with [-20:20]: ", p->pid, p->argv0_basename);
 	gui_text_entry(1);
@@ -413,14 +417,11 @@ void renice(struct myproc *p)
 	getch_delay(1);
 }
 
-void external(const char *cmd, struct myproc *p)
+void external(const char *cmd)
 {
-	char buf[16];
-
 	gui_term();
 
-	snprintf(buf, sizeof buf, "%s -p %d", cmd, p->pid);
-	system(buf);
+	system(cmd);
 	fputs("return to continue...", stdout);
 	fflush(stdout);
 	getchar();
@@ -428,31 +429,72 @@ void external(const char *cmd, struct myproc *p)
 	gui_init();
 }
 
-void strace(struct myproc *p)
+void external2(const char *cmd, struct myproc *p)
 {
-	external(TRACE_TOOL, p);
+	int len = strlen(cmd) + 16;
+	char *buf = malloc(len);
+
+	if(!buf)
+		return;
+
+	snprintf(buf, len, "%s -p %d", cmd, p->pid);
+
+	external(buf);
+
+	free(buf);
 }
 
-void lsof(struct myproc *p)
+void strace(struct myproc *p, struct myproc **ps)
 {
-	external("lsof", p);
+	(void)ps;
+	external2(TRACE_TOOL, p);
 }
 
-void gdb(struct myproc *p)
+void lsof(struct myproc *p, struct myproc **ps)
+{
+	(void)ps;
+	external2("lsof", p);
+}
+
+void gdb(struct myproc *p, struct myproc **ps)
 {
 	// Attach to a running process: gdb <name> <pid>
-	char cmd[256];
-	snprintf(cmd, sizeof cmd, "gdb %s", p->argv0_basename);
-	external(cmd, p);
+	char *cmd;
+	int len;
+
+	(void)ps;
+
+	len = strlen(p->argv0_basename) + 16;
+	cmd = malloc(len);
+
+	if(!cmd)
+		return;
+
+	snprintf(cmd, len, "gdb '%s' %d", p->argv0_basename, p->pid);
+
+	external(cmd);
+
+	free(cmd);
 }
 
-void show_info(struct myproc *p)
+int try_external(int ch, struct myproc **procs)
 {
-	int y, x;
+	struct myproc *const cp = curproc(procs);
+	int r = 0;
+
+	for(int i = 0; externals[i].handler; i++)
+		if(externals[i].ch == ch)
+			externals[i].handler(cp, procs), r = 1;
+
+	return r;
+}
+
+void show_info(struct myproc *p, struct myproc **procs)
+{
 	int i;
 
 	clear();
-	mvprintw(0, 0,
+	mvprintw(2, 0,
 					 "pid: %d, ppid: %d\n"
 					 "uid: %d (%s), gid: %d (%s)\n"
 #ifdef __FreeBSD__
@@ -475,13 +517,24 @@ void show_info(struct myproc *p)
     for(i = 0; p->argv[i]; i++)
       printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
 
-	getyx(stdscr, y, x);
-	(void)x;
+	for(;;){
+		int ch;
 
-	waitch(y + 1, 0);
+		move(0, 0);
+		printw("command (q to return): ");
+		ch = waitgetch();
+
+		if(ch == 'q')
+			break;
+
+		if(!try_external(ch, procs))
+			mvprintw(1, 0, "unrecognised command '%c'", ch);
+		else
+			move(1, 0), clrtoeol();
+	}
 }
 
-void on_curproc(const char *fstr, void (*f)(struct myproc *), int ask, struct myproc **procs)
+void on_curproc(const char *fstr, void (*f)(struct myproc *, struct myproc **), int ask, struct myproc **procs)
 {
 	extern int global_force;
 
@@ -499,7 +552,7 @@ void on_curproc(const char *fstr, void (*f)(struct myproc *), int ask, struct my
 	if(p){
 		if(ask && !global_force && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->argv0_basename))
 			return;
-		f(p);
+		f(p, procs);
 	}
 }
 
@@ -709,25 +762,6 @@ void gui_run(struct myproc **procs)
 					position(pos_top + DRAW_SPACE / 2);
 					break;
 
-				case INFO_CHAR:
-					on_curproc("info", show_info, 0, procs);
-					break;
-				case KILL_CHAR:
-					on_curproc("delete", delete, 0, procs);
-					break;
-				case RENICE_CHAR:
-					on_curproc("renice", renice, 0, procs);
-					break;
-				case LSOF_CHAR:
-					on_curproc("lsof", lsof, 1, procs);
-					break;
-				case TRACE_CHAR:
-					on_curproc(TRACE_TOOL, strace, 1, procs);
-					break;
-				case 'a':
-					on_curproc("gdb", gdb, 1, procs);
-					break;
-
 				case GOTO_LOCKED_CHAR:
 					goto_lock(procs);
 					break;
@@ -776,6 +810,14 @@ void gui_run(struct myproc **procs)
 					SEARCH_ON(1);
 					move(0, 0);
 					clrtoeol();
+					break;
+
+				case INFO_CHAR:
+					on_curproc("info", show_info, 0, procs);
+					break;
+
+				default:
+					try_external(ch, procs);
 					break;
 			}
 		}
