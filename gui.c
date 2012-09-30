@@ -470,7 +470,7 @@ void gdb(struct myproc *p, struct myproc **ps)
 	if(!cmd)
 		return;
 
-	snprintf(cmd, len, "gdb '%s' %d", p->argv0_basename, p->pid);
+	snprintf(cmd, len, "gdb -- '%s' %d", p->argv0_basename, p->pid);
 
 	external(cmd);
 
