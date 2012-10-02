@@ -456,6 +456,23 @@ void lsof(struct myproc *p, struct myproc **ps)
 	external2("lsof", p);
 }
 
+void shell(struct myproc *p, struct myproc **ps)
+{
+	char buf[16];
+	char *shell = getenv("SHELL");
+
+	(void)ps;
+
+	if(!shell)
+		shell = "/bin/sh";
+
+	snprintf(buf, sizeof buf, "%d", p->pid);
+
+	setenv("UTOP_PID", buf, 1);
+
+	external(shell);
+}
+
 void gdb(struct myproc *p, struct myproc **ps)
 {
 	// Attach to a running process: gdb <name> <pid>

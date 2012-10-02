@@ -63,7 +63,7 @@
 
 typedef void proc_handler(struct myproc *, struct myproc **);
 
-proc_handler delete, renice, lsof, strace, gdb;
+proc_handler delete, renice, lsof, strace, gdb, shell;
 
 struct
 {
@@ -76,6 +76,7 @@ struct
 	{ lsof,    'l' },
 	{ strace,  's' },
 	{ gdb,     'a' },
+	{ shell,   '!' },
 	{ NULL,     0  }
 };
 

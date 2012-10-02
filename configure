@@ -22,7 +22,7 @@ case $arch in
 		trace_tool ktrace
 		;;
 	Linux)
-		echo "CFLAGS += -D_POSIX_SOURCE" >&3
+		echo "CFLAGS += -D_POSIX_SOURCE -D_BSD_SOURCE" >&3
 		trace_tool strace
 		;;
 	*)
