@@ -142,6 +142,45 @@ void goto_proc(struct myproc **procs, struct myproc *p)
 	position(y);
 }
 
+void next_owned_block(int dir, struct myproc **procs)
+{
+	struct myproc *const first = proc_first(procs);
+	struct myproc *p;
+
+	int i = pos_y;
+
+	/*
+	 * while(owned)
+	 *   i++
+	 * while(!owned)
+	 *   i++
+	 */
+
+	enum
+	{
+		IN_OWNED, IN_NOT_OWNED
+	} state = IN_OWNED;
+
+	for(;;){
+		int j = i += dir;
+
+		p = proc_from_idx(first, &j);
+
+		if(!p)
+			break;
+
+		if(p->uid == global_uid){
+			if(state != IN_OWNED)
+				break; /* found */
+		}else{
+			state = IN_NOT_OWNED;
+		}
+	}
+
+	if(p)
+		goto_proc(procs, p), fprintf(stderr, "gone to %d %s\n", p->pid, p->argv0_basename);
+}
+
 void goto_me(struct myproc **procs)
 {
 	goto_proc(procs, proc_get(procs, getpid()));
@@ -828,6 +867,9 @@ void gui_run(struct myproc **procs)
 					move(0, 0);
 					clrtoeol();
 					break;
+
+				case PREV_OWNED_CHAR: next_owned_block(-1, procs); break;
+				case NEXT_OWNED_CHAR: next_owned_block(+1, procs); break;
 
 				case INFO_CHAR:
 					on_curproc("info", show_info, 0, procs);

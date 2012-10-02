@@ -39,6 +39,8 @@
 #define FORWARD_WINDOW_CHAR CTRL_AND('f')
 #define BACKWARD_HALF_WINDOW_CHAR CTRL_AND('u')
 #define FORWARD_HALF_WINDOW_CHAR CTRL_AND('d')
+#define PREV_OWNED_CHAR '{'
+#define NEXT_OWNED_CHAR '}'
 
 // Colors
 
