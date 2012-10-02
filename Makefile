@@ -9,6 +9,8 @@ VERSION = 0.9
 utop: ${OBJ}
 	${CC} ${LDFLAGS} -o $@ ${OBJ}
 
+gui.c main.c util.c proc.c machine_linux.c machine_darwin.c machine_freebsd.c: config.mk
+
 config.mk:
 	@echo utop needs configuring
 	@false
