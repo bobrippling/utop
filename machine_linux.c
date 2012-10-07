@@ -20,6 +20,9 @@
 #include "main.h"
 #include "structs.h"
 
+#define STAT_PATH(buf, pid) \
+	snprintf(buf, sizeof buf, "/proc/%d/stat", pid);
+
 /* these are for detailing the memory statistics */
 const char *memorynames[] = {
   "Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
@@ -163,12 +166,12 @@ void machine_read_argv(struct myproc *p)
 {
 	// cmdline
 	char path[64];
-	char *cmd;
+	char *cmd = NULL;
 	int len;
 
 	snprintf(path, sizeof path, "/proc/%d/cmdline", p->pid);
 
-	if(fline(path, &cmd, &len)){
+	if(fline(path, &cmd, &len) && len){
 		int i, nuls;
 		char *last, *pos;
 
@@ -210,9 +213,36 @@ void machine_read_argv(struct myproc *p)
 				p->argv0_basename = pos;
 			}
 		}
-
+	}else{
 		free(cmd);
+		cmd = NULL;
+
+		/* no cmdline, get argv from $pid/stat */
+		STAT_PATH(path, p->pid);
+
+		if(fline(path, &cmd, NULL)){
+			char *end, *start;
+
+			start = strchr(cmd, '(');
+			if(!start)
+				goto fin;
+
+			end = strchr(start + 1, ')');
+			if(!end)
+				goto fin;
+
+			argv_free(p->argc, p->argv);
+
+			p->argc = 1;
+			p->argv = umalloc(2 * sizeof *p->argv);
+
+			*end = '\0';
+			p->argv[0] = ustrdup(start + 1);
+		}
 	}
+
+fin:
+	free(cmd);
 }
 
 int machine_update_proc(struct myproc *proc, struct myproc **procs)
@@ -222,7 +252,7 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 
 	(void)procs;
 
-	snprintf(path, sizeof path, "/proc/%d/stat", proc->pid);
+	STAT_PATH(path, proc->pid);
 
 	if(fline(path, &buf, NULL)){
 		int i;
