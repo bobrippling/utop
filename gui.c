@@ -499,9 +499,10 @@ int try_external(int ch, struct myproc **procs)
 	struct myproc *const cp = curproc(procs);
 	int r = 0;
 
-	for(int i = 0; externals[i].handler; i++)
-		if(externals[i].ch == ch)
-			externals[i].handler(cp, procs), r = 1;
+	if(cp)
+		for(int i = 0; externals[i].handler; i++)
+			if(externals[i].ch == ch)
+				externals[i].handler(cp, procs), r = 1;
 
 	return r;
 }

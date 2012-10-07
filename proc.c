@@ -338,6 +338,7 @@ int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
 struct myproc *proc_from_idx(struct myproc *parent, int *idx)
 {
 	// TODO: multiple parents
+	// TODO: kernel threads
   struct myproc **iter, *ret = NULL;
   int i = *idx;
 #define RET(x) do{ ret = x; goto fin; }while(0)
