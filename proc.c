@@ -295,6 +295,12 @@ struct myproc *proc_find_n_child(const char *str, struct myproc *proc, int *n)
 	return NULL;
 }
 
+int proc_find_match(const char *shell_cmd, const char *search_str)
+{
+	/* TODO: regex */
+	return !!strstr(shell_cmd, search_str);
+}
+
 struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 {
 #ifdef HASH_TABLE_ORDER
@@ -303,7 +309,7 @@ struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 
 	if(str)
 		ITER_PROCS(i, p, ps)
-			if(p->shell_cmd && strstr(p->shell_cmd, str) && n-- <= 0)
+			if(p->shell_cmd && proc_find_match(p->shell_cmd, str) && n-- <= 0)
 				return p;
 
 	return NULL;
