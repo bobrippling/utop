@@ -40,6 +40,8 @@ static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
 static struct myproc *search_proc = NULL;
 
+static int frozen = 0;
+
 static pid_t lock_proc_pid = -1;
 
 void getch_delay(int on)
@@ -281,7 +283,7 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 				uptime_from_boottime(info->boottime.tv_sec));
 
 		STATUS(1, 0, "Mem: %s", machine_format_memory(info));
-		STATUS(2, 0, "CPU: %s", machine_format_cpu_pct(info));
+		STATUS(2, 0, "CPU: %s%s", machine_format_cpu_pct(info), frozen ? " [FROZEN]" : "");
 
 		y = TOP_OFFSET + pos_y - pos_top;
 
@@ -706,7 +708,7 @@ void gui_run(struct myproc **procs)
 		const long now = mstime();
 		int ch;
 
-		if(last_update + WAIT_TIME < now){
+		if(!frozen && last_update + WAIT_TIME < now){
 			last_update = now;
 			proc_update(procs, &info);
 		}
@@ -819,6 +821,9 @@ void gui_run(struct myproc **procs)
 					lock_to(curproc(procs));
 					break;
 
+				case FREEZE_CHAR:
+					frozen ^= 1;
+					break;
 
 				case SEARCH_BACKWARD:
 				case SEARCH_FORWARD:
