@@ -9,7 +9,11 @@ VERSION = 0.9.1
 utop: ${OBJ}
 	${CC} ${LDFLAGS} -o $@ ${OBJ}
 
-gui.c main.c util.c proc.c machine_linux.c machine_darwin.c machine_freebsd.c: config.mk
+gui.c main.c util.c proc.c \
+	machine_linux.c \
+	machine_darwin.c \
+	machine_freebsd.c \
+	machine_ps.c: config.mk
 
 config.mk:
 	@echo utop needs configuring
@@ -36,6 +40,7 @@ machine_darwin.o: machine_darwin.c machine_freebsd.c util.h machine.h \
 machine_freebsd.o: machine_freebsd.c util.h machine.h proc.h structs.h \
  main.h
 machine_linux.o: machine_linux.c util.h proc.h machine.h main.h structs.h
+machine_ps.o: machine_ps.c machine.h
 main.o: main.c proc.h gui.h util.h machine.h
 proc.o: proc.c structs.h proc.h util.h main.h machine.h
 util.o: util.c util.h

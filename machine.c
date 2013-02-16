@@ -1,14 +1,24 @@
 // visible to all
 void argv_free(int argc, char **argv);
 
-#ifdef __FreeBSD__
-#  include "machine_freebsd.c"
-#else
-#  ifdef __linux__
-#    include "machine_linux.c"
+#ifndef MACHINE_PS
+#  ifdef __FreeBSD__
+#    include "machine_freebsd.c"
 #  else
-#    include "machine_darwin.c"
+#    ifdef __linux__
+#      include "machine_linux.c"
+#    else
+#      ifdef __DARWIN__
+#        include "machine_darwin.c"
+#      else
+#        define MACHINE_PS
+#      endif
+#    endif
 #  endif
+#endif
+
+#ifdef MACHINE_PS
+#  include "machine_ps.c"
 #endif
 
 // common to all
