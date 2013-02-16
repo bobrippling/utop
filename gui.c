@@ -384,7 +384,7 @@ void delete(struct myproc *p, struct myproc **ps)
 
 void renice(struct myproc *p, struct myproc **ps)
 {
-	char increment[3]; // -20 to 20
+	char increment[4]; // -20 to 20
 	int i, wait = 0;
 
 	(void)ps;
