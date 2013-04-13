@@ -2,9 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/time.h>
-#include <sys/types.h>
-
 #include "util.h"
 #include "structs.h"
 #include "machine.h"
@@ -51,7 +48,7 @@ static void ps_update(void)
 		free(ps_list);
 	}
 
-	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,stat,tty,command";
+	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,stat,nice,pgrp,tty,command";
 	ps_list = pipe_in(ps_cmd, &ps_n, 1);
 }
 
@@ -89,19 +86,21 @@ int machine_proc_exists(struct myproc *p)
 int machine_update_proc(struct myproc *p)
 {
 	const char *l = ps_find(p->pid);
-	pid_t pid, ppid;
+	pid_t pid, ppid, pgrp;
 	uid_t uid, gid;
-	char stat[4];
+	char stat[4] = { 0 };
 	char tty[16];
 	char cmd[256] = { 0 }; /* %c doesn't 0-terminate */
+	char nice;
 
 	/*                                       /[ \n\t]*(.*)/ */
-	if(l && sscanf(l, " %d %d %d %d %3s %15s%*[ \n\t]%255c",
+	if(l && sscanf(l, " %d %d %u %u "
+				"%3c %c %d %15s%*[ \n\t]%255c",
 				&pid, &ppid, &uid, &gid,
-				stat, tty, cmd) == 7)
+				stat, &nice, &pgrp, tty, cmd) == 9)
 	{
-		p->uid  = uid;
-		p->gid  = gid;
+		p->uid = uid;
+		p->gid = gid;
 
 		argv_free(p->argc, p->argv);
 		p->argv = ps_parse_argv(cmd, &p->argc);
@@ -112,19 +111,19 @@ int machine_update_proc(struct myproc *p)
 		if(!p->tty || strcmp(p->tty, tty))
 			free(p->tty), p->tty = ustrdup(tty);
 
-		p->state = proc_state_parse(stat[0]);
-		/*
-			 gid_t pgrp;
-			 char *unam, *gnam;
+		p->nice = nice;
 
-			 char *tty;
-			 signed char nice;
+		p->state = proc_state_parse(stat[0]);
+
+		p->pgrp = pgrp;
+		/*
+			 char *unam, *gnam;
 
 			 double pc_cpu;
 			 unsigned long utime, stime, cutime, cstime;
 			 unsigned long cputime;
 			 unsigned long memsize;
-			 */
+		*/
 		return 0;
 	}
 
