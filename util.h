@@ -15,4 +15,6 @@ int longest_passwd_line(const char *fname);
 const char *format_kbytes(long unsigned val);
 const char *format_seconds(long unsigned timeval);
 
+void argv_free(int argc, char **argv);
+
 #endif
