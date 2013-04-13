@@ -1,3 +1,12 @@
+#include <stdio.h>
+#include <sys/types.h>
+
+#include "proc.h"
+#include "main.h"
+
+const char *machine_proc_display_line_default(struct myproc *p);
+int machine_proc_display_width_default(void);
+
 #ifndef MACHINE_PS
 #  ifdef __FreeBSD__
 #    include "machine_freebsd.c"
@@ -19,6 +28,44 @@
 #endif
 
 // common to all
+
+const char *machine_proc_display_line_default(struct myproc *p)
+{
+	static char buf[64];
+
+	if(global_thin){
+		snprintf(buf, sizeof buf,
+			"% 7d %-1s "
+			"%-*s "
+			//"%3.1f"
+			,
+			p->pid, proc_state_str(p),
+			max_unam_len, p->unam
+			//p->pc_cpu
+		);
+	}else{
+		snprintf(buf, sizeof buf,
+			"% 7d % 7d %-1s " // 18
+			"%-*s %-*s "      // max_unam_len + max_gnam_len + 1
+			"%3.1f"           // 5
+			,
+			p->pid, p->ppid, proc_state_str(p),
+			max_unam_len, p->unam,
+			max_gnam_len, p->gnam,
+			p->pc_cpu
+		);
+	}
+
+	return buf;
+}
+
+int machine_proc_display_width_default()
+{
+	if(global_thin)
+		return 9 + max_unam_len;
+	else
+		return 18 + max_unam_len + max_gnam_len + 1 + 5;
+}
 
 const char *uptime_from_boottime(time_t boottime)
 {

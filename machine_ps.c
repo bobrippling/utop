@@ -206,10 +206,10 @@ const char *machine_format_cpu_pct(struct sysinfo *si)
 
 const char *machine_proc_display_line(struct myproc *p)
 {
-	return "qrp??";
+	return machine_proc_display_line_default(p);
 }
 
 int machine_proc_display_width(void)
 {
-	return 20;
+	return machine_proc_display_width_default();
 }
