@@ -1,7 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-long mstime();
+long mstime(void);
 char *fline(const char *path, char **buf, int *len);
 
 void *umalloc(size_t l);

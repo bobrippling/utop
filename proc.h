@@ -3,7 +3,7 @@
 
 struct sysinfo;
 
-struct myproc **proc_init();
+struct myproc **proc_init(void);
 struct myproc  *proc_get(struct myproc **, pid_t);
 void          proc_update(struct myproc **procs, struct sysinfo *info);
 void          proc_cleanup(struct myproc **);
