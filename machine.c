@@ -3,12 +3,17 @@
 
 #include <sys/types.h>
 
+#include <pwd.h>
+#include <grp.h>
+
 #include "structs.h"
 #include "proc.h"
 #include "main.h"
 
 const char *machine_proc_display_line_default(struct myproc *p);
 int machine_proc_display_width_default(void);
+
+void machine_update_unam_gnam(struct myproc *, uid_t uid, uid_t gid);
 
 #ifndef MACHINE_PS
 #  ifdef __FreeBSD__
@@ -31,6 +36,27 @@ int machine_proc_display_width_default(void);
 #endif
 
 // common to all
+
+void machine_update_unam_gnam(struct myproc *this, uid_t uid, uid_t gid)
+{
+	struct passwd *passwd;
+	struct group  *group;
+
+#define GETPW(idvar, var, truct, fn, member, id)\
+	truct = fn(id);                               \
+	idvar = id;                                   \
+	if(var) free(var);                            \
+	if(truct){                                    \
+		var = ustrdup(truct->member);               \
+	}else{                                        \
+		char buf[8];                                \
+		snprintf(buf, sizeof buf, "%d", id);        \
+		var = ustrdup(buf);                         \
+	}
+
+	GETPW(this->uid, this->unam, passwd, getpwuid, pw_name, uid)
+	GETPW(this->gid, this->gnam,  group, getgrgid, gr_name, gid)
+}
 
 const char *machine_proc_display_line_default(struct myproc *p)
 {

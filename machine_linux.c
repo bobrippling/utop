@@ -4,8 +4,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <paths.h>
-#include <pwd.h>
-#include <grp.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/stat.h> // S_IFCHR
@@ -300,24 +298,8 @@ struct myproc *machine_proc_new(pid_t pid)
 	memset(this, 0, sizeof *this);
 
 	snprintf(cmdln, sizeof cmdln, "/proc/%d/task/%d/", pid, pid);
-	if(stat(cmdln, &st) == 0){
-		struct passwd *passwd;
-		struct group  *group;
-
-#define GETPW(idvar, var, truct, fn, member, id)  \
-		truct = fn(id);                               \
-		idvar = id;                                   \
-		if(truct){                                    \
-			var = ustrdup(truct->member);               \
-		}else{                                        \
-			char buf[8];                                \
-			snprintf(buf, sizeof buf, "%d", id);        \
-			var = ustrdup(buf);                         \
-		}
-
-		GETPW(this->uid, this->unam, passwd, getpwuid, pw_name, st.st_uid)
-		GETPW(this->gid, this->gnam,  group, getgrgid, gr_name, st.st_gid)
-	}
+	if(stat(cmdln, &st) == 0)
+		machine_update_unam_gnam(this, st.st_uid, st.st_gid);
 
 	this->pid       = pid;
 	this->ppid      = -1;

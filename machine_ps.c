@@ -116,9 +116,9 @@ int machine_update_proc(struct myproc *p)
 		p->state = proc_state_parse(stat[0]);
 
 		p->pgrp = pgrp;
-		/*
-			 char *unam, *gnam;
 
+		machine_update_unam_gnam(p, p->uid, p->gid);
+		/*
 			 double pc_cpu;
 			 unsigned long utime, stime, cutime, cstime;
 			 unsigned long cputime;
