@@ -93,9 +93,10 @@ int machine_update_proc(struct myproc *p, struct myproc **procs)
 	uid_t uid, gid;
 	char stat[4];
 	char tty[16];
-	char cmd[256];
+	char cmd[256] = { 0 }; /* %c doesn't 0-terminate */
 
-	if(l && sscanf(l, " %d %d %d %d %3s %15s %255s",
+	/*                                       /[ \n\t]*(.*)/ */
+	if(l && sscanf(l, " %d %d %d %d %3s %15s%*[ \n\t]%255c",
 				&pid, &ppid, &uid, &gid,
 				stat, tty, cmd) == 7)
 	{
