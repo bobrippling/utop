@@ -106,6 +106,9 @@ int machine_update_proc(struct myproc *p, struct myproc **procs)
 		argv_free(p->argc, p->argv);
 		p->argv = ps_parse_argv(cmd, &p->argc);
 
+		char *slash = strrchr(p->argv[0], '/');
+		p->argv0_basename = slash ? slash + 1 : p->argv[0];
+
 		if(!p->tty || strcmp(p->tty, tty))
 			free(p->tty), p->tty = ustrdup(tty);
 
@@ -113,11 +116,6 @@ int machine_update_proc(struct myproc *p, struct myproc **procs)
 		/*
 			 gid_t pgrp;
 			 char *unam, *gnam;
-
-			 char *shell_cmd;      // allocated, from argv
-			 char **argv;          // allocated
-			 int argc;
-			 char *argv0_basename; // pointer to somewhere in argv[0]
 
 			 enum
 			 {
