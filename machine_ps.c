@@ -48,7 +48,7 @@ static void ps_update(void)
 		free(ps_list);
 	}
 
-	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,stat,nice,pgrp,tty,command";
+	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,state,nice,pgrp,tty,command";
 	ps_list = pipe_in(ps_cmd, &ps_n, 1);
 }
 
