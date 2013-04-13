@@ -171,7 +171,9 @@ void showproc(struct myproc *proc, int *py, int indent)
 		const int is_owned         = proc->uid == global_uid;
 		const int is_locked        = proc->pid == lock_proc_pid;
 		const int is_searched      = proc      == search_proc;
-		const int is_searched_alt  = *search_str && strstr(proc->shell_cmd, search_str);
+		const int is_searched_alt  = *search_str
+			                           && proc->shell_cmd
+			                           && strstr(proc->shell_cmd, search_str);
 		int x;
 
 		move(y, 0);
