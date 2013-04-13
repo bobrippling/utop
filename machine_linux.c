@@ -245,12 +245,10 @@ fin:
 	free(cmd);
 }
 
-int machine_update_proc(struct myproc *proc, struct myproc **procs)
+int machine_update_proc(struct myproc *proc)
 {
 	char *buf;
 	char path[64];
-
-	(void)procs;
 
 	STAT_PATH(path, proc->pid);
 

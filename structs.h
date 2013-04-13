@@ -50,10 +50,6 @@ struct myproc
 		{
 			int flag;
 		} freebsd;
-		struct
-		{
-			int unused;
-		} linux;
 	} machine;
 };
 

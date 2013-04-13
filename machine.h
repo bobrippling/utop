@@ -14,7 +14,7 @@ const char *format_cpu_pct(double *cpu_pct);
 
 int    machine_proc_exists(struct myproc *);
 
-int    machine_update_proc(struct myproc *proc, struct myproc **procs);
+int    machine_update_proc(struct myproc *proc);
 /* 0 on success, non-zero on error */
 
 void machine_proc_get_more(struct myproc **);

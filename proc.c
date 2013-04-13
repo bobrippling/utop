@@ -190,7 +190,7 @@ static void proc_update_single(
   if(machine_proc_exists(proc)){
 		const pid_t oldppid = proc->ppid;
 
-		machine_update_proc(proc, procs);
+		machine_update_proc(proc);
 
 		info->count++;
 
