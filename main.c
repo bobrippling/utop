@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <signal.h>
 
+#include "structs.h"
 #include "proc.h"
 #include "gui.h"
 #include "util.h"

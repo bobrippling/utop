@@ -18,7 +18,7 @@ struct myproc
   int argc;
 	char *argv0_basename; /* pointer to somewhere in argv[0] */
 
-  enum
+  enum proc_state
 	{
 		PROC_STATE_RUN,
 		PROC_STATE_SLEEP,

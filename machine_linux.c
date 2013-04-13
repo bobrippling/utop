@@ -266,17 +266,9 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 				{
 					/* state: convert to PROC_STATE */
 					char c;
-					sscanf(iter, "%c", &c);
-					switch(c){
-						case 'R': proc->state = PROC_STATE_RUN;     break;
-						case 'S': proc->state = PROC_STATE_SLEEP;   break;
-						case 'D': proc->state = PROC_STATE_DISK;    break;
-						case 'T': proc->state = PROC_STATE_STOPPED; break;
-						case 'Z': proc->state = PROC_STATE_ZOMBIE;  break;
-						case 'X': proc->state = PROC_STATE_DEAD;    break;
-						case 't': proc->state = PROC_STATE_TRACE;   break;
-						default:  proc->state = PROC_STATE_OTHER;   break;
-					}
+					if(sscanf(iter, "%c", &c) == 1)
+						proc->state = proc_state_parse(c);
+					break;
 				}
 
 #define INT(n, fmt, x) case n: sscanf(iter, fmt, x); break

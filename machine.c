@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
+#include "structs.h"
 #include "proc.h"
 #include "main.h"
 

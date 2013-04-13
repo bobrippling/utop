@@ -217,6 +217,24 @@ static void proc_update_single(
 	}
 }
 
+enum proc_state proc_state_parse(char c)
+{
+	switch(c){
+		case 'R': return PROC_STATE_RUN;
+		case 'I': /* very sleepy - "idle" */
+		case 'S': return PROC_STATE_SLEEP;
+		case 'U': /* uninterruptible wait */
+		case 'D': return PROC_STATE_DISK;
+		case 'T': return PROC_STATE_STOPPED;
+		case 'Z': return PROC_STATE_ZOMBIE;
+		case 'X': return PROC_STATE_DEAD;
+		case 't': return PROC_STATE_TRACE;
+
+		default:
+			return PROC_STATE_OTHER;
+	}
+}
+
 const char *proc_str(struct myproc *p)
 {
   static char buf[256];

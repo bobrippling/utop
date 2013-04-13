@@ -27,6 +27,8 @@ void            proc_mark_kernel(struct myproc **procs);
 
 void proc_dump(struct myproc **ps, FILE *f);
 
+enum proc_state proc_state_parse(char c);
+
 #define HASH_TABLE_SIZE 128
 
 #endif

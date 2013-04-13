@@ -112,22 +112,10 @@ int machine_update_proc(struct myproc *p, struct myproc **procs)
 		if(!p->tty || strcmp(p->tty, tty))
 			free(p->tty), p->tty = ustrdup(tty);
 
-		p->state = PROC_STATE_OTHER;
+		p->state = proc_state_parse(stat[0]);
 		/*
 			 gid_t pgrp;
 			 char *unam, *gnam;
-
-			 enum
-			 {
-			 PROC_STATE_RUN,
-			 PROC_STATE_SLEEP,
-			 PROC_STATE_DISK,
-			 PROC_STATE_STOPPED,
-			 PROC_STATE_ZOMBIE,
-			 PROC_STATE_DEAD,
-			 PROC_STATE_TRACE,
-			 PROC_STATE_OTHER,
-			 } state;
 
 			 char *tty;
 			 signed char nice;
