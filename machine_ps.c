@@ -48,7 +48,7 @@ static void ps_update(void)
 		free(ps_list);
 	}
 
-	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,state,nice,pgrp,tty,command";
+	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,state,nice,tty,command";
 	ps_list = pipe_in(ps_cmd, &ps_n, 1);
 }
 
@@ -86,7 +86,7 @@ int machine_proc_exists(struct myproc *p)
 int machine_update_proc(struct myproc *p)
 {
 	const char *l = ps_find(p->pid);
-	pid_t pid, ppid, pgrp;
+	pid_t pid, ppid;
 	uid_t uid, gid;
 	char stat[4] = { 0 };
 	char tty[16];
@@ -95,9 +95,9 @@ int machine_update_proc(struct myproc *p)
 
 	/*                                       /[ \n\t]*(.*)/ */
 	if(l && sscanf(l, " %d %d %u %u "
-				"%3c %c %d %15s%*[ \n\t]%255c",
+				"%3c %c %15s%*[ \n\t]%255c",
 				&pid, &ppid, &uid, &gid,
-				stat, &nice, &pgrp, tty, cmd) == 9)
+				stat, &nice, tty, cmd) == 8)
 	{
 		p->uid = uid;
 		p->gid = gid;
@@ -114,8 +114,6 @@ int machine_update_proc(struct myproc *p)
 		p->nice = nice;
 
 		p->state = proc_state_parse(stat[0]);
-
-		p->pgrp = pgrp;
 
 		machine_update_unam_gnam(p, p->uid, p->gid);
 		/*
