@@ -203,17 +203,22 @@ void showproc(struct myproc *proc, int *py, int indent)
 		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
 			x += INDENT;
 
-		mvprintw(y, x, "%s", proc->shell_cmd);
+		move(y, x);
+		if(globals.basename){
+			printw("%s", proc->argv0_basename);
+		}else{
+			printw("%s", proc->shell_cmd);
 
-		/* basename shading */
-		if(is_owned && !is_locked && !is_searched && !is_searched_alt){
-      if(proc->argv){
-        x += proc->argv0_basename - proc->argv[0];
-        attron(ATTR_BASENAME);
-        mvaddstr(y, x, proc->argv0_basename);
-        attroff(ATTR_BASENAME);
-      }
-    }
+			/* basename shading */
+			if(is_owned && !is_locked && !is_searched && !is_searched_alt){
+				if(proc->argv){
+					x += proc->argv0_basename - proc->argv[0];
+					attron(ATTR_BASENAME);
+					mvaddstr(y, x, proc->argv0_basename);
+					attroff(ATTR_BASENAME);
+				}
+			}
+		}
 
 		if(is_searched)
 			attroff(ATTR_SEARCH);

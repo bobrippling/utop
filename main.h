@@ -10,6 +10,7 @@ extern struct globals
 	int debug;
 	int thin;
 	int kernel;
+	int basename;
 } globals;
 
 #endif
