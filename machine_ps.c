@@ -88,14 +88,14 @@ int machine_update_proc(struct myproc *p)
 	const char *l = ps_find(p->pid);
 	pid_t pid, ppid;
 	uid_t uid, gid;
-	char stat[4] = { 0 };
+	char stat[8] = { 0 };
 	char tty[16];
 	char cmd[256] = { 0 }; /* %c doesn't 0-terminate */
-	char nice;
+	int nice;
 
 	/*                                       /[ \n\t]*(.*)/ */
-	if(l && sscanf(l, " %d %d %u %u "
-				"%3c %c %15s%*[ \n\t]%255c",
+	if(l && sscanf(l, " %d %d %d %d "
+				"%7s %d %15s%*[ \n\t]%255c",
 				&pid, &ppid, &uid, &gid,
 				stat, &nice, tty, cmd) == 8)
 	{
