@@ -62,7 +62,7 @@ const char *machine_proc_display_line_default(struct myproc *p)
 {
 	static char buf[64];
 
-	if(global_thin){
+	if(globals.thin){
 		snprintf(buf, sizeof buf,
 			"% 7d %-1s "
 			"%-*s "
@@ -90,7 +90,7 @@ const char *machine_proc_display_line_default(struct myproc *p)
 
 int machine_proc_display_width_default()
 {
-	if(global_thin)
+	if(globals.thin)
 		return 9 + max_unam_len;
 	else
 		return 18 + max_unam_len + max_gnam_len + 1 + 5;

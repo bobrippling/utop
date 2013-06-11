@@ -197,7 +197,7 @@ static void proc_update_single(
 		if(PROC_IS_KERNEL(proc))
 			info->count_kernel++;
 
-		if(proc->uid == global_uid)
+		if(proc->uid == globals.uid)
 			info->owned++;
 		info->procs_in_state[proc->state]++;
 
