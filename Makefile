@@ -8,6 +8,11 @@ VERSION = 0.9.3
 
 .PHONY: clean install uninstall deps
 
+all: utop mthread
+
+mthread: mthread.c
+	cc -o $@ $< -lpthread
+
 utop: ${OBJ}
 	${CC} -o $@ ${OBJ} ${LDFLAGS}
 
