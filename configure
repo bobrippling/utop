@@ -44,19 +44,17 @@ case $arch in
 		trace_tool strace
 		;;
 	*)
-		(
-			echo "unregonised platform ($arch)"
-		) >&2
-		use_ps=1
+		if test $use_ps -eq 0
+		then
+			echo "unregonised platform ($arch)" >&2
+			echo "Using \`ps\` parser"
+			use_ps=1
+		fi
 		;;
 esac
 
 if test $use_ps -ne 0
-then
-	echo "Using \`ps\` parser"
-	config "CFLAGS += -DMACHINE_PS"
+then config "CFLAGS += -DMACHINE_PS"
 fi
-
-exec 3>&-
 
 echo Configured for $arch
