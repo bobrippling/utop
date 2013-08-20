@@ -33,7 +33,11 @@
 
 #define SEARCH_ON(on) do{ gui_text_entry(on); search = on; *search_str = '\0'; }while(0)
 
-static int pos_top = 0, pos_y = 0;
+#ifndef MAX
+#  define MAX(a, b) ((a) < (b) ? (b) : (a))
+#endif
+
+static int pos_top = 0, pos_y = 0, pos_x = 0;
 
 static int  search = 0;
 static int  search_idx = 0, search_offset = 0, search_pid = 0;
@@ -137,6 +141,11 @@ void position(int newy)
 		pos_top = pos_y;
 }
 
+void sideways(int newx)
+{
+	pos_x = MAX(newx, 0);
+}
+
 void goto_proc(struct myproc **procs, struct myproc *p)
 {
 	int y = TOP_OFFSET;
@@ -176,9 +185,25 @@ void showproc(struct myproc *proc, int *py, int indent)
 		const int is_searched_alt  = *search_str
 			                           && proc->shell_cmd
 			                           && strstr(proc->shell_cmd, search_str);
-		int x;
+
+		const unsigned linebuf_len = COLS + pos_x + 1;
+		char *linebuf = umalloc(linebuf_len);
+		memset(linebuf, ' ', linebuf_len);
+		linebuf[linebuf_len-1] = '\0';
+
+		snprintf(linebuf, linebuf_len, "%s",
+				machine_proc_display_line(proc));
+
+		char *end = linebuf + strlen(linebuf);
+		*end = ' ';
+		const int total_indent = SPACE_CMDLINE + SPACE_INDENT * indent;
+		char *linepos = end + total_indent;
+
+		snprintf(linepos, linebuf_len - (linepos - linebuf),
+				"%s", globals.basename ? proc->argv0_basename : proc->shell_cmd);
 
 		move(y, 0);
+		clrtoeol();
 
 		if(is_searched)
 			attron(ATTR_SEARCH);
@@ -189,38 +214,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 		else if(!is_owned)
 			attron(ATTR_NOT_OWNED);
 
-		addstr(machine_proc_display_line(proc));
-
-		getyx(stdscr, y, x);
-#if 0
-		if(proc->state == PROC_STATE_RUN){
-			mvchgat(y, 14, 7, 0, CFG_COLOR_RUNNING + 1, NULL);
-			move(y, x);
-		}
-#endif
-		clrtoeol();
-
-		/* position for process name */
-		x += INDENT + 1;
-		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
-			x += INDENT;
-
-		move(y, x);
-		if(globals.basename){
-			printw("%s", proc->argv0_basename);
-		}else{
-			printw("%s", proc->shell_cmd);
-
-			/* basename shading */
-			if(is_owned && !is_locked && !is_searched && !is_searched_alt){
-				if(proc->argv){
-					x += proc->argv0_basename - proc->argv[0];
-					attron(ATTR_BASENAME);
-					mvaddstr(y, x, proc->argv0_basename);
-					attroff(ATTR_BASENAME);
-				}
-			}
-		}
+		printw("% 7d %s", proc->pid, linebuf + pos_x);
 
 		if(is_searched)
 			attroff(ATTR_SEARCH);
@@ -228,10 +222,31 @@ void showproc(struct myproc *proc, int *py, int indent)
 			attroff(ATTR_LOCK);
 		else if(is_searched_alt)
 			attroff(ATTR_SEARCH_ALT);
-		else if(is_owned)
-			attroff(ATTR_BASENAME);
-		else
+		else if(!is_owned)
 			attroff(ATTR_NOT_OWNED);
+
+		/* basename shading */
+		if(!globals.basename
+		&& is_owned
+		&& !is_locked
+		&& !is_searched
+		&& !is_searched_alt
+		&& proc->argv)
+		{
+			const int bname_off = proc->argv0_basename - proc->argv[0];
+			int off = machine_proc_display_width()
+				+ bname_off + total_indent - pos_x;
+
+			if(2 <= off && off < COLS){
+				const int bn_len = strlen(proc->argv0_basename);
+
+				/* y, x, n, attr, color, opts */
+				/* + 6 for "% 7d" above */
+				mvchgat(y, off + 6, bn_len, BASENAME_ATTR, BASENAME_COL, NULL);
+			}
+		}
+
+		free(linebuf);
 	}
 
 	// done with our proc, increment y
@@ -740,6 +755,21 @@ void gui_run(struct myproc **procs)
 					break;
 				case DOWN_CHAR:
 					position(pos_y + 1);
+					break;
+
+				case LEFT_CHAR:
+					if(pos_x > 0)
+						sideways(pos_x - 1);
+					break;
+				case RIGHT_CHAR:
+					sideways(pos_x + 1);
+					break;
+
+				case COL_0_CHAR:
+					pos_x = 0;
+					break;
+				case SOL_CHAR:
+					pos_x = machine_proc_display_width() - 1;
 					break;
 
 				case SCROLL_TO_TOP_CHAR:

@@ -9,16 +9,24 @@
 /* 60s */
 #define FULL_WAIT_TIME (WAIT_TIME * 60)
 
-#define INDENT 4
+#define SPACE_CMDLINE 4
+#define SPACE_INDENT  4
 
 #define TRACE_TOOL "strace"
 // Key bindings
 #define CTRL_AND(c) ((c) & 037)
 
-#define INFO_CHAR 'i'
-#define QUIT_CHAR 'q'
+/* Navigation */
 #define UP_CHAR 'k'
 #define DOWN_CHAR 'j'
+#define LEFT_CHAR  'h'
+#define RIGHT_CHAR 'l'
+
+#define COL_0_CHAR '0'
+#define SOL_CHAR '^'
+
+#define INFO_CHAR 'i'
+#define QUIT_CHAR 'q'
 #define GOTO_LOCKED_CHAR 'o'
 #define GOTO_$$_CHAR 'O'
 #define SCROLL_TO_TOP_CHAR 'g'
@@ -57,10 +65,11 @@
 #define ATTR_SEARCH_ALT     COLOR_PAIR(1 + COLOR_BLUE)
 
 #define ATTR_NOT_OWNED      COLOR_PAIR(1 + COLOR_BLACK) | A_BOLD
-#define ATTR_BASENAME       COLOR_PAIR(1 + COLOR_CYAN) | A_BOLD
 #define ATTR_LOCK           COLOR_PAIR(1 + COLOR_MAGENTA)
 #define ATTR_JAILED         COLOR_PAIR(1 + COLOR_BLUE) | A_BOLD
 
+#define BASENAME_COL   (1 + COLOR_CYAN)
+#define BASENAME_ATTR  A_BOLD
 
 typedef void proc_handler(struct myproc *, struct myproc **);
 

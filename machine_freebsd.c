@@ -453,11 +453,11 @@ const char *machine_proc_display_line(struct myproc *p)
 	static char buf[64];
 
 	snprintf(buf, sizeof buf,
-		"% 7d % 7d %-7s "
+		"% 7d %-7s "
 		"%-*s %-*s "
 		"%3.1f"
 		,
-		p->pid, p->jid, proc_state_str(p),
+		p->jid, proc_state_str(p),
 		max_unam_len, p->unam,
 		max_gnam_len, p->gnam,
 		p->pc_cpu
@@ -468,7 +468,7 @@ const char *machine_proc_display_line(struct myproc *p)
 
 int machine_proc_display_width()
 {
-	return 18 + max_unam_len + max_gnam_len + 1 + 5;
+	return 11 + max_unam_len + max_gnam_len + 1 + 5;
 }
 
 void machine_proc_get_more(struct myproc **procs)
