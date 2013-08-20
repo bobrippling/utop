@@ -163,6 +163,7 @@ void machine_term(void)
 
 void machine_update(struct sysinfo *info)
 {
+	(void)info;
 }
 
 const char *format_memory(int memory[6])
@@ -179,11 +180,13 @@ const char *format_cpu_pct(double *cpu_pct)
 
 const char *machine_format_memory(struct sysinfo *si)
 {
+	(void)si;
 	return "abc??";
 }
 
 const char *machine_format_cpu_pct(struct sysinfo *si)
 {
+	(void)si;
 	return "xyz??";
 }
 
