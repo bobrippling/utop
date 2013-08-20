@@ -4,8 +4,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <paths.h>
-#include <pwd.h>
-#include <grp.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/stat.h> // S_IFCHR
@@ -245,12 +243,10 @@ fin:
 	free(cmd);
 }
 
-int machine_update_proc(struct myproc *proc, struct myproc **procs)
+int machine_update_proc(struct myproc *proc)
 {
 	char *buf;
 	char path[64];
-
-	(void)procs;
 
 	STAT_PATH(path, proc->pid);
 
@@ -266,17 +262,9 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 				{
 					/* state: convert to PROC_STATE */
 					char c;
-					sscanf(iter, "%c", &c);
-					switch(c){
-						case 'R': proc->state = PROC_STATE_RUN;     break;
-						case 'S': proc->state = PROC_STATE_SLEEP;   break;
-						case 'D': proc->state = PROC_STATE_DISK;    break;
-						case 'T': proc->state = PROC_STATE_STOPPED; break;
-						case 'Z': proc->state = PROC_STATE_ZOMBIE;  break;
-						case 'X': proc->state = PROC_STATE_DEAD;    break;
-						case 't': proc->state = PROC_STATE_TRACE;   break;
-						default:  proc->state = PROC_STATE_OTHER;   break;
-					}
+					if(sscanf(iter, "%c", &c) == 1)
+						proc->state = proc_state_parse(c);
+					break;
 				}
 
 #define INT(n, fmt, x) case n: sscanf(iter, fmt, x); break
@@ -300,44 +288,6 @@ int machine_update_proc(struct myproc *proc, struct myproc **procs)
 	}
 }
 
-const char *machine_proc_display_line(struct myproc *p)
-{
-	static char buf[64];
-
-	if(global_thin){
-		snprintf(buf, sizeof buf,
-			"% 7d %-1s "
-			"%-*s "
-			//"%3.1f"
-			,
-			p->pid, proc_state_str(p),
-			max_unam_len, p->unam
-			//p->pc_cpu
-		);
-	}else{
-		snprintf(buf, sizeof buf,
-			"% 7d % 7d %-1s " // 18
-			"%-*s %-*s "      // max_unam_len + max_gnam_len + 1
-			"%3.1f"           // 5
-			,
-			p->pid, p->ppid, proc_state_str(p),
-			max_unam_len, p->unam,
-			max_gnam_len, p->gnam,
-			p->pc_cpu
-		);
-	}
-
-	return buf;
-}
-
-int machine_proc_display_width()
-{
-	if(global_thin)
-		return 9 + max_unam_len;
-	else
-		return 18 + max_unam_len + max_gnam_len + 1 + 5;
-}
-
 struct myproc *machine_proc_new(pid_t pid)
 {
 	struct myproc *this = NULL;
@@ -348,24 +298,8 @@ struct myproc *machine_proc_new(pid_t pid)
 	memset(this, 0, sizeof *this);
 
 	snprintf(cmdln, sizeof cmdln, "/proc/%d/task/%d/", pid, pid);
-	if(stat(cmdln, &st) == 0){
-		struct passwd *passwd;
-		struct group  *group;
-
-#define GETPW(idvar, var, truct, fn, member, id)  \
-		truct = fn(id);                               \
-		idvar = id;                                   \
-		if(truct){                                    \
-			var = ustrdup(truct->member);               \
-		}else{                                        \
-			char buf[8];                                \
-			snprintf(buf, sizeof buf, "%d", id);        \
-			var = ustrdup(buf);                         \
-		}
-
-		GETPW(this->uid, this->unam, passwd, getpwuid, pw_name, st.st_uid)
-		GETPW(this->gid, this->gnam,  group, getgrgid, gr_name, st.st_gid)
-	}
+	if(stat(cmdln, &st) == 0)
+		machine_update_unam_gnam(this, st.st_uid, st.st_gid);
 
 	this->pid       = pid;
 	this->ppid      = -1;
@@ -424,4 +358,14 @@ const char *machine_format_cpu_pct(struct sysinfo *info)
 {
 	(void)info;
 	return "todo: linux cpu pct";
+}
+
+const char *machine_proc_display_line(struct myproc *p)
+{
+	return machine_proc_display_line_default(p);
+}
+
+int machine_proc_display_width(void)
+{
+	return machine_proc_display_width_default();
 }

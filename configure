@@ -1,35 +1,60 @@
 #!/bin/sh
 
-trace_tool(){
-	sed 's/TRACE_TOOL .*/TRACE_TOOL "'"$1"'"/' config.h > /tmp/$$
-	mv /tmp/$$ config.h
+usage(){
+	echo >&2 "Usage: $0 [--use-ps]"
+	exit 1
 }
 
-if [ $# -ne 0 ]
-then
-	echo >&2 "$0: no args wanted"
-	exit 1
-fi
+trace_tool(){
+	ed -s config.h > /dev/null <<!
+/TRACE_TOOL .*/s/.*/#define TRACE_TOOL "$1"/
+wq
+!
+}
+
+config(){
+	echo "$@" >> config.mk
+}
+
+use_ps=0
+for arg in $@
+do
+	case "$arg" in
+		--use-ps)
+			use_ps=1
+			;;
+		*)
+			usage
+			;;
+	esac
+done
 
 set -e
-exec 3> config.mk
+rm -f config.mk
 
 arch=`uname -s`
 
 case $arch in
 	FreeBSD)
-		echo "LDFLAGS += -lkvm" >&3
+		config "LDFLAGS += -lkvm"
 		trace_tool ktrace
 		;;
 	Linux)
-		echo "CFLAGS += -D_POSIX_SOURCE -D_BSD_SOURCE" >&3
+		config "CFLAGS += -D_POSIX_SOURCE -D_BSD_SOURCE"
 		trace_tool strace
 		;;
 	*)
-		echo "$0: unregonised platform" >&2
+		if test $use_ps -eq 0
+		then
+			echo "unregonised platform ($arch)" >&2
+			echo "Using \`ps\` parser"
+			use_ps=1
+		fi
 		;;
 esac
 
-exec 3>&-
+if test $use_ps -ne 0
+then config "CFLAGS += -DMACHINE_PS"
+fi
 
 echo Configured for $arch

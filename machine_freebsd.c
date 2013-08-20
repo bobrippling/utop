@@ -328,12 +328,10 @@ void argv_dup(struct myproc *proc, char **argv)
 }
 
 /* Returns 0 on success, -1 on error */
-int machine_update_proc(struct myproc *proc, struct myproc **procs)
+int machine_update_proc(struct myproc *proc)
 {
   int n = 0;
   struct kinfo_proc *pp;
-
-	(void)procs;
 
 #ifdef __NetBSD__
 	pp = kvm_getprocs2(kd, KERN_PROC_PID, proc->pid, sizeof(*pp), &n);
@@ -429,21 +427,7 @@ struct myproc *machine_proc_new(struct kinfo_proc *pp)
   this->gid = pp->p_rgid;
 #endif
 
-  struct passwd *passwd;
-  struct group  *group;
-
-#define GETPW(id, var, truct, fn, member)       \
-  truct = fn(id);                               \
-  if(truct){                                    \
-    var = ustrdup(truct->member);               \
-  }else{                                        \
-    char buf[8];                                \
-    snprintf(buf, sizeof buf, "%d", id);        \
-    var = ustrdup(buf);                         \
-  }                                             \
-
-  GETPW(this->uid, this->unam, passwd, getpwuid, pw_name);
-  GETPW(this->gid, this->gnam,  group, getgrgid, gr_name);
+	machine_update_unam_gnam(this, this->uid, this->gid);
 
 #ifdef __NetBSD__
   this->pid  = pp->p_pid;

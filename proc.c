@@ -103,9 +103,7 @@ void proc_free(struct myproc *p, struct myproc **procs)
 
 	free(p->shell_cmd);
 	/*free(p->argv0_basename); - do not free*/
-	for(char **iter = p->argv; iter && *iter; iter++)
-		free(*iter);
-	free(p->argv);
+	argv_free(p->argc, p->argv);
 
 	free(p->tty);
 
@@ -192,14 +190,14 @@ static void proc_update_single(
   if(machine_proc_exists(proc)){
 		const pid_t oldppid = proc->ppid;
 
-		machine_update_proc(proc, procs);
+		machine_update_proc(proc);
 
 		info->count++;
 
 		if(PROC_IS_KERNEL(proc))
 			info->count_kernel++;
 
-		if(proc->uid == global_uid)
+		if(proc->uid == globals.uid)
 			info->owned++;
 		info->procs_in_state[proc->state]++;
 
@@ -216,6 +214,24 @@ static void proc_update_single(
 		proc_create_shell_cmd(proc);
   }else{
     proc_free(proc, procs);
+	}
+}
+
+enum proc_state proc_state_parse(char c)
+{
+	switch(c){
+		case 'R': return PROC_STATE_RUN;
+		case 'I': /* very sleepy - "idle" */
+		case 'S': return PROC_STATE_SLEEP;
+		case 'U': /* uninterruptible wait */
+		case 'D': return PROC_STATE_DISK;
+		case 'T': return PROC_STATE_STOPPED;
+		case 'Z': return PROC_STATE_ZOMBIE;
+		case 'X': return PROC_STATE_DEAD;
+		case 't': return PROC_STATE_TRACE;
+
+		default:
+			return PROC_STATE_OTHER;
 	}
 }
 
@@ -295,6 +311,12 @@ struct myproc *proc_find_n_child(const char *str, struct myproc *proc, int *n)
 	return NULL;
 }
 
+int proc_find_match(const char *shell_cmd, const char *search_str)
+{
+	/* TODO: regex */
+	return !!strstr(shell_cmd, search_str);
+}
+
 struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 {
 #ifdef HASH_TABLE_ORDER
@@ -303,7 +325,7 @@ struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 
 	if(str)
 		ITER_PROCS(i, p, ps)
-			if(p->shell_cmd && strstr(p->shell_cmd, str) && n-- <= 0)
+			if(p->shell_cmd && proc_find_match(p->shell_cmd, str) && n-- <= 0)
 				return p;
 
 	return NULL;

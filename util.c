@@ -187,3 +187,10 @@ const char *format_seconds(long unsigned timeval)
 
   return buf;
 }
+
+void argv_free(int argc, char **argv)
+{
+	for(int i = 0; i < argc; i++)
+		free(argv[i]);
+	free(argv);
+}

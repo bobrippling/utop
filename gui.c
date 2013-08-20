@@ -170,10 +170,12 @@ void showproc(struct myproc *proc, int *py, int indent)
 		return;
 
 	if(y >= TOP_OFFSET){ // otherwise we're iterating over a process that's above pos_top
-		const int is_owned         = proc->uid == global_uid;
+		const int is_owned         = proc->uid == globals.uid;
 		const int is_locked        = proc->pid == lock_proc_pid;
 		const int is_searched      = proc      == search_proc;
-		const int is_searched_alt  = *search_str && strstr(proc->shell_cmd, search_str);
+		const int is_searched_alt  = *search_str
+			                           && proc->shell_cmd
+			                           && strstr(proc->shell_cmd, search_str);
 		int x;
 
 		move(y, 0);
@@ -203,17 +205,22 @@ void showproc(struct myproc *proc, int *py, int indent)
 		for(int indent_copy = indent; indent_copy > 0; indent_copy--)
 			x += INDENT;
 
-		mvprintw(y, x, "%s", proc->shell_cmd);
+		move(y, x);
+		if(globals.basename){
+			printw("%s", proc->argv0_basename);
+		}else{
+			printw("%s", proc->shell_cmd);
 
-		/* basename shading */
-		if(is_owned && !is_locked && !is_searched && !is_searched_alt){
-      if(proc->argv){
-        x += proc->argv0_basename - proc->argv[0];
-        attron(ATTR_BASENAME);
-        mvaddstr(y, x, proc->argv0_basename);
-        attroff(ATTR_BASENAME);
-      }
-    }
+			/* basename shading */
+			if(is_owned && !is_locked && !is_searched && !is_searched_alt){
+				if(proc->argv){
+					x += proc->argv0_basename - proc->argv[0];
+					attron(ATTR_BASENAME);
+					mvaddstr(y, x, proc->argv0_basename);
+					attroff(ATTR_BASENAME);
+				}
+			}
+		}
 
 		if(is_searched)
 			attroff(ATTR_SEARCH);
@@ -246,7 +253,7 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 
 	proc_unmark(procs);
 
-	if(!global_kernel)
+	if(!globals.kernel)
 		proc_mark_kernel(procs);
 
 	for(struct myproc *p = proc_first(procs); p; p = proc_first_next(procs))
@@ -556,8 +563,6 @@ void show_info(struct myproc *p, struct myproc **procs)
 
 void on_curproc(const char *fstr, void (*f)(struct myproc *, struct myproc **), int ask, struct myproc **procs)
 {
-	extern int global_force;
-
 	struct myproc *p;
 
 	if(lock_proc_pid == -1 || !(p = proc_get(procs, lock_proc_pid))){
@@ -570,7 +575,7 @@ void on_curproc(const char *fstr, void (*f)(struct myproc *, struct myproc **), 
 	}
 
 	if(p){
-		if(ask && !global_force && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->argv0_basename))
+		if(ask && !globals.force && !confirm("%s: %d (%s)? (y/n) ", fstr, p->pid, p->argv0_basename))
 			return;
 		f(p, procs);
 	}
@@ -741,7 +746,7 @@ void gui_run(struct myproc **procs)
 					position(0);
 					break;
 				case SCROLL_TO_BOTTOM_CHAR:
-					position(info.count - (global_kernel ? 0 : info.count_kernel));
+					position(info.count - (globals.kernel ? 0 : info.count_kernel));
 					break;
 
 				case BACKWARD_HALF_WINDOW_CHAR:
