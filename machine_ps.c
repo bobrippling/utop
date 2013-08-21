@@ -102,7 +102,7 @@ int machine_update_proc(struct myproc *p)
 		p->uid = uid;
 		p->gid = gid;
 
-		argv_free(p->argc, p->argv);
+		argv_free(p->argc, &p->argv);
 		p->argv = ps_parse_argv(cmd, &p->argc);
 
 		char *slash = strrchr(p->argv[0], '/');

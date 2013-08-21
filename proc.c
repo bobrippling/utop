@@ -102,7 +102,7 @@ static void proc_free(struct myproc *p, struct myproc **procs)
 
 	free(p->shell_cmd);
 	/*free(p->argv0_basename); - do not free*/
-	argv_free(p->argc, p->argv);
+	argv_free(p->argc, &p->argv);
 
 	free(p->tty);
 

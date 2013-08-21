@@ -190,11 +190,15 @@ const char *format_seconds(long unsigned timeval)
   return buf;
 }
 
-void argv_free(int argc, char **argv)
+void argv_free(int argc, char ***pargv)
 {
+	char **argv = *pargv;
+
 	for(int i = 0; i < argc; i++)
 		free(argv[i]);
 	free(argv);
+
+	*pargv = NULL;
 }
 
 static void lc(char *p)
