@@ -77,7 +77,7 @@ static void proc_rm_child(struct myproc *parent, struct myproc *p)
 	}
 }
 
-void proc_free(struct myproc *p, struct myproc **procs)
+static void proc_free(struct myproc *p, struct myproc **procs)
 {
 	struct myproc *i = proc_get(procs, p->ppid);
 
@@ -294,11 +294,17 @@ struct myproc *proc_find(const char *str, struct myproc **ps)
   return proc_find_n(str, ps, 0);
 }
 
-struct myproc *proc_find_n_child(const char *str, struct myproc *proc, int *n)
+static int proc_find_match(const char *shell_cmd, const char *search_str)
+{
+	/* TODO: regex */
+	return !!strstr(shell_cmd, search_str);
+}
+
+static struct myproc *proc_find_n_child(const char *str, struct myproc *proc, int *n)
 {
 	struct myproc **i;
 
-	if(proc->shell_cmd && strstr(proc->shell_cmd, str) && --*n < 0)
+	if(proc->shell_cmd && proc_find_match(proc->shell_cmd, str) && --*n < 0)
 		return proc;
 
 	for(i = proc->children; i && *i; i++){
@@ -309,12 +315,6 @@ struct myproc *proc_find_n_child(const char *str, struct myproc *proc, int *n)
 	}
 
 	return NULL;
-}
-
-int proc_find_match(const char *shell_cmd, const char *search_str)
-{
-	/* TODO: regex */
-	return !!strstr(shell_cmd, search_str);
 }
 
 struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)

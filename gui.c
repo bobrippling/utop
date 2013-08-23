@@ -48,7 +48,7 @@ static int frozen = 0;
 
 static pid_t lock_proc_pid = -1;
 
-void getch_delay(int on)
+static void getch_delay(int on)
 {
 	if(on)
 		halfdelay(HALF_DELAY_TIME); /* x/10s of a second wait */
@@ -56,7 +56,7 @@ void getch_delay(int on)
 		cbreak();
 }
 
-void gui_text_entry(int on)
+static void gui_text_entry(int on)
 {
 	if(on)
 		echo();
@@ -110,7 +110,7 @@ void gui_term()
 	endwin();
 }
 
-int search_proc_to_idx(int *y, struct myproc **procs)
+static int search_proc_to_idx(int *y, struct myproc **procs)
 {
 	struct myproc *init = proc_first(procs);
 	if(search_proc == init){
@@ -121,13 +121,13 @@ int search_proc_to_idx(int *y, struct myproc **procs)
 	return proc_to_idx(search_proc, init, y);
 }
 
-struct myproc *curproc(struct myproc **procs)
+static struct myproc *curproc(struct myproc **procs)
 {
 	int i = pos_y;
 	return proc_from_idx(proc_first(procs), &i);
 }
 
-void position(int newy)
+static void position(int newy)
 {
 	pos_y = newy;
 
@@ -141,24 +141,24 @@ void position(int newy)
 		pos_top = pos_y;
 }
 
-void sideways(int newx)
+static void sideways(int newx)
 {
 	pos_x = MAX(newx, 0);
 }
 
-void goto_proc(struct myproc **procs, struct myproc *p)
+static void goto_proc(struct myproc **procs, struct myproc *p)
 {
 	int y = TOP_OFFSET;
 	proc_to_idx(p, proc_first(procs), &y);
 	position(y);
 }
 
-void goto_me(struct myproc **procs)
+static void goto_me(struct myproc **procs)
 {
 	goto_proc(procs, proc_get(procs, getpid()));
 }
 
-void goto_lock(struct myproc **procs)
+static void goto_lock(struct myproc **procs)
 {
 	if(lock_proc_pid == -1){
 		attron( COLOR_PAIR(1 + COLOR_RED));
@@ -169,7 +169,7 @@ void goto_lock(struct myproc **procs)
 	}
 }
 
-void showproc(struct myproc *proc, int *py, int indent)
+static void showproc(struct myproc *proc, int *py, int indent)
 {
 	int y = *py;
 
@@ -262,7 +262,7 @@ void showproc(struct myproc *proc, int *py, int indent)
 	*py = y;
 }
 
-void showprocs(struct myproc **procs, struct sysinfo *info)
+static void showprocs(struct myproc **procs, struct sysinfo *info)
 {
 	int y = TOP_OFFSET - pos_top;
 
@@ -320,7 +320,7 @@ void showprocs(struct myproc **procs, struct sysinfo *info)
 	}
 }
 
-int waitgetch()
+static int waitgetch()
 {
 	int ret;
 	gui_text_entry(1);
@@ -331,7 +331,7 @@ int waitgetch()
 	return ret;
 }
 
-void waitch(int y, int x)
+static void waitch(int y, int x)
 {
 	attron( COLOR_PAIR(1 + COLOR_RED));
 	STATUS(y, x, "any key to continue");
@@ -339,7 +339,7 @@ void waitch(int y, int x)
 	waitgetch();
 }
 
-int confirm(const char *fmt, ...)
+static int confirm(const char *fmt, ...)
 {
 	va_list l;
 	int ch;
@@ -441,7 +441,7 @@ void renice(struct myproc *p, struct myproc **ps)
 	getch_delay(1);
 }
 
-void external(const char *cmd)
+static void external(const char *cmd)
 {
 	gui_term();
 
@@ -453,7 +453,7 @@ void external(const char *cmd)
 	gui_init();
 }
 
-void external2(const char *cmd, struct myproc *p)
+static void external2(const char *cmd, struct myproc *p)
 {
 	int len = strlen(cmd) + 16;
 	char *buf = malloc(len);
@@ -518,7 +518,7 @@ void gdb(struct myproc *p, struct myproc **ps)
 	free(cmd);
 }
 
-int try_external(int ch, struct myproc **procs)
+static int try_external(int ch, struct myproc **procs)
 {
 	struct myproc *const cp = curproc(procs);
 	int r = 0;
@@ -531,7 +531,7 @@ int try_external(int ch, struct myproc **procs)
 	return r;
 }
 
-void show_info(struct myproc *p, struct myproc **procs)
+static void show_info(struct myproc *p, struct myproc **procs)
 {
 	int i;
 
@@ -576,7 +576,9 @@ void show_info(struct myproc *p, struct myproc **procs)
 	}
 }
 
-void on_curproc(const char *fstr, void (*f)(struct myproc *, struct myproc **), int ask, struct myproc **procs)
+static void on_curproc(const char *fstr,
+		void (*f)(struct myproc *, struct myproc **),
+		int ask, struct myproc **procs)
 {
 	struct myproc *p;
 
@@ -596,7 +598,7 @@ void on_curproc(const char *fstr, void (*f)(struct myproc *, struct myproc **), 
 	}
 }
 
-void lock_to(struct myproc *p)
+static void lock_to(struct myproc *p)
 {
 	if(p){
 		if(lock_proc_pid == p->pid){
@@ -616,7 +618,7 @@ unlock:
 	}
 }
 
-void gui_search(int ch, struct myproc **procs)
+static void gui_search(int ch, struct myproc **procs)
 {
 	int do_lock = 0;
 

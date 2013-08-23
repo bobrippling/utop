@@ -21,7 +21,7 @@ int max_unam_len, max_gnam_len;
 
 static struct myproc **proclist;
 
-void extra_init()
+static void extra_init()
 {
 	globals.uid = getuid();
 
@@ -30,7 +30,7 @@ void extra_init()
 	max_gnam_len = longest_passwd_line("/etc/group");
 }
 
-void signal_handler(int sig)
+static void signal_handler(int sig)
 {
 	gui_term();
 	fprintf(stderr, "Caught signal %d. Bye!\n", sig);
