@@ -8,7 +8,6 @@ extern struct globals
 	uid_t uid;
 	int force;
 	int debug;
-	int thin;
 	int kernel;
 	int basename;
 } globals;

@@ -49,8 +49,6 @@ int main(int argc, char **argv)
 			globals.force = 1;
 		}else if(!strcmp(argv[i], "-d")){
 			globals.debug = 1;
-		}else if(!strcmp(argv[i], "-t")){
-			globals.thin = 1;
 		}else if(!strcmp(argv[i], "-b")){
 			globals.basename = 1;
 		}else if(!strcmp(argv[i], "-k")){
@@ -63,7 +61,6 @@ int main(int argc, char **argv)
 							"Usage: %s [-f] [-d]\n"
 							" -f: Don't prompt for lsof and strace\n"
 							" -d: Debug mode\n"
-							" -t: Thin mode (for small screens)\n"
 							" -b: Only show program basenames\n"
 							" -k: Show kernel threads\n"
 							, *argv);

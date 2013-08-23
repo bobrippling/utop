@@ -62,18 +62,7 @@ const char *machine_proc_display_line_default(struct myproc *p)
 {
 	static char buf[64];
 
-	if(globals.thin){
-		snprintf(buf, sizeof buf,
-			"%-1s "
-			"%-*s "
-			//"%3.1f"
-			,
-			proc_state_str(p),
-			max_unam_len, p->unam
-			//p->pc_cpu
-		);
-	}else{
-		snprintf(buf, sizeof buf,
+	snprintf(buf, sizeof buf,
 			"% 7d %-1s " // 18
 			"%-*s %-*s "      // max_unam_len + max_gnam_len + 1
 			"%3.1f"           // 5
@@ -82,18 +71,14 @@ const char *machine_proc_display_line_default(struct myproc *p)
 			max_unam_len, p->unam,
 			max_gnam_len, p->gnam,
 			p->pc_cpu
-		);
-	}
+			);
 
 	return buf;
 }
 
 int machine_proc_display_width_default()
 {
-	if(globals.thin)
-		return 3 + max_unam_len;
-	else
-		return 11 + max_unam_len + max_gnam_len + 1 + 5;
+	return 11 + max_unam_len + max_gnam_len + 1 + 5;
 }
 
 const char *uptime_from_boottime(time_t boottime)
