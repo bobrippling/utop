@@ -17,4 +17,6 @@ const char *format_seconds(long unsigned timeval);
 
 void argv_free(int argc, char **argv);
 
+const char *ustrcasestr(const char *a, const char *b);
+
 #endif

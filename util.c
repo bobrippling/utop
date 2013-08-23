@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <errno.h>
 #include <string.h>
+#include <ctype.h>
+
+#include <sys/time.h>
 #include <signal.h>
 
 #include "util.h"
@@ -193,4 +195,29 @@ void argv_free(int argc, char **argv)
 	for(int i = 0; i < argc; i++)
 		free(argv[i]);
 	free(argv);
+}
+
+static void lc(char *p)
+{
+	for(; *p; p++)
+		*p = tolower(*p);
+}
+
+const char *ustrcasestr(const char *a, const char *b)
+{
+	char *da = ustrdup(a), *db = ustrdup(b);
+
+	lc(da);
+	lc(db);
+
+	const char *r = strstr(da, db);
+
+	if(r){
+		unsigned diff = r - da;
+		r = a + diff;
+	}
+
+	free(da), free(db);
+
+	return r;
 }

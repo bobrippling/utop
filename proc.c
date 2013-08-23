@@ -297,7 +297,7 @@ struct myproc *proc_find(const char *str, struct myproc **ps)
 static int proc_find_match(const char *shell_cmd, const char *search_str)
 {
 	/* TODO: regex */
-	return !!strstr(shell_cmd, search_str);
+	return !!ustrcasestr(shell_cmd, search_str);
 }
 
 static struct myproc *proc_find_n_child(const char *str, struct myproc *proc, int *n)
