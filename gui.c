@@ -860,6 +860,10 @@ void gui_run(struct myproc **procs)
 					frozen ^= 1;
 					break;
 
+				case BASENAME_TOGGLE_CHAR:
+					globals.basename ^= 1;
+					break;
+
 				case SEARCH_BACKWARD:
 				case SEARCH_FORWARD:
 					*search_str = '\0';

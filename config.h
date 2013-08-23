@@ -48,6 +48,7 @@
 #define BACKWARD_HALF_WINDOW_CHAR CTRL_AND('u')
 #define FORWARD_HALF_WINDOW_CHAR CTRL_AND('d')
 #define FREEZE_CHAR 'f'
+#define BASENAME_TOGGLE_CHAR 'b'
 
 // Colors
 
