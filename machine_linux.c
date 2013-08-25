@@ -160,7 +160,7 @@ int machine_proc_exists(struct myproc *p)
 	return access(buf, F_OK) == 0;
 }
 
-void machine_read_argv(struct myproc *p)
+static void machine_read_argv(struct myproc *p)
 {
 	// cmdline
 	char path[64];
@@ -288,7 +288,7 @@ int machine_update_proc(struct myproc *proc)
 	}
 }
 
-struct myproc *machine_proc_new(pid_t pid)
+static struct myproc *machine_proc_new(pid_t pid)
 {
 	struct myproc *this = NULL;
 	char cmdln[32];
