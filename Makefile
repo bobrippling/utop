@@ -2,7 +2,7 @@ CFLAGS  = -g -Wall -Wextra -pedantic -std=c99 -Wmissing-prototypes
 LDFLAGS = -g -lncurses
 PREFIX  = /usr/local
 OBJ     = main.o proc.o gui.o util.o machine.o
-VERSION = 0.9.1
+VERSION = 0.9.2
 
 .PHONY: clean install uninstall
 
