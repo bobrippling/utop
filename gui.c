@@ -627,10 +627,16 @@ static void gui_search(int ch, struct myproc **procs)
 		goto backspace;
 
 	if(search_pid){
-		if('0' <= ch && ch <= '9')
+		if('0' <= ch && ch <= '9'){
 			goto ins_char;
-		else if(ch == LOCK_CHAR)
+		}else if(ch == LOCK_CHAR){
 			goto lock_proc;
+		}else if(ch == '\r' && search_proc){
+			int y = 0;
+			if(proc_to_idx(procs, search_proc, &y))
+				position(y);
+		}
+
 
 		search_offset = 0;
 		SEARCH_ON(0);
