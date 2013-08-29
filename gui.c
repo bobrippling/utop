@@ -112,19 +112,14 @@ void gui_term()
 
 static int search_proc_to_idx(int *y, struct myproc **procs)
 {
-	struct myproc *init = proc_first(procs);
-	if(search_proc == init){
-		*y = 0;
-		return 1;
-	}
-	*y = 1;
-	return proc_to_idx(search_proc, init, y);
+	*y = TOP_OFFSET;
+	return proc_to_idx(procs, search_proc, y);
 }
 
 static struct myproc *curproc(struct myproc **procs)
 {
 	int i = pos_y;
-	return proc_from_idx(proc_first(procs), &i);
+	return proc_from_idx(procs, &i);
 }
 
 static void position(int newy)
@@ -148,8 +143,11 @@ static void sideways(int newx)
 
 static void goto_proc(struct myproc **procs, struct myproc *p)
 {
+	if(!p)
+		return;
+
 	int y = TOP_OFFSET;
-	proc_to_idx(p, proc_first(procs), &y);
+	proc_to_idx(procs, p, &y);
 	position(y);
 }
 
@@ -271,7 +269,7 @@ static void showprocs(struct myproc **procs, struct sysinfo *info)
 	if(!globals.kernel)
 		proc_mark_kernel(procs);
 
-	for(struct myproc *p = proc_first(procs); p; p = proc_first_next(procs))
+	ITER_PROC_HEADS(struct myproc *, p, procs)
 		showproc(p, &y, 0);
 
 	move(y, 0);

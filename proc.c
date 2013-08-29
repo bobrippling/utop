@@ -13,9 +13,8 @@
 
 #define PROC_IS_KERNEL(p) ((p)->ppid == 0 || (p)->ppid == 2)
 
-// start with 1, 0 is the dummy node
 #define ITER_PROCS(i, p, ps)                    \
-  for(i = 1; i < HASH_TABLE_SIZE; i++)          \
+  for(i = 0; i < HASH_TABLE_SIZE; i++)          \
     for(p = ps[i]; p; p = p->hash_next)
 
 /* Processes are saved into a hash table with size HASH_TABLE_SIZE and
@@ -125,24 +124,20 @@ struct myproc *proc_get(struct myproc **procs, pid_t pid)
 // Add a struct myproc pointer to the hash table
 void proc_addto(struct myproc **procs, struct myproc *p)
 {
-  struct myproc *last;
-#define parent last
+  struct myproc *last = procs[p->pid % HASH_TABLE_SIZE];
 
-  last = procs[p->pid % HASH_TABLE_SIZE];
   if(last){
     while(last->hash_next)
       last = last->hash_next;
     last->hash_next = p;
-		p->hash_next = NULL;
   }else{
     procs[p->pid % HASH_TABLE_SIZE] = p;
   }
+	p->hash_next = NULL;
 
-	parent = proc_get(procs, p->ppid);
+	struct myproc *parent = proc_get(procs, p->ppid);
 	if(parent)
 		proc_add_child(parent, p);
-
-#undef parent
 }
 
 // initialize hash table
@@ -336,51 +331,70 @@ struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 #endif
 }
 
-int proc_to_idx(struct myproc *p, struct myproc *parent, int *py)
+static int proc_to_idx_nested(
+		struct myproc *head, struct myproc *const searchee,
+		int *py)
 {
-	// TODO: multiple parents
-  struct myproc **iter;
-  int ret = 0;
-  int y;
+	if(head == searchee)
+		return 1;
 
-  if(p == parent)
-    return 1;
+	++*py;
+	for(struct myproc **iter = head->children;
+			iter && *iter;
+			iter++, ++*py)
+	{
+		if(searchee == *iter || proc_to_idx_nested(*iter, searchee, py))
+			return 1;
+	}
 
-  y = *py;
-  for(iter = parent->children; iter && *iter; iter++)
-    if(p == *iter || (++y, proc_to_idx(p, *iter, &y))){
-      ret = 1;
-      break;
-    }
-
-  *py = y;
-  return ret;
+	return 0;
 }
 
-struct myproc *proc_from_idx(struct myproc *parent, int *idx)
+int proc_to_idx(struct myproc **procs, struct myproc *searchee, int *py)
 {
-	// TODO: multiple parents
+	ITER_PROC_HEADS(struct myproc *, head, procs)
+		if(proc_to_idx_nested(head, searchee, py))
+			return 1;
+
+  return 0;
+}
+
+static struct myproc *proc_from_idx_nested(struct myproc *head, int *idx)
+{
+	if(*idx == 0)
+		return head;
+
+	for(struct myproc **iter = head->children;
+			iter && *iter;
+			iter++)
+	{
+		if(--*idx <= 0){
+			return *iter;
+		}else{
+			struct myproc *sub = proc_from_idx_nested(*iter, idx);
+			if(sub)
+				return sub;
+		}
+	}
+
+	return NULL;
+}
+
+struct myproc *proc_from_idx(struct myproc **procs, int *idx)
+{
 	// TODO: kernel threads
-  struct myproc **iter, *ret = NULL;
-  int i = *idx;
-#define RET(x) do{ ret = x; goto fin; }while(0)
 
-  if(i <= 0)
-    return parent;
+  if(*idx < 0)
+		return NULL;
 
-  for(iter = parent->children; iter && *iter; iter++){
-    if(--i <= 0){
-      RET(*iter);
-    }else{
-      struct myproc *p = proc_from_idx(*iter, &i);
-      if(p)
-        RET(p);
-    }
-  }
+	ITER_PROC_HEADS(struct myproc *, head, procs){
+		struct myproc *test = proc_from_idx_nested(head, idx);
 
-fin:
-  *idx = i;
-  return ret;
+		if(test)
+			return test;
+	}
+
+  return NULL;
 
 #undef RET
 }

@@ -17,8 +17,8 @@ struct myproc  *proc_find_n(const char *, struct myproc **, int);
 const char     *proc_str(struct myproc *p);
 const char     *proc_state_str(struct myproc *p);
 int            proc_listcontains(struct myproc **procs, pid_t pid);
-int            proc_to_idx(struct myproc *p, struct myproc *parent, int *y);
-struct myproc  *proc_from_idx(struct myproc *parent, int *idx);
+int            proc_to_idx(struct myproc **procs, struct myproc *searchee, int *py);
+struct myproc  *proc_from_idx(struct myproc **procs, int *idx);
 
 struct myproc  *proc_first(     struct myproc **procs);
 struct myproc  *proc_first_next(struct myproc **procs);
@@ -30,5 +30,10 @@ void proc_dump(struct myproc **ps, FILE *f);
 enum proc_state proc_state_parse(char c);
 
 #define HASH_TABLE_SIZE 128
+
+#define ITER_PROC_HEADS(ty, p, procs)  \
+	for(ty p = proc_first(procs);        \
+			p;                               \
+			p = proc_first_next(procs))
 
 #endif
