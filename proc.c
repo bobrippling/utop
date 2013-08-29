@@ -339,11 +339,15 @@ static int proc_to_idx_nested(
 		return 1;
 
 	++*py;
+
 	for(struct myproc **iter = head->children;
 			iter && *iter;
-			iter++, ++*py)
+			iter++)
 	{
-		if(searchee == *iter || proc_to_idx_nested(*iter, searchee, py))
+		if(searchee == *iter)
+			return 1;
+
+		if(proc_to_idx_nested(*iter, searchee, py))
 			return 1;
 	}
 

@@ -112,7 +112,7 @@ void gui_term()
 
 static int search_proc_to_idx(int *y, struct myproc **procs)
 {
-	*y = TOP_OFFSET;
+	*y = 0;
 	return proc_to_idx(procs, search_proc, y);
 }
 
@@ -146,9 +146,9 @@ static void goto_proc(struct myproc **procs, struct myproc *p)
 	if(!p)
 		return;
 
-	int y = TOP_OFFSET;
-	proc_to_idx(procs, p, &y);
-	position(y);
+	int y = 0;
+	if(proc_to_idx(procs, p, &y))
+		position(y);
 }
 
 static void goto_me(struct myproc **procs)
