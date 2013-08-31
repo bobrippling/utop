@@ -7,6 +7,24 @@
 #include "machine.h"
 #include "proc.h"
 
+static char *in_line(FILE *f)
+{
+	char *s = NULL;
+	size_t n = 0;
+	int ch;
+
+	while((ch = fgetc(f)) != EOF){
+		s = urealloc(s, ++n + 1);
+		s[n-1] = ch;
+		if(ch == '\n')
+			break;
+	}
+	if(s)
+		s[n] = '\0';
+
+	return s;
+}
+
 static char **pipe_in(const char *cmd, size_t *pn, size_t skip)
 {
 	FILE *f = popen(cmd, "r");
@@ -15,18 +33,20 @@ static char **pipe_in(const char *cmd, size_t *pn, size_t skip)
 
 	char **list = NULL;
 	size_t n = 0;
+	char *line;
 
-	char buf[1024]; // TODO: getline, etc
-	while(fgets(buf, sizeof(buf), f)){
+	while((line = in_line(f))){
 		if(skip > 0){
+			free(line);
 			skip--;
 			continue;
 		}
 		list = urealloc(list, ++n * sizeof *list);
-		char *nl = strrchr(buf, '\n');
+
+		char *nl = strrchr(line, '\n');
 		if(nl)
 			*nl = '\0';
-		list[n-1] = ustrdup(buf);
+		list[n-1] = line;
 	}
 
 	// TODO: check ferror
