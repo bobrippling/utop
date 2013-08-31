@@ -189,16 +189,21 @@ static void showproc(struct myproc *proc, int *py, int indent)
 		memset(linebuf, ' ', linebuf_len);
 		linebuf[linebuf_len-1] = '\0';
 
-		snprintf(linebuf, linebuf_len, "%s",
+		int linebuf_used = snprintf(linebuf, linebuf_len, "%s",
 				machine_proc_display_line(proc));
 
-		char *end = linebuf + strlen(linebuf);
-		*end = ' ';
-		const int total_indent = SPACE_CMDLINE + SPACE_INDENT * indent;
-		char *linepos = end + total_indent;
+		const unsigned total_indent = SPACE_CMDLINE + SPACE_INDENT * indent;
+		if(linebuf_used >= 0 && (unsigned)linebuf_used < linebuf_len){
+			char *end = linebuf + linebuf_used;
+			*end = ' ';
 
-		snprintf(linepos, linebuf_len - (linepos - linebuf),
-				"%s", globals.basename ? proc->argv0_basename : proc->shell_cmd);
+			if((unsigned)linebuf_used + total_indent < linebuf_len){
+				char *linepos = end + total_indent;
+
+				snprintf(linepos, linebuf_len - (linepos - linebuf),
+						"%s", globals.basename ? proc->argv0_basename : proc->shell_cmd);
+			}
+		}
 
 		move(y, 0);
 		clrtoeol();
