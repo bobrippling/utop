@@ -47,6 +47,10 @@ static struct myproc *search_proc = NULL;
 static int frozen = 0;
 
 static pid_t lock_proc_pid = -1;
+static struct
+{
+	pid_t pid, ppid;
+} current;
 
 static void getch_delay(int on)
 {
@@ -122,7 +126,7 @@ static struct myproc *curproc(struct myproc **procs)
 	return proc_from_idx(procs, &i);
 }
 
-static void position(int newy)
+static void position(int newy, struct myproc **procs)
 {
 	pos_y = newy;
 
@@ -134,6 +138,14 @@ static void position(int newy)
 
 	if(pos_y < pos_top)
 		pos_top = pos_y;
+
+	struct myproc *on = curproc(procs);
+	if(on){
+		current.pid = on->pid;
+		current.ppid = on->ppid;
+	}else{
+		current.pid = 0;
+	}
 }
 
 static void sideways(int newx)
@@ -148,7 +160,7 @@ static void goto_proc(struct myproc **procs, struct myproc *p)
 
 	int y = 0;
 	if(proc_to_idx(procs, p, &y))
-		position(y);
+		position(y, procs);
 }
 
 static void goto_me(struct myproc **procs)
@@ -639,7 +651,7 @@ static void gui_search(int ch, struct myproc **procs)
 		}else if(ch == '\r' && search_proc){
 			int y = 0;
 			if(proc_to_idx(procs, search_proc, &y))
-				position(y);
+				position(y, procs);
 		}
 
 
@@ -659,7 +671,7 @@ ins_char:
 			{
 				int y;
 				if(search_proc_to_idx(&y, procs))
-					position(y);
+					position(y, procs);
 
 				/* fall */
 
@@ -725,6 +737,23 @@ backspace:
 		lock_to(search_proc);
 }
 
+static void refocus(struct myproc **procs)
+{
+	if(current.pid == 0)
+		return;
+
+	struct myproc *track = proc_get(procs, current.pid);
+
+	if(track && track->ppid == current.ppid){
+		int y = 0;
+		if(proc_to_idx(procs, track, &y))
+			position(y, procs);
+
+	}else{
+		current.pid = 0; /* cancel */
+	}
+}
+
 void gui_run(struct myproc **procs)
 {
 	struct sysinfo info;
@@ -742,6 +771,7 @@ void gui_run(struct myproc **procs)
 		if(!frozen && last_update + WAIT_TIME < now){
 			last_update = now;
 			proc_update(procs, &info);
+			refocus(procs);
 		}
 
 		showprocs(procs, &info);
@@ -762,10 +792,10 @@ void gui_run(struct myproc **procs)
 
 				case UP_CHAR:
 					if(pos_y > 0)
-						position(pos_y - 1);
+						position(pos_y - 1, procs);
 					break;
 				case DOWN_CHAR:
-					position(pos_y + 1);
+					position(pos_y + 1, procs);
 					break;
 
 				case LEFT_CHAR:
@@ -784,23 +814,23 @@ void gui_run(struct myproc **procs)
 					break;
 
 				case SCROLL_TO_TOP_CHAR:
-					position(0);
+					position(0, procs);
 					break;
 				case SCROLL_TO_BOTTOM_CHAR:
-					position(info.count - (globals.kernel ? 0 : info.count_kernel));
+					position(info.count - (globals.kernel ? 0 : info.count_kernel), procs);
 					break;
 
 				case BACKWARD_HALF_WINDOW_CHAR:
-					position(pos_y - LINES / 2);
+					position(pos_y - LINES / 2, procs);
 					break;
 				case FORWARD_HALF_WINDOW_CHAR:
-					position(pos_y + LINES / 2);
+					position(pos_y + LINES / 2, procs);
 					break;
 				case BACKWARD_WINDOW_CHAR:
-					position(pos_y - LINES);
+					position(pos_y - LINES, procs);
 					break;
 				case FORWARD_WINDOW_CHAR:
-					position(pos_y + LINES);
+					position(pos_y + LINES, procs);
 					break;
 
 				case EXPOSE_ONE_MORE_LINE_BOTTOM_CHAR:
@@ -819,13 +849,13 @@ void gui_run(struct myproc **procs)
 					break;
 
 				case SCROLL_TO_LAST_CHAR:
-					position(pos_top + DRAW_SPACE);
+					position(pos_top + DRAW_SPACE, procs);
 					break;
 				case SCROLL_TO_FIRST_CHAR:
-					position(pos_top);
+					position(pos_top, procs);
 					break;
 				case SCROLL_TO_MIDDLE_CHAR:
-					position(pos_top + DRAW_SPACE / 2);
+					position(pos_top + DRAW_SPACE / 2, procs);
 					break;
 
 				case GOTO_LOCKED_CHAR:
