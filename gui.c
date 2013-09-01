@@ -183,7 +183,7 @@ static void showproc(struct myproc *proc, int *py, int indent)
 {
 	int y = *py;
 
-	proc->mark = 1;
+	PROC_MARK(proc, MARK_SHOWN);
 
 	if(y >= LINES)
 		return;
@@ -281,10 +281,10 @@ static void showprocs(struct myproc **procs, struct sysinfo *info)
 {
 	int y = TOP_OFFSET - pos_top;
 
-	proc_unmark(procs);
+	proc_unmark(procs, MARK_SHOWN);
 
 	if(!globals.kernel)
-		proc_mark_kernel(procs);
+		proc_mark_kernel(procs, MARK_SHOWN);
 
 	ITER_PROC_HEADS(struct myproc *, p, procs)
 		showproc(p, &y, 0);

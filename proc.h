@@ -22,8 +22,9 @@ struct myproc  *proc_from_idx(struct myproc **procs, int *idx);
 
 struct myproc  *proc_first(     struct myproc **procs);
 struct myproc  *proc_first_next(struct myproc **procs);
-void            proc_unmark(struct myproc **procs);
-void            proc_mark_kernel(struct myproc **procs);
+
+void            proc_unmark(struct myproc **procs, unsigned pos);
+void            proc_mark_kernel(struct myproc **procs, unsigned pos);
 
 void proc_dump(struct myproc **ps, FILE *f);
 
@@ -35,5 +36,16 @@ enum proc_state proc_state_parse(char c);
 	for(ty p = proc_first(procs);        \
 			p;                               \
 			p = proc_first_next(procs))
+
+#define PROC_MARK(  p, m) (p)->mark |= 1 << (m)
+#define PROC_UNMARK(p, m) (p)->mark &= ~(1 << (m))
+#define PROC_MARKED(p, m) (!!((p)->mark & (1 << (m))))
+
+/* mark types */
+enum proc_mark
+{
+	MARK_ITER,
+	MARK_SHOWN,
+};
 
 #endif

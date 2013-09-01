@@ -396,6 +396,8 @@ struct myproc *proc_from_idx(struct myproc **procs, int *idx)
 
 		if(test)
 			return test;
+
+		--*idx;
 	}
 
   return NULL;
@@ -407,6 +409,8 @@ struct myproc *proc_first(struct myproc **procs)
 {
 	struct myproc *p = proc_get(procs, 1); /* init */
 	int i;
+
+	proc_unmark(procs, MARK_ITER);
 
 	if(p)
 		return p;
@@ -433,32 +437,31 @@ struct myproc *proc_first_next(struct myproc **procs)
 	int i;
 
 	ITER_PROCS(i, p, procs)
-		if(!p->mark && !proc_get(procs, p->ppid))
+		if(!PROC_MARKED(p, MARK_ITER) && !proc_get(procs, p->ppid))
 			return p;
 
 	ITER_PROCS(i, p, procs)
-		if(!p->mark)
+		if(!PROC_MARKED(p, MARK_ITER))
 			return p;
 
 	return NULL;
 }
 
-void proc_unmark(struct myproc **procs)
+void proc_unmark(struct myproc **procs, unsigned pos)
 {
 	struct myproc *p;
 	int i;
 
 	ITER_PROCS(i, p, procs)
-		/* unmark everything except those whose ppids we don't have yet */
-		p->mark = p->ppid == -1;
+		PROC_UNMARK(p, pos);
 }
 
-void proc_mark_kernel(struct myproc **procs)
+void proc_mark_kernel(struct myproc **procs, unsigned pos)
 {
 	struct myproc *p;
 	int i;
 
 	ITER_PROCS(i, p, procs)
 		if(PROC_IS_KERNEL(p))
-			p->mark = 1;
+			PROC_MARK(p, pos);
 }

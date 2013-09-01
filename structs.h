@@ -42,7 +42,7 @@ struct myproc
 	/* important */
 	struct myproc *hash_next;
 	struct myproc **children;
-	int mark;
+	unsigned mark;
 
 	union
 	{
