@@ -520,6 +520,11 @@ void gdb(struct myproc *p, struct myproc **ps)
 
 	(void)ps;
 
+	if(!p->argv0_basename){
+		WAIT_STATUS("no basename for process");
+		return;
+	}
+
 	len = strlen(p->argv0_basename) + 16;
 	cmd = malloc(len);
 
