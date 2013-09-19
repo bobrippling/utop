@@ -36,4 +36,6 @@ enum proc_state proc_state_parse(char c);
 			p;                               \
 			p = proc_first_next(procs))
 
+#define PROC_IS_KERNEL(p) ((p)->ppid == 0 || (p)->ppid == 2)
+#define PROC_IS_OWNED(p) ((p)->uid == globals.uid)
 #endif

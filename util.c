@@ -27,6 +27,8 @@ void *urealloc(void *p, size_t l)
 		perror("realloc()");
 		abort();
 	}
+	if(!p)
+		memset(r, 0, l);
 	return r;
 }
 

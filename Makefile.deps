@@ -1,7 +1,7 @@
 main.o: main.c structs.h proc.h gui.h util.h machine.h main.h
 proc.o: proc.c structs.h proc.h util.h main.h machine.h
 gui.o: gui.c structs.h proc.h gui.h util.h config.h main.h machine.h \
- gui_tree.c
+ gui_tree.c gui_type.c
 util.o: util.c util.h
 machine.o: machine.c structs.h proc.h main.h machine_linux.c util.h \
  machine.h

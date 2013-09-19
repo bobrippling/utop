@@ -180,6 +180,7 @@ static void goto_lock(struct myproc **procs)
 }
 
 #include "gui_tree.c"
+#include "gui_type.c"
 
 static void showprocs(struct myproc **heads, struct sysinfo *info)
 {
@@ -196,7 +197,7 @@ static void showprocs(struct myproc **heads, struct sysinfo *info)
 				show_proc_tree(p, &y, 0);
 			break;
 		case disp_type:
-			// TODO
+			show_proc_type(heads, info, &y);
 			break;
 	}
 

@@ -11,8 +11,6 @@
 #include "main.h"
 #include "machine.h"
 
-#define PROC_IS_KERNEL(p) ((p)->ppid == 0 || (p)->ppid == 2)
-
 #define ITER_PROCS(i, p, ps)                    \
   for(i = 0; i < HASH_TABLE_SIZE; i++)          \
     for(p = ps[i]; p; p = p->hash_next)
