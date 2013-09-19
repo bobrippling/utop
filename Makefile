@@ -22,7 +22,7 @@ config.mk:
 include config.mk
 
 clean:
-	@rm -f *.o utop
+	rm -f ${OBJ} utop
 
 install: utop
 	cp utop ${PREFIX}/bin
