@@ -1,7 +1,44 @@
 #ifndef PROC_H
 #define PROC_H
 
-struct sysinfo;
+struct myproc
+{
+	pid_t pid, ppid;
+  int jid;
+
+	uid_t uid;
+  gid_t gid;
+  gid_t pgrp;
+	char *unam, *gnam;
+
+	char *shell_cmd;      /* allocated, from argv */
+	char **argv;          /* allocated */
+  int argc;
+	char *argv0_basename; /* pointer to somewhere in argv[0] */
+
+	enum proc_state state;
+
+  char *tty;
+  signed char nice;
+
+	double pc_cpu;
+	unsigned long utime, stime, cutime, cstime;
+	unsigned long cputime;
+	unsigned long memsize;
+
+	/* important */
+	struct myproc *hash_next;
+	struct myproc **children;
+	int mark;
+
+	union
+	{
+		struct
+		{
+			int flag;
+		} freebsd;
+	} machine;
+};
 
 struct myproc **proc_init(void);
 struct myproc  *proc_get(struct myproc **, pid_t);
@@ -38,4 +75,5 @@ enum proc_state proc_state_parse(char c);
 
 #define PROC_IS_KERNEL(p) ((p)->ppid == 0 || (p)->ppid == 2)
 #define PROC_IS_OWNED(p) ((p)->uid == globals.uid)
+
 #endif

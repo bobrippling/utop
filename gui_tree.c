@@ -1,4 +1,26 @@
-static void show_proc_tree(struct myproc *proc, int *py, int indent)
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <ncurses.h>
+
+#include "proc_state.h"
+#include "sysinfo.h"
+#include "proc.h"
+
+#include "main.h"
+#include "util.h"
+
+#include "gui.h"
+#include "gui_tree.h"
+
+#include "machine.h"
+
+#include "config_ui.h"
+
+void show_proc_tree(struct myproc *proc, int *py, int indent, const int top)
 {
 	int y = *py;
 
@@ -7,7 +29,7 @@ static void show_proc_tree(struct myproc *proc, int *py, int indent)
 	if(y >= LINES)
 		return;
 
-	if(y >= TOP_OFFSET){ // otherwise we're iterating over a process that's above pos_top
+	if(y >= top){ // otherwise we're iterating over a process that's above pos_top
 		const int is_owned         = PROC_IS_OWNED(proc);
 		const int is_locked        = proc->pid == lock_proc_pid;
 		const int is_searched      = proc      == search_proc;
@@ -91,7 +113,7 @@ static void show_proc_tree(struct myproc *proc, int *py, int indent)
 	 * since we may currently be on a process above the top
 	 */
 	for(struct myproc **iter = proc->children; iter && *iter; iter++)
-		show_proc_tree(*iter, &y, indent + 1);
+		show_proc_tree(*iter, &y, indent + 1, top);
 
 	*py = y;
 }

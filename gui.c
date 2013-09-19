@@ -15,15 +15,18 @@
 #include <sys/types.h>
 #include <sys/types.h>
 
-#include "structs.h"
-
+#include "proc_state.h"
+#include "sysinfo.h"
 #include "proc.h"
 #include "gui.h"
 #include "util.h"
-#include "config.h"
+#include "config_keys.h"
 #include "main.h"
 #include "machine.h"
 #include "util.h"
+
+#include "gui_tree.h"
+#include "gui_type.h"
 
 #define TOP_OFFSET 3
 #define DRAW_SPACE (LINES - TOP_OFFSET - 1)
@@ -37,20 +40,23 @@
 #  define MAX(a, b) ((a) < (b) ? (b) : (a))
 #endif
 
-static int pos_top = 0, pos_y = 0, pos_x = 0;
+static int pos_top = 0, pos_y = 0;
 
 static int  search = 0;
 static int  search_idx = 0, search_offset = 0, search_pid = 0;
-static char search_str[32] = { 0 };
-static struct myproc *search_proc = NULL;
 
 static int frozen = 0;
 
-static pid_t lock_proc_pid = -1;
 static struct
 {
 	pid_t pid, ppid;
 } current;
+
+/* exports */
+struct myproc *search_proc = NULL;
+pid_t lock_proc_pid = -1;
+char search_str[32];
+int pos_x = 0;
 
 static void getch_delay(int on)
 {
@@ -179,9 +185,6 @@ static void goto_lock(struct myproc **procs)
 	}
 }
 
-#include "gui_tree.c"
-#include "gui_type.c"
-
 static void showprocs(struct myproc **heads, struct sysinfo *info)
 {
 	int y = TOP_OFFSET - pos_top;
@@ -194,7 +197,7 @@ static void showprocs(struct myproc **heads, struct sysinfo *info)
 	switch(globals.disp){
 		case disp_tree:
 			ITER_PROC_HEADS(struct myproc *, p, heads)
-				show_proc_tree(p, &y, 0);
+				show_proc_tree(p, &y, 0, TOP_OFFSET);
 			break;
 		case disp_type:
 			show_proc_type(heads, info, &y);

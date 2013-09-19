@@ -1,0 +1,29 @@
+#ifndef CONFIG_UI_H
+#define CONFIG_UI_H
+
+#define SPACE_CMDLINE 4
+#define SPACE_INDENT  4
+
+// Colors
+
+// Default ncurses colors
+// COLOR_BLACK   0
+// COLOR_RED     1
+// COLOR_GREEN   2
+// COLOR_YELLOW  3
+// COLOR_BLUE    4
+// COLOR_MAGENTA 5
+// COLOR_CYAN    6
+// COLOR_WHITE   7
+
+#define ATTR_SEARCH         COLOR_PAIR(1 + COLOR_YELLOW)
+#define ATTR_SEARCH_ALT     COLOR_PAIR(1 + COLOR_BLUE)
+
+#define ATTR_NOT_OWNED      COLOR_PAIR(1 + COLOR_BLACK) | A_BOLD
+#define ATTR_LOCK           COLOR_PAIR(1 + COLOR_MAGENTA)
+#define ATTR_JAILED         COLOR_PAIR(1 + COLOR_BLUE) | A_BOLD
+
+#define BASENAME_COL   (1 + COLOR_CYAN)
+#define BASENAME_ATTR  A_BOLD
+
+#endif

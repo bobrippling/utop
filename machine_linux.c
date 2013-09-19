@@ -16,7 +16,6 @@
 #include "proc.h"
 #include "machine.h"
 #include "main.h"
-#include "structs.h"
 
 #define STAT_PATH(buf, pid) \
 	snprintf(buf, sizeof buf, "/proc/%d/stat", pid);

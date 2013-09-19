@@ -1,7 +1,12 @@
-main.o: main.c structs.h proc.h gui.h util.h machine.h main.h
-proc.o: proc.c structs.h proc.h util.h main.h machine.h
-gui.o: gui.c structs.h proc.h gui.h util.h config.h main.h machine.h \
- gui_tree.c gui_type.c
+main.o: main.c proc_state.h sysinfo.h proc.h gui.h util.h machine.h \
+ main.h
+proc.o: proc.c proc_state.h sysinfo.h proc.h util.h main.h machine.h
+gui.o: gui.c proc_state.h sysinfo.h proc.h gui.h util.h config_keys.h \
+ main.h machine.h gui_tree.h gui_type.h
 util.o: util.c util.h
-machine.o: machine.c structs.h proc.h main.h machine_linux.c util.h \
- machine.h
+machine.o: machine.c proc_state.h sysinfo.h proc.h main.h machine_linux.c \
+ util.h machine.h
+gui_tree.o: gui_tree.c proc_state.h sysinfo.h proc.h main.h util.h gui.h \
+ gui_tree.h machine.h config_ui.h
+gui_type.o: gui_type.c proc_state.h sysinfo.h proc.h main.h util.h \
+ gui_type.h

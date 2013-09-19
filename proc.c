@@ -5,7 +5,8 @@
 #include <pwd.h>
 #include <grp.h>
 
-#include "structs.h"
+#include "proc_state.h"
+#include "sysinfo.h"
 #include "proc.h"
 #include "util.h"
 #include "main.h"

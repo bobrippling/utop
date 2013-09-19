@@ -1,6 +1,5 @@
-#ifndef _CONFIG_H_
-#define _CONFIG_H_
-
+#ifndef CONFIG_H
+#define CONFIG_H
 
 #define HALF_DELAY_TIME 10
 
@@ -8,9 +7,6 @@
 #define WAIT_TIME (HALF_DELAY_TIME * 100)
 /* 60s */
 #define FULL_WAIT_TIME (WAIT_TIME * 60)
-
-#define SPACE_CMDLINE 4
-#define SPACE_INDENT  4
 
 #define TRACE_TOOL "strace"
 // Key bindings
@@ -51,33 +47,11 @@
 #define BASENAME_TOGGLE_CHAR 'b'
 #define TYPE_CYCLE_CHAR 't'
 
-// Colors
-
-// Default ncurses colors
-// COLOR_BLACK   0
-// COLOR_RED     1
-// COLOR_GREEN   2
-// COLOR_YELLOW  3
-// COLOR_BLUE    4
-// COLOR_MAGENTA 5
-// COLOR_CYAN    6
-// COLOR_WHITE   7
-
-#define ATTR_SEARCH         COLOR_PAIR(1 + COLOR_YELLOW)
-#define ATTR_SEARCH_ALT     COLOR_PAIR(1 + COLOR_BLUE)
-
-#define ATTR_NOT_OWNED      COLOR_PAIR(1 + COLOR_BLACK) | A_BOLD
-#define ATTR_LOCK           COLOR_PAIR(1 + COLOR_MAGENTA)
-#define ATTR_JAILED         COLOR_PAIR(1 + COLOR_BLUE) | A_BOLD
-
-#define BASENAME_COL   (1 + COLOR_CYAN)
-#define BASENAME_ATTR  A_BOLD
-
 typedef void proc_handler(struct myproc *, struct myproc **);
 
 proc_handler delete, renice, lsof, strace, gdb, shell;
 
-struct
+static struct
 {
 	proc_handler *handler;
 	char ch;

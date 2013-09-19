@@ -6,8 +6,10 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include "structs.h"
+#include "proc_state.h"
+#include "sysinfo.h"
 #include "proc.h"
+
 #include "gui.h"
 #include "util.h"
 #include "machine.h"

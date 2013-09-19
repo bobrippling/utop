@@ -1,3 +1,17 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <ncurses.h>
+
+#include "proc_state.h"
+#include "sysinfo.h"
+#include "proc.h"
+
+#include "main.h"
+#include "util.h"
+
+#include "gui_type.h"
+
 enum
 {
 	ty_running,
@@ -56,7 +70,7 @@ static void add_proc_type_r(struct myproc *p, struct proc_list type_map[])
 		add_proc_type_r(*i, type_map);
 }
 
-static void show_proc_type(struct myproc **heads, struct sysinfo *info, int *py)
+void show_proc_type(struct myproc **heads, struct sysinfo *info, int *py)
 {
 	move(*py, 0);
 	clrtobot();
