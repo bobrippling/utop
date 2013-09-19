@@ -179,7 +179,7 @@ static void goto_lock(struct myproc **procs)
 	}
 }
 
-static void showproc(struct myproc *proc, int *py, int indent)
+static void show_proc_tree(struct myproc *proc, int *py, int indent)
 {
 	int y = *py;
 
@@ -272,7 +272,7 @@ static void showproc(struct myproc *proc, int *py, int indent)
 	 * since we may currently be on a process above the top
 	 */
 	for(struct myproc **iter = proc->children; iter && *iter; iter++)
-		showproc(*iter, &y, indent + 1);
+		show_proc_tree(*iter, &y, indent + 1);
 
 	*py = y;
 }
@@ -286,8 +286,16 @@ static void showprocs(struct myproc **procs, struct sysinfo *info)
 	if(!globals.kernel)
 		proc_mark_kernel(procs);
 
-	ITER_PROC_HEADS(struct myproc *, p, procs)
-		showproc(p, &y, 0);
+	switch(globals.disp){
+		case disp_tree:
+			ITER_PROC_HEADS(struct myproc *, p, procs)
+				show_proc_tree(p, &y, 0);
+			break;
+		case disp_type:
+			// TODO
+			break;
+	}
+
 
 	move(y, 0);
 	clrtobot();
@@ -922,6 +930,10 @@ void gui_run(struct myproc **procs)
 
 				case INFO_CHAR:
 					on_curproc("info", show_info, 0, procs);
+					break;
+
+				case TYPE_CYCLE_CHAR:
+					globals.disp = (globals.disp + 1) % disp_COUNT;
 					break;
 
 				default:

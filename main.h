@@ -10,6 +10,13 @@ extern struct globals
 	int debug;
 	int kernel;
 	int basename;
+	enum
+	{
+		disp_tree,
+		disp_type
+	} disp;
+#define disp_COUNT (disp_type + 1)
+
 } globals;
 
 #endif
