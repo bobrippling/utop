@@ -200,7 +200,7 @@ static void showprocs(struct myproc **heads, struct sysinfo *info)
 				show_proc_tree(p, &y, 0, TOP_OFFSET);
 			break;
 		case disp_type:
-			show_proc_type(heads, info, &y);
+			show_proc_type(heads, info, &y, TOP_OFFSET);
 			break;
 	}
 

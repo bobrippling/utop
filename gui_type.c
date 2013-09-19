@@ -12,15 +12,26 @@
 
 #include "gui_type.h"
 
-enum
+#define X_TYPES      \
+  X_TYPE(ty_running) \
+  X_TYPE(ty_zombie)  \
+  X_TYPE(ty_owned)   \
+  X_TYPE(ty_kern)    \
+  X_TYPE(ty_other)
+
+enum proc_type
 {
-	ty_running,
-	ty_zombie,
-	ty_owned,
-	ty_kern,
-	ty_other
+#define X_TYPE(x) x,
+	X_TYPES
+#undef X_TYPE
 };
 #define N_TYPES (ty_other + 1)
+
+const char *const type_names[] = {
+#define X_TYPE(x) #x + 3, /* +3 to skip "ty_" */
+	X_TYPES
+#undef X_TYPE
+};
 
 struct proc_list
 {
@@ -70,7 +81,25 @@ static void add_proc_type_r(struct myproc *p, struct proc_list type_map[])
 		add_proc_type_r(*i, type_map);
 }
 
-void show_proc_type(struct myproc **heads, struct sysinfo *info, int *py)
+static void move_clear_printw(
+		const int y, const int top,
+		const char *fmt, ...)
+{
+	if(y < top)
+		return;
+
+	move(y, 0);
+	clrtoeol();
+
+	va_list l; va_start(l, fmt);
+	vwprintw(stdscr, fmt, l);
+	va_end(l);
+}
+
+
+void show_proc_type(
+		struct myproc **heads, struct sysinfo *info,
+		int *py, int const top)
 {
 	move(*py, 0);
 	clrtobot();
@@ -87,13 +116,17 @@ void show_proc_type(struct myproc **heads, struct sysinfo *info, int *py)
 		add_proc_type_r(p, type_map);
 
 	/* have the types, show */
-	for(int i = 0; i < N_TYPES; i++){
+	for(enum proc_type i = 0; i < N_TYPES; i++){
+
+		move_clear_printw((*py)++, top, "--- %s ---", type_names[i]);
+
 		for(struct myproc **it = type_map[i].procs; it && *it; it++){
 			struct myproc *p = *it;
 
-			move((*py)++, 0);
-			clrtoeol();
-			printw("% 7d %s", p->pid, p->argv0_basename);
+			if(*py == LINES - top)
+				break;
+
+			move_clear_printw((*py)++, top, "% 7d %s", p->pid, p->shell_cmd);
 		}
 
 		/* cleanup #1 */

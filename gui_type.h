@@ -2,7 +2,7 @@
 #define GUI_TYPE_H
 
 void show_proc_type(
-		struct myproc **heads,
-		struct sysinfo *info, int *py);
+		struct myproc **heads, struct sysinfo *info,
+		int *py, int const top);
 
 #endif
