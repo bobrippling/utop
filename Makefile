@@ -4,7 +4,7 @@ PREFIX  = /usr/local
 OBJ     = main.o proc.o gui.o util.o machine.o
 VERSION = 0.9.3
 
-.PHONY: clean install uninstall
+.PHONY: clean install uninstall deps
 
 utop: ${OBJ}
 	${CC} ${LDFLAGS} -o $@ ${OBJ}
@@ -31,5 +31,8 @@ install: utop
 
 uninstall:
 	rm -f ${PREFIX}/bin/utop ${PREFIX}/share/man/man1/
+
+deps:
+	${CC} -MM ${OBJ:.o=.c} > Makefile.deps
 
 include Makefile.deps
