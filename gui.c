@@ -181,18 +181,18 @@ static void goto_lock(struct myproc **procs)
 
 #include "gui_tree.c"
 
-static void showprocs(struct myproc **procs, struct sysinfo *info)
+static void showprocs(struct myproc **heads, struct sysinfo *info)
 {
 	int y = TOP_OFFSET - pos_top;
 
-	proc_unmark(procs);
+	proc_unmark(heads);
 
 	if(!globals.kernel)
-		proc_mark_kernel(procs);
+		proc_mark_kernel(heads);
 
 	switch(globals.disp){
 		case disp_tree:
-			ITER_PROC_HEADS(struct myproc *, p, procs)
+			ITER_PROC_HEADS(struct myproc *, p, heads)
 				show_proc_tree(p, &y, 0);
 			break;
 		case disp_type:
