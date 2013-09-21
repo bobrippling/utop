@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "util.h"
-#include "structs.h"
 #include "machine.h"
 #include "proc.h"
 
