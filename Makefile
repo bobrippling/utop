@@ -32,7 +32,4 @@ install: utop
 uninstall:
 	rm -f ${PREFIX}/bin/utop ${PREFIX}/share/man/man1/
 
-deps:
-	${CC} -MM ${OBJ:.o=.c} > Makefile.deps
-
 include Makefile.deps

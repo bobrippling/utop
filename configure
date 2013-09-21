@@ -16,6 +16,10 @@ config(){
 	echo "$@" >> config.mk
 }
 
+cdeps(){
+	cc -MM $@
+}
+
 use_ps=0
 for arg in $@
 do
@@ -56,5 +60,7 @@ esac
 if test $use_ps -ne 0
 then config "CFLAGS += -DMACHINE_PS"
 fi
+
+cdeps *.c > Makefile.deps
 
 echo Configured for $arch
