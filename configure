@@ -6,10 +6,8 @@ usage(){
 }
 
 trace_tool(){
-	ed -s config.h > /dev/null <<!
-/TRACE_TOOL .*/s/.*/#define TRACE_TOOL "$1"/
-wq
-!
+	sed '/TRACE_TOOL/s/.*/#define TRACE_TOOL "$1"/' config.h > config.h2
+	mv config.h2 config.h
 }
 
 config(){
