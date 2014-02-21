@@ -59,7 +59,7 @@ static struct
 } externals[] = {
 	{ delete,  'd' },
 	{ renice,  'r' },
-	{ lsof,    'q' },
+	{ lsof,    'Q' },
 	{ strace,  's' },
 	{ gdb,     'a' },
 	{ shell,   '!' },
