@@ -385,6 +385,16 @@ void delete(struct myproc *p, struct myproc **ps)
 
 	(void)ps;
 
+	if(p->pid == 1){
+		char confirm[8];
+		STATUS(0, 0, "kill %s?! type yes to confirm: ", p->argv0_basename);
+		gui_text_entry(1);
+		getnstr(confirm, sizeof confirm);
+		gui_text_entry(0);
+		if(strcmp(confirm, "yes"))
+			return;
+	}
+
 	STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->argv0_basename);
 	gui_text_entry(1);
 	getnstr(sig, sizeof sig);
