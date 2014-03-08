@@ -36,8 +36,8 @@
 #define SCROLL_TO_MIDDLE_CHAR 'M'
 #define LOCK_CHAR CTRL_AND('k')
 #define REDRAW_CHAR CTRL_AND('l')
-#define SEARCH_FORWARD '/'
-#define SEARCH_BACKWARD '?'
+#define SEARCH_STR '/'
+#define SEARCH_PID '?'
 #define SEARCH_NEXT_CHAR CTRL_AND('n')
 #define SEARCH_PREVIOUS_CHAR CTRL_AND('p')
 #define RESET_SEARCH_CHAR CTRL_AND('u')
@@ -84,7 +84,7 @@ struct
 } externals[] = {
 	{ delete,  'd' },
 	{ renice,  'r' },
-	{ lsof,    'q' },
+	{ lsof,    'I' },
 	{ strace,  's' },
 	{ gdb,     'a' },
 	{ shell,   '!' },

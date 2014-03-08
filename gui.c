@@ -910,8 +910,8 @@ void gui_run(struct myproc **procs)
 					globals.basename ^= 1;
 					break;
 
-				case SEARCH_BACKWARD:
-				case SEARCH_FORWARD:
+				case SEARCH_PID:
+				case SEARCH_STR:
 					*search_str = '\0';
 					search_idx = 0;
 					search_pid = ch == '?';

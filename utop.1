@@ -6,13 +6,29 @@
 utop \- process control
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-utop [\-f] [\-d] [\-t] [\-k]
+utop [\-f] [\-d] [\-b] [\-k]
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
 .B utop
 is a simple tree-rendering process monitor.
 .SH "UTOP COMMANDS"
 .IX Header "UTOP COMMANDS"
+
+.SS "Navigation Keys"
+.IX Subsection "Navigation Keys"
+.PP
+vi (1) style navigation:
+.PP
+Single movement: j, k, h, l
+.PP
+Screen based: H, M, L
+.PP
+Scrolling: ^E, ^Y, ^U, ^D, ^F, ^B
+.PP
+Start of process names: ^
+.PP
+End of process names: $
+
 .SS "Normal Modes Keys"
 .IX Subsection "Normal Modes Keys"
 / - enter search
@@ -23,8 +39,6 @@ g - goto top
 .PP
 G - goto bottom
 .PP
-j, k, H, M, L, ^E, ^Y, ^U, ^D, ^F, ^B - see vi (1)
-.PP
 q - exit
 .PP
 f - freeze process updates
@@ -33,7 +47,7 @@ f - freeze process updates
 .PP
 d - kill selected process
 .PP
-l - lsof selected process
+I - lsof selected process
 .PP
 i - info on selected process
 .PP
@@ -53,12 +67,14 @@ O - goto $$
 ^L - redraw screen
 .PP
 Note: the "selected process" is overridden by the locked process
+
 .SS "Search Mode Keys"
 .IX Subsection "Search Mode Keys"
 ^K - lock to current search target
 .PP
 ^p, ^n - next/prev search
 .PP
+
 .SH "OPTIONS"
 .IX Header "OPTIONS"
 \fB\-f\fR
@@ -67,8 +83,8 @@ Don't prompt for lsof, trace, etc
 \fB\-d\fR
 Enable debug messages on stderr
 .PP
-\fB\-t\fR
-Thin mode - don't show as much (for small screens)
+\fB\-b\fR
+Show only program basenames
 .PP
 \fB\-k\fR
 Show kernel threads
