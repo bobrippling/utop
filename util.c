@@ -163,31 +163,32 @@ const char *format_kbytes(long unsigned val)
   return buf;
 }
 
-const char *format_seconds(long unsigned timeval)
+const char *format_seconds(unsigned long timeval)
 {
-  unsigned long int rest;
-  unsigned int days, hours, minutes, seconds;
+#define BUF_PRINTF(fmt, ...) i += snprintf(&buf[i], sizeof(buf) - i, fmt, __VA_ARGS__)
   static char buf[128];
-  char *p;
 
-  p = &buf[0];
+  unsigned long rest;
+  unsigned days, hours, minutes, seconds;
+	size_t i = 0;
 
-  days = timeval/86400;
+  days = timeval / 86400;
   rest = timeval % 86400;
   hours = rest / 3600;
   rest = rest % 3600;
-  minutes = rest/60;
+  minutes = rest / 60;
   rest = rest % 60;
   seconds = (unsigned int)rest;
 
   if(days)
-    p += snprintf(p, sizeof p, "%d+", days);
+    BUF_PRINTF("%d+", days);
   if(hours)
-    p += snprintf(p, sizeof p, "%02d:", hours);
+    BUF_PRINTF("%02d:", hours);
 
-  p += snprintf(p, sizeof p, "%02d:%02d", minutes, seconds);
+  BUF_PRINTF("%02d:%02d", minutes, seconds);
 
   return buf;
+#undef BUF_PRINTF
 }
 
 void argv_free(int argc, char **argv)
