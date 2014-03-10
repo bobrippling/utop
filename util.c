@@ -71,9 +71,7 @@ char *fline(const char *path, char **pbuf, int *plen)
 	}
 
 	if(ferror(f)){
-		/* process exited while we were reading, for e.g. */
-		/*perror("read()");*/
-		/*abort();*/
+		/* process exited while we were reading */
 		free(ret);
 		ret = NULL;
 		i = 0;
@@ -141,20 +139,18 @@ int longest_passwd_line(const char *fname)
 }
 
 
-/* Convert a kbyte value to either Mega or GigaBytes */
 const char *format_kbytes(long unsigned val)
 {
-  char prefix;
   static char buf[64];
+  char prefix;
 
-  if(val/1024/1024 > 10){ // display GigaBytes
+  if(val / (1024 * 1024) > 10){
     prefix = 'G';
-    val = val/(1024*1024);
-  }
-  else if(val/1024 > 10){ // display MegaBytes
+    val = val / (1024 * 1024);
+  }else if(val / 1024 > 10){
     prefix = 'M';
     val /= 1024;
-  } else { // KiloBytes
+  }else{
     prefix = 'K';
   }
 
@@ -214,7 +210,7 @@ const char *ustrcasestr(const char *a, const char *b)
 	const char *r = strstr(da, db);
 
 	if(r){
-		unsigned diff = r - da;
+		size_t diff = r - da;
 		r = a + diff;
 	}
 
