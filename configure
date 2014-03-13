@@ -61,6 +61,4 @@ if test $use_ps -ne 0
 then config "CFLAGS += -DMACHINE_PS"
 fi
 
-cdeps *.c > Makefile.deps
-
 echo Configured for $arch

@@ -16,8 +16,7 @@ gui.c main.c util.c proc.c \
 	machine_ps.c: config.mk
 
 config.mk:
-	@echo utop needs configuring
-	@false
+	@if ! test -f config.mk; then echo utop needs configuring >&2; exit 1; fi
 
 include config.mk
 
@@ -32,4 +31,7 @@ install: utop
 uninstall:
 	rm -f ${PREFIX}/bin/utop ${PREFIX}/share/man/man1/
 
-include Makefile.deps
+deps:
+	cc -MM ${OBJ:.o=.c} >Makefile.deps
+
+-include Makefile.deps
