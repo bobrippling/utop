@@ -17,8 +17,10 @@ config(){
 }
 
 cdeps(){
-	cc -MM $@
+	"${CC}" -MM $@
 }
+
+CC=${CC:-cc}
 
 use_ps=0
 for arg in $@
@@ -60,5 +62,18 @@ esac
 if test $use_ps -ne 0
 then config "CFLAGS += -DMACHINE_PS"
 fi
+
+try_cflag(){
+	if echo 'int main(){}' | "${CC}" "$@" -xc - >/dev/null 2>&1
+	then config "CFLAGS += $@"
+	fi
+}
+
+try_cflag -Wmissing-prototypes
+try_cflag -Wmissing-noreturn
+try_cflag -Wmissing-variable-declarations
+try_cflag -Wshadow
+try_cflag -Wshorten-64-to-32
+try_cflag -Wunused-macros
 
 echo Configured for $arch

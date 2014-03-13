@@ -1,4 +1,5 @@
-CFLAGS  = -g -Wall -Wextra -pedantic -std=c99 -Wmissing-prototypes
+CFLAGS  = -g -Wall -Wextra -pedantic -std=c99
+
 LDFLAGS = -g -lncurses
 PREFIX  = /usr/local
 OBJ     = main.o proc.o gui.o util.o machine.o
