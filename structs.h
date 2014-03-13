@@ -15,7 +15,7 @@ struct myproc
 
 	char *shell_cmd;      /* allocated, from argv */
 	char **argv;          /* allocated */
-  int argc;
+  size_t argc;
 	char *argv0_basename; /* pointer to somewhere in argv[0] */
 
   enum proc_state

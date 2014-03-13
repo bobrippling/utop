@@ -31,7 +31,7 @@
 
 static void proc_add_child(struct myproc *parent, struct myproc *child)
 {
-	int n = 0;
+	size_t n = 0;
 	struct myproc **i;
 
 	for(i = parent->children; i && *i; i++, n++);
@@ -45,13 +45,13 @@ static void proc_add_child(struct myproc *parent, struct myproc *child)
 
 static void proc_rm_child(struct myproc *parent, struct myproc *p)
 {
-	int n, idx, found;
-	struct myproc **i;
+	size_t n, idx, found;
+	struct myproc **pi;
 
 	n = idx = found = 0;
 
-	for(i = parent->children; i && *i; i++, n++)
-		if(*i == p)
+	for(pi = parent->children; pi && *pi; pi++, n++)
+		if(*pi == p)
 			found = 1;
 		else if(!found)
 			idx++;
@@ -59,15 +59,16 @@ static void proc_rm_child(struct myproc *parent, struct myproc *p)
 	if(!found)
 		return;
 
-	n--; /* gone */
-	if(n <= 0){
+	if(n <= 1){
 		free(parent->children);
 		parent->children = NULL;
 	}else{
+		n--; /* gone */
+
 		/*memmove(parent->children + idx,
 		 parent->children + idx + 1,
 		 n * sizeof *parent->children);*/
-		int i;
+		size_t i;
 		for(i = idx; i < n; i++)
 			parent->children[i] = parent->children[i + 1];
 
@@ -163,17 +164,17 @@ const char *proc_state_str(struct myproc *p)
 void proc_create_shell_cmd(struct myproc *this)
 {
 	char *cmd;
-	int cmd_len;
+	size_t cmd_len;
 
 	/* recreate this->shell_cmd from argv */
-	for(int i = cmd_len = 0; i < this->argc; i++)
+	for(size_t i = cmd_len = 0; i < this->argc; i++)
 		cmd_len += strlen(this->argv[i]) + 1;
 
 	free(this->shell_cmd);
 	this->shell_cmd = umalloc(cmd_len + 1);
 
 	cmd = this->shell_cmd;
-	for(int i = 0; i < this->argc; i++)
+	for(size_t i = 0; i < this->argc; i++)
 		cmd += sprintf(cmd, "%s ", this->argv[i]);
 }
 
