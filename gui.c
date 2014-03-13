@@ -308,7 +308,7 @@ static void showprocs(struct myproc **procs, struct sysinfo *info)
 		clrtoeol();
 
 	}else{
-		int y, width;
+		int width;
 
 		STATUS(0, 0, "%d processes, %d running, "
 				"%d owned, %d kernel, %d zombies, "
@@ -498,18 +498,18 @@ void lsof(struct myproc *p, struct myproc **ps)
 void shell(struct myproc *p, struct myproc **ps)
 {
 	char buf[16];
-	char *shell = getenv("SHELL");
+	char *sh = getenv("SHELL");
 
 	(void)ps;
 
-	if(!shell)
-		shell = "/bin/sh";
+	if(!sh)
+		sh = "/bin/sh";
 
 	snprintf(buf, sizeof buf, "%d", p->pid);
 
 	setenv("UTOP_PID", buf, 1);
 
-	external(shell);
+	external(sh);
 }
 
 void gdb(struct myproc *p, struct myproc **ps)
