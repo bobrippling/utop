@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <ncurses.h>
 
 #include "proc_state.h"
