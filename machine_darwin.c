@@ -57,7 +57,7 @@ struct kinfo_proc *kvm_getprocs(kvm_t *kvm, int what, int flag, int *n)
 	};
 	size_t sz = sizeof *kp;
 
-  /*
+	/*
 	 * what = KERN_PROC_RGID KERN_PROC_PGRP KERN_PROC_PID KERN_PROC_RUID
 	 *        KERN_PROC_SESSION KERN_PROC_TTY KERN_PROC_RUID KERN_PROC_UID
 	 * flag = pid
@@ -65,7 +65,7 @@ struct kinfo_proc *kvm_getprocs(kvm_t *kvm, int what, int flag, int *n)
 
 	kp = malloc(sizeof *kp);
 
-  eno = sysctl(mib, 4, kp, &sz, NULL, 0);
+	eno = sysctl(mib, 4, kp, &sz, NULL, 0);
 	if(eno){
 		free(kp);
 		return NULL;

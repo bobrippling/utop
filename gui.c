@@ -575,9 +575,9 @@ static void show_info(struct myproc *p, struct myproc **procs)
 					 format_seconds(p->cputime), format_kbytes(p->memsize),
 					 p->tty);
 
-  if(p->argv)
-    for(i = 0; p->argv[i]; i++)
-      printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
+	if(p->argv)
+		for(i = 0; p->argv[i]; i++)
+			printw("argv[%d] = \"%s\"\n", i, p->argv[i]);
 
 	for(;;){
 		int ch;

@@ -23,34 +23,34 @@
 
 /* these are for detailing the memory statistics */
 const char *memorynames[] = {
-  "Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
-  "Free", NULL
+	"Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
+	"Free", NULL
 };
 
 void machine_init(struct sysinfo *info)
 {
-  // get uptime and calculate bootime from it
-  FILE *f;
-  char buf[64];
-  time_t now;
+	// get uptime and calculate bootime from it
+	FILE *f;
+	char buf[64];
+	time_t now;
 
-  time(&now);
+	time(&now);
 
-  if((f = fopen("/proc/uptime", "r"))){
-    for(;;){
-      unsigned long uptime_secs;
-      if(!fgets(buf, sizeof buf - 1, f))
-        break;
+	if((f = fopen("/proc/uptime", "r"))){
+		for(;;){
+			unsigned long uptime_secs;
+			if(!fgets(buf, sizeof buf - 1, f))
+				break;
 
-      if(sscanf(buf, "%lu", &uptime_secs))
-        info->boottime.tv_sec = now - uptime_secs;
+			if(sscanf(buf, "%lu", &uptime_secs))
+				info->boottime.tv_sec = now - uptime_secs;
 
-      break;
-    }
-    fclose(f);
-  }
+			break;
+		}
+		fclose(f);
+	}
 
-  machine_update(info);
+	machine_update(info);
 }
 
 void machine_term()
@@ -59,85 +59,85 @@ void machine_term()
 
 static void get_load_average(struct sysinfo *info)
 {
-  FILE *f;
-  char buf[64];
+	FILE *f;
+	char buf[64];
 
-  if((f = fopen("/proc/loadavg", "r"))){
-    for(;;){
-      double avg_1, avg_5, avg_15;
+	if((f = fopen("/proc/loadavg", "r"))){
+		for(;;){
+			double avg_1, avg_5, avg_15;
 
-      if(!fgets(buf, sizeof buf -1, f))
-        break;
+			if(!fgets(buf, sizeof buf -1, f))
+				break;
 
-      if(sscanf(buf, "%lf %lf %lf", &avg_1, &avg_5, &avg_15)){
-        info->loadavg[0] = avg_1;
-        info->loadavg[1] = avg_5;
-        info->loadavg[2] = avg_15;
-      }
-      break;
-    }
-  }
-  fclose(f);
+			if(sscanf(buf, "%lf %lf %lf", &avg_1, &avg_5, &avg_15)){
+				info->loadavg[0] = avg_1;
+				info->loadavg[1] = avg_5;
+				info->loadavg[2] = avg_15;
+			}
+			break;
+		}
+	}
+	fclose(f);
 }
 
 static void get_mem_usage(struct sysinfo *info)
 {
-  FILE *f;
-  char buf[256];
-  long unsigned mem_val = 0;
+	FILE *f;
+	char buf[256];
+	long unsigned mem_val = 0;
 
-  if((f = fopen("/proc/meminfo", "r"))){
-    while (!feof(f)) {
+	if((f = fopen("/proc/meminfo", "r"))){
+		while (!feof(f)) {
 
-      char *c, *key, *mem;
+			char *c, *key, *mem;
 
-      if(!fgets(buf, sizeof buf -1, f))
-        break;
+			if(!fgets(buf, sizeof buf -1, f))
+				break;
 
-      /* Format:
-         Key:     val kB
-      */
+			/* Format:
+Key:     val kB
+*/
 
-      c = strchr(buf, ':'); // find ':' seperator
+			c = strchr(buf, ':'); // find ':' seperator
 
-      if(!c)
-        break;
+			if(!c)
+				break;
 
-      key = buf; // pointer to the beginning of the line
-      mem = c+1; // mem points to char after ':'
-      *c = '\0'; // terminate key string
+			key = buf; // pointer to the beginning of the line
+			mem = c+1; // mem points to char after ':'
+			*c = '\0'; // terminate key string
 
-      while(isspace(*c++)); // Skip whitespaces
-      mem = c+1; // Pointer to the beginning of the numerical value
+			while(isspace(*c++)); // Skip whitespaces
+			mem = c+1; // Pointer to the beginning of the numerical value
 
-      if (key && mem) {
-        if (!strcmp("Active", key)) {
-          if (sscanf(mem, "%lu", &mem_val))
-            info->memory[0] = mem_val;
-        }
-        if (!strcmp("Inactive", key)) {
-          if (sscanf(mem, "%lu", &mem_val))
-            info->memory[1] = mem_val;
-        }
-        // TODO: Wired?
-        info->memory[2] = 0;
+			if (key && mem) {
+				if (!strcmp("Active", key)) {
+					if (sscanf(mem, "%lu", &mem_val))
+						info->memory[0] = mem_val;
+				}
+				if (!strcmp("Inactive", key)) {
+					if (sscanf(mem, "%lu", &mem_val))
+						info->memory[1] = mem_val;
+				}
+				// TODO: Wired?
+				info->memory[2] = 0;
 
-        if (!strcmp("Cached", key)) {
-          if (sscanf(mem, "%lu", &mem_val))
-            info->memory[3] = mem_val;
-        }
-        if (!strcmp("Buffers", key)) {
-          if (sscanf(mem, "%lu", &mem_val))
-            info->memory[4] = mem_val;
-        }
-        if (!strcmp("MemFree", key)) {
-          if (sscanf(mem, "%lu", &mem_val))
-            info->memory[5] = mem_val;
-        }
-      }
-    }
-  }
-  fclose(f);
+				if (!strcmp("Cached", key)) {
+					if (sscanf(mem, "%lu", &mem_val))
+						info->memory[3] = mem_val;
+				}
+				if (!strcmp("Buffers", key)) {
+					if (sscanf(mem, "%lu", &mem_val))
+						info->memory[4] = mem_val;
+				}
+				if (!strcmp("MemFree", key)) {
+					if (sscanf(mem, "%lu", &mem_val))
+						info->memory[5] = mem_val;
+				}
+			}
+		}
+	}
+	fclose(f);
 }
 
 static void get_cpu_stats(struct sysinfo *info)
@@ -259,30 +259,30 @@ int machine_update_proc(struct myproc *proc)
 		for(iter = strtok(start, " \t"); iter; iter = strtok(NULL, " \t")){
 			switch(i++){
 				case 0:
-				{
-					/* state: convert to PROC_STATE */
-					char c;
-					if(sscanf(iter, "%c", &c) == 1)
-						proc->state = proc_state_parse(c);
-					break;
-				}
+					{
+						/* state: convert to PROC_STATE */
+						char c;
+						if(sscanf(iter, "%c", &c) == 1)
+							proc->state = proc_state_parse(c);
+						break;
+					}
 
 #define INT(n, fmt, x) case n: sscanf(iter, fmt, x); break
-				INT(1,  "%d", &proc->ppid);
-				INT(4,  "%s",  proc->tty);
-				INT(5,  "%u", &proc->pgrp);
+					INT(1,  "%d", &proc->ppid);
+					INT(4,  "%s",  proc->tty);
+					INT(5,  "%u", &proc->pgrp);
 
-				INT(11, "%lu", &proc->utime);
-				INT(12, "%lu", &proc->stime);
-				INT(13, "%lu", &proc->cutime);
-				INT(14, "%lu", &proc->cstime);
+					INT(11, "%lu", &proc->utime);
+					INT(12, "%lu", &proc->stime);
+					INT(13, "%lu", &proc->cutime);
+					INT(14, "%lu", &proc->cstime);
 #undef INT
 			}
 		}
 		free(buf);
 
-    machine_read_argv(proc);
-    return 0;
+		machine_read_argv(proc);
+		return 0;
 	}else{
 		return -1;
 	}
@@ -322,7 +322,7 @@ void machine_proc_get_more(struct myproc **procs)
 		int pid;
 
 		if(sscanf(ent->d_name, "%d", &pid) == 1
-		&& !proc_get(procs, pid)){
+				&& !proc_get(procs, pid)){
 			struct myproc *p = machine_proc_new(pid);
 
 			if(p){
@@ -341,17 +341,17 @@ void machine_proc_get_more(struct myproc **procs)
 
 const char *machine_format_memory(struct sysinfo *info)
 {
-  static char memory_string[128];
-  char *p;
-  int i;
+	static char memory_string[128];
+	char *p;
+	int i;
 
-  p = memory_string;
+	p = memory_string;
 
-  for(i=0; i<6; i++)
-    p += snprintf(p, (sizeof memory_string) - (p - memory_string),
+	for(i=0; i<6; i++)
+		p += snprintf(p, (sizeof memory_string) - (p - memory_string),
 				"%s %s", format_kbytes(info->memory[i]), memorynames[i]);
 
-  return memory_string;
+	return memory_string;
 }
 
 const char *machine_format_cpu_pct(struct sysinfo *info)

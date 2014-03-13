@@ -141,49 +141,49 @@ int longest_passwd_line(const char *fname)
 
 const char *format_kbytes(long unsigned val)
 {
-  static char buf[64];
-  char prefix;
+	static char buf[64];
+	char prefix;
 
-  if(val / (1024 * 1024) > 10){
-    prefix = 'G';
-    val = val / (1024 * 1024);
-  }else if(val / 1024 > 10){
-    prefix = 'M';
-    val /= 1024;
-  }else{
-    prefix = 'K';
-  }
+	if(val / (1024 * 1024) > 10){
+		prefix = 'G';
+		val = val / (1024 * 1024);
+	}else if(val / 1024 > 10){
+		prefix = 'M';
+		val /= 1024;
+	}else{
+		prefix = 'K';
+	}
 
-  snprintf(buf, sizeof buf, "%lu%c", val, prefix);
+	snprintf(buf, sizeof buf, "%lu%c", val, prefix);
 
-  return buf;
+	return buf;
 }
 
 const char *format_seconds(unsigned long timeval)
 {
 #define BUF_PRINTF(fmt, ...) i += snprintf(&buf[i], sizeof(buf) - i, fmt, __VA_ARGS__)
-  static char buf[128];
+	static char buf[128];
 
-  unsigned long rest;
-  unsigned days, hours, minutes, seconds;
+	unsigned long rest;
+	unsigned days, hours, minutes, seconds;
 	size_t i = 0;
 
-  days = timeval / 86400;
-  rest = timeval % 86400;
-  hours = rest / 3600;
-  rest = rest % 3600;
-  minutes = rest / 60;
-  rest = rest % 60;
-  seconds = (unsigned int)rest;
+	days = timeval / 86400;
+	rest = timeval % 86400;
+	hours = rest / 3600;
+	rest = rest % 3600;
+	minutes = rest / 60;
+	rest = rest % 60;
+	seconds = (unsigned int)rest;
 
-  if(days)
-    BUF_PRINTF("%d+", days);
-  if(hours)
-    BUF_PRINTF("%02d:", hours);
+	if(days)
+		BUF_PRINTF("%d+", days);
+	if(hours)
+		BUF_PRINTF("%02d:", hours);
 
-  BUF_PRINTF("%02d:%02d", minutes, seconds);
+	BUF_PRINTF("%02d:%02d", minutes, seconds);
 
-  return buf;
+	return buf;
 #undef BUF_PRINTF
 }
 

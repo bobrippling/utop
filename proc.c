@@ -14,8 +14,8 @@
 #define PROC_IS_KERNEL(p) ((p)->ppid == 0 || (p)->ppid == 2)
 
 #define ITER_PROCS(i, p, ps)                    \
-  for(i = 0; i < HASH_TABLE_SIZE; i++)          \
-    for(p = ps[i]; p; p = p->hash_next)
+	for(i = 0; i < HASH_TABLE_SIZE; i++)          \
+		for(p = ps[i]; p; p = p->hash_next)
 
 /* Processes are saved into a hash table with size HASH_TABLE_SIZE and
  * key pid % HASH_TABLE_SIZE. If the key already exists, the new
@@ -112,28 +112,28 @@ static void proc_free(struct myproc *p, struct myproc **procs)
 
 struct myproc *proc_get(struct myproc **procs, pid_t pid)
 {
-  struct myproc *p;
+	struct myproc *p;
 
 	if(pid >= 0)
 		for(p = procs[pid % HASH_TABLE_SIZE]; p; p = p->hash_next)
 			if(p->pid == pid)
 				return p;
 
-  return NULL;
+	return NULL;
 }
 
 // Add a struct myproc pointer to the hash table
 void proc_addto(struct myproc **procs, struct myproc *p)
 {
-  struct myproc *last = procs[p->pid % HASH_TABLE_SIZE];
+	struct myproc *last = procs[p->pid % HASH_TABLE_SIZE];
 
-  if(last){
-    while(last->hash_next)
-      last = last->hash_next;
-    last->hash_next = p;
-  }else{
-    procs[p->pid % HASH_TABLE_SIZE] = p;
-  }
+	if(last){
+		while(last->hash_next)
+			last = last->hash_next;
+		last->hash_next = p;
+	}else{
+		procs[p->pid % HASH_TABLE_SIZE] = p;
+	}
 	p->hash_next = NULL;
 
 	struct myproc *parent = proc_get(procs, p->ppid);
@@ -144,20 +144,20 @@ void proc_addto(struct myproc **procs, struct myproc *p)
 // initialize hash table
 struct myproc **proc_init()
 {
-  return umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
+	return umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
 }
 
 const char *proc_state_str(struct myproc *p)
 {
 	return (const char *[]){
 		"R",
-		"S",
-		"D",
-		"T",
-		"Z",
-		"X",
-		"t",
-		"?",
+			"S",
+			"D",
+			"T",
+			"Z",
+			"X",
+			"t",
+			"?",
 	}[p->state];
 }
 
@@ -183,7 +183,7 @@ static void proc_update_single(
 		struct myproc **procs,
 		struct sysinfo *info)
 {
-  if(machine_proc_exists(proc)){
+	if(machine_proc_exists(proc)){
 		const pid_t oldppid = proc->ppid;
 
 		machine_update_proc(proc);
@@ -197,19 +197,19 @@ static void proc_update_single(
 			info->owned++;
 		info->procs_in_state[proc->state]++;
 
-    if(oldppid != proc->ppid){
-      struct myproc *parent = proc_get(procs, proc->ppid);
+		if(oldppid != proc->ppid){
+			struct myproc *parent = proc_get(procs, proc->ppid);
 
-      if(parent){
+			if(parent){
 				proc_add_child(parent, proc);
-      }else{
+			}else{
 				/* TODO: reparent to init? */
 			}
-    }
+		}
 
 		proc_create_shell_cmd(proc);
-  }else{
-    proc_free(proc, procs);
+	}else{
+		proc_free(proc, procs);
 	}
 }
 
@@ -227,19 +227,19 @@ enum proc_state proc_state_parse(char c)
 		case 't': return PROC_STATE_TRACE;
 
 		default:
-			return PROC_STATE_OTHER;
+							return PROC_STATE_OTHER;
 	}
 }
 
 const char *proc_str(struct myproc *p)
 {
-  static char buf[256];
+	static char buf[256];
 
-  snprintf(buf, sizeof buf,
-           "{ pid=%d, ppid=%d, state=%d, cmd=\"%s\"}",
-           p->pid, p->ppid, (int)p->state, p->shell_cmd);
+	snprintf(buf, sizeof buf,
+			"{ pid=%d, ppid=%d, state=%d, cmd=\"%s\"}",
+			p->pid, p->ppid, (int)p->state, p->shell_cmd);
 
-  return buf;
+	return buf;
 }
 
 void proc_update(struct myproc **procs, struct sysinfo *info)
@@ -270,24 +270,24 @@ void proc_update(struct myproc **procs, struct sysinfo *info)
 					p = p->hash_next;
 				}
 			}
-    }
-  }
+		}
+	}
 
-  machine_proc_get_more(procs);
+	machine_proc_get_more(procs);
 }
 
 void proc_dump(struct myproc **ps, FILE *f)
 {
-  struct myproc *p;
-  int i;
+	struct myproc *p;
+	int i;
 
-  ITER_PROCS(i, p, ps)
-      fprintf(f, "%s\n", proc_str(p));
+	ITER_PROCS(i, p, ps)
+		fprintf(f, "%s\n", proc_str(p));
 }
 
 struct myproc *proc_find(const char *str, struct myproc **ps)
 {
-  return proc_find_n(str, ps, 0);
+	return proc_find_n(str, ps, 0);
 }
 
 static int proc_find_match(const char *shell_cmd, const char *search_str)
@@ -361,7 +361,7 @@ int proc_to_idx(struct myproc **procs, struct myproc *searchee, int *py)
 		if(proc_to_idx_nested(head, searchee, py))
 			return 1;
 
-  return 0;
+	return 0;
 }
 
 static struct myproc *proc_from_idx_nested(struct myproc *head, int *idx)
@@ -389,7 +389,7 @@ struct myproc *proc_from_idx(struct myproc **procs, int *idx)
 {
 	// TODO: kernel threads
 
-  if(*idx < 0)
+	if(*idx < 0)
 		return NULL;
 
 	ITER_PROC_HEADS(struct myproc *, head, procs){
@@ -399,7 +399,7 @@ struct myproc *proc_from_idx(struct myproc **procs, int *idx)
 			return test;
 	}
 
-  return NULL;
+	return NULL;
 
 #undef RET
 }
