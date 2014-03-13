@@ -13,8 +13,6 @@
 #include "machine.h"
 #include "main.h"
 
-#define MS_TO_US(n) ((n) * 1000)
-
 struct globals globals;
 
 int max_unam_len, max_gnam_len;
