@@ -75,5 +75,6 @@ try_cflag -Wmissing-variable-declarations
 try_cflag -Wshadow
 try_cflag -Wshorten-64-to-32
 try_cflag -Wunused-macros
+try_cflag -Wno-dollar-in-identifier-extension
 
 echo Configured for $arch
