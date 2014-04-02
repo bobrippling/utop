@@ -5,14 +5,16 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 #include <time.h>
-#include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stddef.h>
+
+#include <signal.h>
+#include <unistd.h>
+
 #include <sys/resource.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/types.h>
 
 #include "structs.h"
@@ -248,12 +250,12 @@ static void showproc(struct myproc *proc, int *py, int indent)
 		&& !is_searched_alt
 		&& proc->argv)
 		{
-			const int bname_off = proc->argv0_basename - proc->argv[0];
-			int off = machine_proc_display_width()
+			const ptrdiff_t bname_off = proc->argv0_basename - proc->argv[0];
+			size_t off = machine_proc_display_width()
 				+ bname_off + total_indent - pos_x;
 
-			if(2 <= off && off < COLS){
-				const int bn_len = strlen(proc->argv0_basename);
+			if(2 <= off && off < (size_t)COLS){
+				const size_t bn_len = strlen(proc->argv0_basename);
 
 				/* y, x, n, attr, color, opts */
 				/* + 6 for "% 7d" above */
@@ -470,7 +472,7 @@ static void external(const char *cmd)
 
 static void external2(const char *cmd, struct myproc *p)
 {
-	int len = strlen(cmd) + 16;
+	size_t len = strlen(cmd) + 16;
 	char *buf = malloc(len);
 
 	if(!buf)
@@ -516,7 +518,7 @@ void gdb(struct myproc *p, struct myproc **ps)
 {
 	// Attach to a running process: gdb <name> <pid>
 	char *cmd;
-	int len;
+	size_t len;
 
 	(void)ps;
 

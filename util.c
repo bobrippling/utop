@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
+#include <stddef.h>
 
 #include <sys/time.h>
 #include <signal.h>
@@ -127,7 +128,7 @@ int longest_passwd_line(const char *fname)
 	while(fgets(buf, sizeof buf, f)){
 		char *colon = strchr(buf, ':');
 		if(colon){
-			int len = colon - buf;
+			int len = (int)(colon - buf);
 			if(len > max)
 				max = len;
 		}
@@ -165,7 +166,7 @@ const char *format_seconds(unsigned long timeval)
 	static char buf[128];
 
 	unsigned long rest;
-	unsigned days, hours, minutes, seconds;
+	unsigned long days, hours, minutes, seconds;
 	size_t i = 0;
 
 	days = timeval / 86400;
@@ -177,19 +178,19 @@ const char *format_seconds(unsigned long timeval)
 	seconds = (unsigned int)rest;
 
 	if(days)
-		BUF_PRINTF("%d+", days);
+		BUF_PRINTF("%ld+", days);
 	if(hours)
-		BUF_PRINTF("%02d:", hours);
+		BUF_PRINTF("%02ld:", hours);
 
-	BUF_PRINTF("%02d:%02d", minutes, seconds);
+	BUF_PRINTF("%02ld:%02ld", minutes, seconds);
 
 	return buf;
 #undef BUF_PRINTF
 }
 
-void argv_free(int argc, char **argv)
+void argv_free(size_t argc, char **argv)
 {
-	for(int i = 0; i < argc; i++)
+	for(size_t i = 0; i < argc; i++)
 		free(argv[i]);
 	free(argv);
 }

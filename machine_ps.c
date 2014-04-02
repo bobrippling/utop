@@ -82,7 +82,7 @@ static const char *ps_find(pid_t search_pid)
 	return NULL;
 }
 
-static char **ps_parse_argv(char *cmd, int *pargc)
+static char **ps_parse_argv(char *cmd, size_t *pargc)
 {
 	char **argv = NULL;
 	int argc = 0;

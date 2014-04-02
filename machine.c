@@ -86,9 +86,9 @@ const char *uptime_from_boottime(time_t boottime)
 	static char buf[64]; // Should be sufficient
 	time_t now;
 	struct tm *ltime;
-	unsigned long int diff_secs; // The difference between now and the epoch
-	unsigned long int rest;
-	unsigned int days, hours, minutes, seconds;
+	unsigned long diff_secs; // The difference between now and the epoch
+	unsigned long rest;
+	unsigned long days, hours, minutes, seconds;
 
 	time(&now);
 	ltime = localtime(&now);
@@ -103,7 +103,8 @@ const char *uptime_from_boottime(time_t boottime)
 	rest = rest % 60;
 	seconds = (unsigned int)rest;
 
-	snprintf(buf, sizeof buf, "up %d+%02d:%02d:%02d  %02d:%02d:%02d",
+	snprintf(buf, sizeof buf,
+			"up %ld+%02ld:%02ld:%02ld  %02d:%02d:%02d",
 			days, hours, minutes, seconds,
 			ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
 
