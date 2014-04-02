@@ -128,6 +128,11 @@ static struct myproc *curproc(struct myproc **procs)
 	return proc_from_idx(procs, &i);
 }
 
+static void unfocus(void)
+{
+	current.pid = 0;
+}
+
 static void position(int newy, struct myproc **procs)
 {
 	pos_y = newy;
@@ -146,7 +151,7 @@ static void position(int newy, struct myproc **procs)
 		current.pid = on->pid;
 		current.ppid = on->ppid;
 	}else{
-		current.pid = 0;
+		unfocus();
 	}
 }
 
@@ -737,6 +742,7 @@ backspace:
 			pos_top = ty - LINES / 2;
 			if(pos_top < 0)
 				pos_top = 0;
+			unfocus();
 		}
 	}
 
@@ -843,15 +849,19 @@ void gui_run(struct myproc **procs)
 				case EXPOSE_ONE_MORE_LINE_BOTTOM_CHAR:
 					if(pos_top < info.count - 1){
 						pos_top++;
-						if(pos_y < pos_top)
+						if(pos_y < pos_top){
 							pos_y = pos_top;
+							unfocus();
+						}
 					}
 					break;
 				case EXPOSE_ONE_MORE_LINE_TOP_CHAR:
 					if(pos_top > 0){
 						pos_top--;
-						if(pos_y > pos_top + DRAW_SPACE)
+						if(pos_y > pos_top + DRAW_SPACE){
 							pos_y = pos_top + DRAW_SPACE;
+							unfocus();
+						}
 					}
 					break;
 
@@ -891,6 +901,8 @@ void gui_run(struct myproc **procs)
 					}
 					if(pos_top < 0)
 						pos_top = 0;
+
+					unfocus();
 					break;
 
 
