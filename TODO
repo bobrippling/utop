@@ -22,3 +22,5 @@ More configurable colours
 Kernel threads - present but can't get info on them?
 
 better search - search usernames etc
+
+filter mode - like search but only display matched processes
