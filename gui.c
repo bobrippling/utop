@@ -490,9 +490,26 @@ void renice(struct myproc *p, struct myproc **ps)
 
 static void external(const char *cmd)
 {
+	int status;
+
 	gui_term();
 
-	system(cmd);
+	pid_t pid = fork();
+	if(pid == 0){
+		/* child */
+		if(setsid() == -1)
+			fprintf(stderr, "setsid(): %s\n", strerror(errno));
+		system(cmd);
+		exit(127);
+	}
+
+	if(pid == -1){
+		fprintf(stderr, "fork(): %s\n", strerror(errno));
+	}else{
+		if(waitpid(pid, &status, 0) == -1)
+			fprintf(stderr, "wait(): %s\n", strerror(errno));
+	}
+
 	fputs("return to continue...", stdout);
 	fflush(stdout);
 	getchar();
