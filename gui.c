@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stddef.h>
+#include <assert.h>
 
 #include <signal.h>
 #include <unistd.h>
@@ -361,21 +362,42 @@ static void waitch(int y, int x)
 	waitgetch();
 }
 
+static const char *confirm_read(const char *fmt, va_list l, unsigned maxlen)
+{
+	static char buf[8];
+
+	assert(maxlen < sizeof buf);
+	memset(buf, 0, sizeof buf);
+
+	move(0, 0);
+	vwprintw(stdscr, fmt, l);
+	clrtoeol();
+
+	gui_text_entry(1);
+	getnstr(buf, maxlen);
+	gui_text_entry(0);
+
+	return buf;
+}
+
 static int confirm(const char *fmt, ...)
 {
 	va_list l;
-	int ch;
-
 	va_start(l, fmt);
-	move(0, 0);
-	vwprintw(stdscr, fmt, l);
+	const char *buf = confirm_read(fmt, l, 1);
 	va_end(l);
-	clrtoeol();
 
-	ch = waitgetch();
-	if(ch == 'y' || ch == 'Y')
-		return 1;
-	return 0;
+	return tolower(*buf) == 'y';
+}
+
+static int confirm_long(const char *fmt, ...)
+{
+	va_list l;
+	va_start(l, fmt);
+	const char *buf = confirm_read(fmt, l, 4);
+	va_end(l);
+
+	return !strcmp(buf, "yes");
 }
 
 void delete(struct myproc *p, struct myproc **ps)
@@ -385,15 +407,8 @@ void delete(struct myproc *p, struct myproc **ps)
 
 	(void)ps;
 
-	if(p->pid == 1){
-		char confirm[8];
-		STATUS(0, 0, "kill %s?! type yes to confirm: ", p->argv0_basename);
-		gui_text_entry(1);
-		getnstr(confirm, sizeof confirm);
-		gui_text_entry(0);
-		if(strcmp(confirm, "yes"))
-			return;
-	}
+	if(p->pid == 1 && !confirm_long("kill %s?! type yes to confirm: ", *p->argv))
+		return;
 
 	STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->argv0_basename);
 	gui_text_entry(1);
