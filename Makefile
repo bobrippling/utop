@@ -16,6 +16,9 @@ gui.c main.c util.c proc.c \
 	machine_freebsd.c \
 	machine_ps.c: config.mk
 
+machine.o: machine.c machine_darwin.c machine_freebsd.c \
+	machine_linux.c machine_ps.c
+
 config.mk:
 	@if ! test -f config.mk; then echo utop needs configuring >&2; exit 1; fi
 
