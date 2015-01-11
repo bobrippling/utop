@@ -21,6 +21,11 @@
 #define STAT_PATH(buf, pid) \
 	snprintf(buf, sizeof buf, "/proc/%d/stat", pid);
 
+/* needed for tty device id */
+#ifndef minor
+#  define minor(x) ((x) & 0xff)
+#endif
+
 /* these are for detailing the memory statistics */
 const char *memorynames[] = {
 	"Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
@@ -254,10 +259,12 @@ int machine_update_proc(struct myproc *proc)
 		int i;
 		char *start = strrchr(buf, ')') + 2;
 		char *iter;
+		int ttyn = -1;
 
 		i = 0;
 		for(iter = strtok(start, " \t"); iter; iter = strtok(NULL, " \t")){
 			switch(i++){
+				/* NOTE: index numbers are zero-based on the first entry after "(process name)" */
 				case 0:
 					{
 						/* state: convert to PROC_STATE */
@@ -269,7 +276,7 @@ int machine_update_proc(struct myproc *proc)
 
 #define INT(n, fmt, x) case n: sscanf(iter, fmt, x); break
 					INT(1,  "%d", &proc->ppid);
-					INT(4,  "%s",  proc->tty);
+					INT(4,  "%d", &ttyn);
 					INT(5,  "%u", &proc->pgrp);
 
 					INT(11, "%lu", &proc->utime);
@@ -280,6 +287,12 @@ int machine_update_proc(struct myproc *proc)
 			}
 		}
 		free(buf);
+
+		if(ttyn != -1){
+			char ttybuf[16];
+			snprintf(ttybuf, sizeof ttybuf, "pts/%d", minor(ttyn));
+			proc->tty = ustrdup(ttybuf);
+		}
 
 		machine_read_argv(proc);
 		return 0;
