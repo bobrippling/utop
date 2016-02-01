@@ -795,7 +795,7 @@ static void refocus(struct myproc **procs)
 void gui_run(struct myproc **procs)
 {
 	struct sysinfo info;
-	long last_update = 0;
+	long last_update = mstime() - WAIT_TIME - 1;
 	int fin = 0;
 
 	memset(&info, 0, sizeof info);
