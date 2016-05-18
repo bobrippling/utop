@@ -165,6 +165,7 @@ void machine_proc_get_more(struct myproc **procs)
 			p->ppid = ppid;
 
 			proc_addto(procs, p);
+			machine_update_proc(p);
 		}else{
 			//fprintf(stderr, "couldn't sscanf(\"%s\")\n", ps[i]);
 		}
