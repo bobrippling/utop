@@ -1,6 +1,7 @@
 CFLAGS  = -g -Wall -Wextra -pedantic -std=c99
 
 LDFLAGS = -g -lncurses
+LDFLAGS_STATIC = -static ${LDFLAGS} -ltinfo
 PREFIX  = /usr/local
 OBJ     = main.o proc.o gui.o util.o machine.o
 VERSION = 0.9.3
@@ -8,7 +9,10 @@ VERSION = 0.9.3
 .PHONY: clean install uninstall deps
 
 utop: ${OBJ}
-	${CC} ${LDFLAGS} -o $@ ${OBJ}
+	${CC} -o $@ ${OBJ} ${LDFLAGS}
+
+utop.static: ${OBJ}
+	${CC} -o $@ ${OBJ} ${LDFLAGS_STATIC}
 
 gui.c main.c util.c proc.c \
 	machine_linux.c \

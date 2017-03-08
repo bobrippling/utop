@@ -1,4 +1,5 @@
 *.o
 utop
+utop.static
 config.mk
 Makefile.deps
