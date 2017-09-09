@@ -71,7 +71,7 @@ static void ps_update(void)
 		free(ps_list);
 	}
 
-	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,state,nice,tty,command";
+	static const char *ps_cmd = "sudo adb shell ps"; //ps -e -o pid,ppid,uid,gid,state,nice,tty,command";
 	ps_list = pipe_in(ps_cmd, &ps_n, 1);
 }
 
@@ -82,8 +82,11 @@ static const char *ps_find(pid_t search_pid)
 
 	for(size_t i = 0; i < ps_n; i++){
 		pid_t pid;
-		if(sscanf(ps_list[i], " %d", &pid) == 1 && pid == search_pid)
-			return ps_list[i];
+		char *p = ps_list[i];
+		while(*p && !isspace(*p))
+			p++;
+		if(sscanf(p, " %d", &pid) == 1 && pid == search_pid)
+			return p;
 	}
 	return NULL;
 }
@@ -98,6 +101,11 @@ static char **ps_parse_argv(char *cmd, size_t *pargc)
 		argv[argc - 1] = ustrdup(s);
 	}
 
+	if(!argv){
+		argv = umalloc(2 * sizeof *argv);
+		argc = 1;
+		argv[0] = ustrdup("<couldn't parse>");
+	}
 	argv[argc] = NULL;
 
 	*pargc = argc;
@@ -119,11 +127,14 @@ int machine_update_proc(struct myproc *p)
 	char cmd[256] = { 0 }; /* %c doesn't 0-terminate */
 	int nice;
 
+	while(*l && !isspace(*l))
+		l++;
+
 	/*                                       /[ \n\t]*(.*)/ */
 	if(l && sscanf(l, " %d %d %d %d "
-				"%7s %d %15s%*[ \n\t]%255c",
-				&pid, &ppid, &uid, &gid,
-				stat, &nice, tty, cmd) == 8)
+				"%10s %d %15s %255c",
+				&pid, &ppid, &(int){0}, &(int){0},
+				(char[20]){0}, &(int){0}, (char[20]){0}/*state*/, cmd))
 	{
 		p->uid = uid;
 		p->gid = gid;
@@ -164,7 +175,11 @@ void machine_proc_get_more(struct myproc **procs)
 	for(size_t i = 0; i < ps_n; i++){
 		pid_t pid, ppid;
 
-		if(sscanf(ps_list[i], " %d %d ", &pid, &ppid) == 2
+		char *p = ps_list[i];
+		while(*p && !isspace(*p))
+			p++;
+
+		if(sscanf(p, " %d %d ", &pid, &ppid) == 2
 		&& !proc_get(procs, pid))
 		{
 			struct myproc *p = umalloc(sizeof *p);
