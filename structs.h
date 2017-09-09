@@ -5,7 +5,7 @@
 
 struct myproc
 {
-	pid_t pid, ppid;
+	pid_t pid, tid, ppid;
   int jid;
 
 	uid_t uid;

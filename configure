@@ -46,7 +46,7 @@ case $arch in
 		trace_tool ktrace
 		;;
 	Linux)
-		config "CFLAGS += -D_POSIX_SOURCE -D_BSD_SOURCE"
+		config "CFLAGS += -D_POSIX_SOURCE -D_DEFAULT_SOURCE"
 		trace_tool strace
 		;;
 	*)

@@ -301,7 +301,7 @@ int machine_update_proc(struct myproc *proc)
 	}
 }
 
-static struct myproc *machine_proc_new(pid_t pid)
+static struct myproc *machine_proc_new(pid_t pid, pid_t tid)
 {
 	struct myproc *this = NULL;
 	char cmdln[32];
@@ -310,20 +310,21 @@ static struct myproc *machine_proc_new(pid_t pid)
 	this = umalloc(sizeof *this);
 	memset(this, 0, sizeof *this);
 
-	snprintf(cmdln, sizeof cmdln, "/proc/%d/task/%d/", pid, pid);
+	snprintf(cmdln, sizeof cmdln, "/proc/%d/task/%d/", pid, tid);
 	if(stat(cmdln, &st) == 0)
 		machine_update_unam_gnam(this, st.st_uid, st.st_gid);
 
-	this->pid       = pid;
-	this->ppid      = -1;
+	this->pid = pid;
+	this->tid = tid;
+	this->ppid = -1;
 
 	return this;
 }
 
-void machine_proc_get_more(struct myproc **procs)
+static void machine_proc_get_more_dir(struct myproc **procs, const char *dir, pid_t mainthread)
 {
 	/* TODO: kernel threads */
-	DIR *d = opendir("/proc");
+	DIR *d = opendir(dir);
 	struct dirent *ent;
 
 	if(!d){
@@ -332,15 +333,23 @@ void machine_proc_get_more(struct myproc **procs)
 	}
 
 	while((errno = 0, ent = readdir(d))){
-		int pid;
+		char *end;
+		int pid = strtol(ent->d_name, &end, 0);
+		if(*end)
+			continue;
 
-		if(sscanf(ent->d_name, "%d", &pid) == 1
-				&& !proc_get(procs, pid)){
-			struct myproc *p = machine_proc_new(pid);
+		struct myproc *p = proc_get(procs, pid);
+		if(!p){
+			p = machine_proc_new(mainthread == -1 ? pid : mainthread, pid);
+			if(!p)
+				continue;
+			proc_addto(procs, p);
+		}
 
-			if(p){
-				proc_addto(procs, p);
-			}
+		if(mainthread == -1){
+			char subdir[64];
+			snprintf(subdir, sizeof(subdir), "/proc/%d/task", pid);
+			machine_proc_get_more_dir(procs, subdir, pid);
 		}
 	}
 
@@ -350,6 +359,11 @@ void machine_proc_get_more(struct myproc **procs)
 	}
 
 	closedir(d);
+}
+
+void machine_proc_get_more(struct myproc **procs)
+{
+	machine_proc_get_more_dir(procs, "/proc", -1);
 }
 
 const char *machine_format_memory(struct sysinfo *info)
