@@ -6,6 +6,7 @@
 #include "structs.h"
 #include "machine.h"
 #include "proc.h"
+#include "main.h"
 
 static char *in_line(FILE *f)
 {
@@ -27,7 +28,7 @@ static char *in_line(FILE *f)
 
 static char **pipe_in(const char *cmd, size_t *pn, size_t skip)
 {
-	FILE *f = popen(cmd, "r");
+	FILE *f = ps_from_file ? fopen("__ps", "r") : popen(cmd, "r");
 	if(!f)
 		return NULL;
 
@@ -50,8 +51,10 @@ static char **pipe_in(const char *cmd, size_t *pn, size_t skip)
 	}
 
 	// TODO: check ferror
-
-	pclose(f); // TODO: check
+	if(ps_from_file)
+		fclose(f);
+	else
+		pclose(f);
 
 	*pn = n;
 	return list;
@@ -74,6 +77,9 @@ static void ps_update(void)
 
 static const char *ps_find(pid_t search_pid)
 {
+	if(!ps_list)
+		return NULL;
+
 	for(size_t i = 0; i < ps_n; i++){
 		pid_t pid;
 		if(sscanf(ps_list[i], " %d", &pid) == 1 && pid == search_pid)
@@ -151,6 +157,9 @@ int machine_update_proc(struct myproc *p)
 void machine_proc_get_more(struct myproc **procs)
 {
 	ps_update();
+
+	if(!ps_list)
+		return;
 
 	for(size_t i = 0; i < ps_n; i++){
 		pid_t pid, ppid;

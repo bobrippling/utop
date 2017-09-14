@@ -12,4 +12,6 @@ extern struct globals
 	int basename;
 } globals;
 
+extern int ps_from_file;
+
 #endif

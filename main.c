@@ -16,6 +16,7 @@
 struct globals globals;
 
 int max_unam_len, max_gnam_len;
+int ps_from_file;
 
 static struct myproc **proclist;
 
@@ -51,16 +52,19 @@ int main(int argc, char **argv)
 			globals.basename = 1;
 		}else if(!strcmp(argv[i], "-k")){
 			globals.kernel = 1;
+		}else if(!strcmp(argv[i], "-P")){
+			ps_from_file ^= 1;
 		}else if(!strcmp(argv[i], "-v")){
 			fprintf(stderr, "utop %s\n", "0.9");
 			return 0;
 		}else{
 			fprintf(stderr,
-							"Usage: %s [-f] [-d]\n"
+							"Usage: %s [-f] [-d] [-P]\n"
 							" -f: Don't prompt for lsof and strace\n"
 							" -d: Debug mode\n"
 							" -b: Only show program basenames\n"
 							" -k: Show kernel threads\n"
+							" -P: Read ps listing from ./__ps\n"
 							, *argv);
 			return 1;
 		}

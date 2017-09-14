@@ -49,6 +49,7 @@
 #define FORWARD_HALF_WINDOW_CHAR CTRL_AND('d')
 #define FREEZE_CHAR 'f'
 #define BASENAME_TOGGLE_CHAR 'b'
+#define READ_FROM_PS_FILE_CHAR 'P'
 
 // Colors
 

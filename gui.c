@@ -197,7 +197,7 @@ static void showproc(struct myproc *proc, int *py, int indent)
 		return;
 
 	if(y >= TOP_OFFSET){ // otherwise we're iterating over a process that's above pos_top
-		const int is_owned         = proc->uid == globals.uid;
+		const int is_owned         = ps_from_file || proc->uid == globals.uid;
 		const int is_locked        = proc->pid == lock_proc_pid;
 		const int is_searched      = proc      == search_proc;
 		const int is_searched_alt  = *search_str
@@ -961,6 +961,10 @@ void gui_run(struct myproc **procs)
 
 				case INFO_CHAR:
 					on_curproc("info", show_info, 0, procs);
+					break;
+
+				case READ_FROM_PS_FILE_CHAR:
+					ps_from_file ^= 1;
 					break;
 
 				default:
