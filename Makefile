@@ -37,7 +37,7 @@ install: utop
 	sed "s/UTOP_VERSION/${VERSION}/g" utop.1 > ${PREFIX}/share/man/man1/utop.1
 
 uninstall:
-	rm -f ${PREFIX}/bin/utop ${PREFIX}/share/man/man1/
+	rm -f ${PREFIX}/bin/utop ${PREFIX}/share/man/man1/utop.1
 
 deps:
 	cc -MM ${OBJ:.o=.c} >Makefile.deps
