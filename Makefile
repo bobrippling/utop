@@ -32,6 +32,7 @@ clean:
 	rm -f ${OBJ} utop
 
 install: utop
+	mkdir -p ${PREFIX}/bin
 	cp utop ${PREFIX}/bin
 	mkdir -p ${PREFIX}/share/man/man1/
 	sed "s/UTOP_VERSION/${VERSION}/g" utop.1 > ${PREFIX}/share/man/man1/utop.1
