@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <paths.h>
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/stat.h> // S_IFCHR
 #include <sys/file.h> // O_RDONLY
 #include <time.h>
