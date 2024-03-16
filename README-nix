@@ -1,0 +1,5 @@
+To develop:
+	$ nix-shell utop.nix
+
+To install (locally):
+	$ nix-env -if utop.nix
