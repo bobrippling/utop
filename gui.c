@@ -237,7 +237,7 @@ static void showproc(struct myproc *proc, int *py, int indent)
 		else if(!is_owned)
 			attron(ATTR_NOT_OWNED);
 
-		printw("% 7d %s", proc->pid, linebuf + pos_x);
+		printw("% 11d %s", proc->pid, linebuf + pos_x);
 
 		if(is_searched)
 			attroff(ATTR_SEARCH);
@@ -264,8 +264,8 @@ static void showproc(struct myproc *proc, int *py, int indent)
 				const size_t bn_len = strlen(proc->argv0_basename);
 
 				/* y, x, n, attr, color, opts */
-				/* + 6 for "% 7d" above */
-				mvchgat(y, off + 6, bn_len, BASENAME_ATTR, BASENAME_COL, NULL);
+				/* + 10 for "% 11d" above */
+				mvchgat(y, off + 10, bn_len, BASENAME_ATTR, BASENAME_COL, NULL);
 			}
 		}
 
