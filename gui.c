@@ -195,12 +195,14 @@ static void goto_lock(struct myproc **procs)
 	}
 }
 
-static void showproc(struct myproc *proc, int *py, int indent)
+static void showproc(struct myproc *proc, int *py, int indent, int in_fold)
 {
 	int y = *py;
 
 	proc->mark = 1;
 
+	if(in_fold)
+		goto out;
 	if(y >= LINES)
 		return;
 
@@ -283,13 +285,13 @@ static void showproc(struct myproc *proc, int *py, int indent)
 	// done with our proc, increment y
 	y++;
 
+out:
 	/*
 	 * need to iterate over all children,
 	 * since we may currently be on a process above the top
 	 */
-	if(!proc->folded)
-		for(struct myproc **iter = proc->children; iter && *iter; iter++)
-			showproc(*iter, &y, indent + 1);
+	for(struct myproc **iter = proc->children; iter && *iter; iter++)
+		showproc(*iter, &y, indent + 1, in_fold || proc->folded);
 
 	*py = y;
 }
@@ -304,7 +306,7 @@ static void showprocs(struct myproc **procs, struct sysinfo *info)
 		proc_mark_kernel(procs);
 
 	ITER_PROC_HEADS(struct myproc *, p, procs)
-		showproc(p, &y, 0);
+		showproc(p, &y, 0, 0);
 
 	move(y, 0);
 	clrtobot();
