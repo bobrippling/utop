@@ -50,6 +50,7 @@
 #define FREEZE_CHAR 'f'
 #define BASENAME_TOGGLE_CHAR 'b'
 #define READ_FROM_PS_FILE_CHAR 'P'
+#define FOLD_CHAR '-'
 
 // Colors
 

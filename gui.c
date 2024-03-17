@@ -237,7 +237,7 @@ static void showproc(struct myproc *proc, int *py, int indent)
 		else if(!is_owned)
 			attron(ATTR_NOT_OWNED);
 
-		printw("% 11d %s", proc->pid, linebuf + pos_x);
+		printw("% 11d%c%s", proc->pid, proc->folded ? '-' : ' ', linebuf + pos_x);
 
 		if(is_searched)
 			attroff(ATTR_SEARCH);
@@ -279,8 +279,9 @@ static void showproc(struct myproc *proc, int *py, int indent)
 	 * need to iterate over all children,
 	 * since we may currently be on a process above the top
 	 */
-	for(struct myproc **iter = proc->children; iter && *iter; iter++)
-		showproc(*iter, &y, indent + 1);
+	if(!proc->folded)
+		for(struct myproc **iter = proc->children; iter && *iter; iter++)
+			showproc(*iter, &y, indent + 1);
 
 	*py = y;
 }
@@ -966,6 +967,14 @@ void gui_run(struct myproc **procs)
 				case READ_FROM_PS_FILE_CHAR:
 					ps_from_file ^= 1;
 					break;
+
+				case FOLD_CHAR:
+				{
+					struct myproc *p = curproc(procs);
+					if(p)
+						p->folded ^= 1;
+					break;
+				}
 
 				default:
 					try_external(ch, procs);
