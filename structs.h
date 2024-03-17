@@ -34,6 +34,8 @@ struct myproc
 	char *tty;
 	signed char nice;
 
+	unsigned char folded;
+
 	double pc_cpu;
 	unsigned long utime, stime, cutime, cstime;
 	unsigned long cputime;

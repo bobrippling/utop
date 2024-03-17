@@ -334,12 +334,13 @@ struct myproc *proc_find_n(const char *str, struct myproc **ps, int n)
 
 static int proc_to_idx_nested(
 		struct myproc *head, struct myproc *const searchee,
-		int *py)
+		int *py, int in_fold)
 {
 	if(head == searchee)
 		return 1;
 
-	++*py;
+	if(!in_fold)
+		++*py;
 
 	for(struct myproc **iter = head->children;
 			iter && *iter;
@@ -348,7 +349,7 @@ static int proc_to_idx_nested(
 		if(searchee == *iter)
 			return 1;
 
-		if(proc_to_idx_nested(*iter, searchee, py))
+		if(proc_to_idx_nested(*iter, searchee, py, in_fold || head->folded))
 			return 1;
 	}
 
@@ -358,7 +359,7 @@ static int proc_to_idx_nested(
 int proc_to_idx(struct myproc **procs, struct myproc *searchee, int *py)
 {
 	ITER_PROC_HEADS(struct myproc *, head, procs)
-		if(proc_to_idx_nested(head, searchee, py))
+		if(proc_to_idx_nested(head, searchee, py, head->folded))
 			return 1;
 
 	return 0;
@@ -375,7 +376,7 @@ static struct myproc *proc_from_idx_nested(struct myproc *head, int *idx)
 	{
 		if(--*idx <= 0){
 			return *iter;
-		}else{
+		}else if(!(*iter)->folded){
 			struct myproc *sub = proc_from_idx_nested(*iter, idx);
 			if(sub)
 				return sub;

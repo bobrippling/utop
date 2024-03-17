@@ -47,11 +47,6 @@ static int  search_idx = 0, search_offset = 0, search_pid = 0;
 static char search_str[32] = { 0 };
 static struct myproc *search_proc = NULL;
 
-static struct {
-	pid_t *pids;
-	size_t alloc, n;
-} folded;
-
 static int frozen = 0;
 
 static pid_t lock_proc_pid = -1;
@@ -59,56 +54,6 @@ static struct
 {
 	pid_t pid, ppid;
 } current;
-
-static int is_folded(pid_t pid)
-{
-	size_t i;
-
-	if(!folded.pids) return 0;
-
-	for(i = 0; i < folded.n; i++)
-		if(folded.pids[i] == pid)
-			return 1;
-	return 0;
-}
-
-static void toggle_folded(pid_t pid)
-{
-	size_t i;
-
-	if(!folded.pids){
-		folded.pids = malloc(sizeof(pid));
-		if(!folded.pids) return;
-
-		folded.alloc = 1;
-		folded.n = 1;
-		*folded.pids = pid;
-		return;
-	}
-
-	for(i = 0; i < folded.n; i++){
-		if(folded.pids[i] == pid){
-			size_t nafter = folded.n - i - 1;
-
-			memmove(
-				&folded.pids[i],
-				&folded.pids[i+1],
-				nafter * sizeof(pid)
-			);
-			folded.n--;
-			return;
-		}
-	}
-
-	if(folded.n == folded.alloc){
-		pid_t *new = realloc(folded.pids, (folded.alloc + 1) * sizeof(pid));
-		if(!new) return;
-		folded.pids = new;
-		folded.alloc++;
-	}
-	folded.pids[folded.n] = pid;
-	folded.n++;
-}
 
 static void getch_delay(int on)
 {
