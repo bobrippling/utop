@@ -63,6 +63,7 @@ void machine_term()
 
 static void get_load_average(struct sysinfo *info)
 {
+#ifdef FLOAT_SUPPORT
 	FILE *f;
 	char buf[64];
 
@@ -82,6 +83,9 @@ static void get_load_average(struct sysinfo *info)
 		}
 	}
 	fclose(f);
+#else
+	(void)info;
+#endif
 }
 
 static void get_mem_usage(struct sysinfo *info)

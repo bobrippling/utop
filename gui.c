@@ -332,11 +332,15 @@ static void showprocs(struct myproc **procs, struct sysinfo *info)
 
 		STATUS(0, 0, "%d processes, %d running, "
 				"%d owned, %d kernel, %d zombies, "
+#ifdef FLOAT_SUPPORT
 				"load averages: %.2f, %.2f, %.2f, "
+#endif
 				"uptime: %s",
 				info->count, info->procs_in_state[PROC_STATE_RUN],
 				info->owned, info->count_kernel, info->procs_in_state[PROC_STATE_ZOMBIE],
+#ifdef FLOAT_SUPPORT
 				info->loadavg[0], info->loadavg[1], info->loadavg[2],
+#endif
 				uptime_from_boottime(info->boottime.tv_sec));
 
 		STATUS(1, 0, "Mem: %s", machine_format_memory(info));

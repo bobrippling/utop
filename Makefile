@@ -1,4 +1,4 @@
-CFLAGS  = -g -Wall -Wextra -pedantic -std=c99
+CFLAGS  = -g -Wall -Wextra -pedantic -std=c99 -DFLOAT_SUPPORT
 
 LDFLAGS = -g -lncurses
 LDFLAGS_STATIC = -static ${LDFLAGS} -ltinfo

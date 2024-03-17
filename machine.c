@@ -65,12 +65,16 @@ const char *machine_proc_display_line_default(struct myproc *p)
 	snprintf(buf, sizeof buf,
 			"% 11d %-1s " // 22
 			"%-*s %-*s "      // max_unam_len + max_gnam_len + 1
+#ifdef FLOAT_SUPPORT
 			"%3.1f"           // 5
+#endif
 			,
 			p->ppid, proc_state_str(p),
 			max_unam_len, p->unam,
-			max_gnam_len, p->gnam,
-			p->pc_cpu
+			max_gnam_len, p->gnam
+#ifdef FLOAT_SUPPORT
+			, p->pc_cpu
+#endif
 			);
 
 	return buf;
