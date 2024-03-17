@@ -119,7 +119,8 @@ void gui_term()
 
 static void unfold(struct myproc *p, struct myproc **procs)
 {
-	for(; p; p = proc_get(procs, p->ppid))
+	/* don't unfold `p` itself, just its parents */
+	while((p = proc_get(procs, p->ppid)))
 		p->folded = 0;
 }
 
