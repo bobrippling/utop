@@ -256,8 +256,8 @@ static void showproc(struct myproc *proc, int *py, int indent)
 		const int is_locked        = proc->pid == lock_proc_pid;
 		const int is_searched      = proc      == search_proc;
 		const int is_searched_alt  = *search_str
-			                           && proc->shell_cmd
-			                           && strstr(proc->shell_cmd, search_str);
+		                             && proc->shell_cmd
+		                             && strstr(proc->shell_cmd, search_str);
 
 		const unsigned linebuf_len = COLS + pos_x + 1;
 		char *linebuf = umalloc(linebuf_len);
@@ -644,23 +644,23 @@ static void show_info(struct myproc *p, struct myproc **procs)
 
 	clear();
 	mvprintw(2, 0,
-					 "pid: %d, ppid: %d\n"
-					 "uid: %d (%s), gid: %d (%s)\n"
+		"pid: %d, ppid: %d\n"
+		"uid: %d (%s), gid: %d (%s)\n"
 #ifdef __FreeBSD__
-					 "jid: %d\n"
+		"jid: %d\n"
 #endif
-					 "state: %s, nice: %d\n"
-					 "CPU time: %s, MEM size: %s\n"
-					 "tty: %s\n"
-					 ,
-					 p->pid, p->ppid,
-					 p->uid, p->unam, p->gid, p->gnam,
+		"state: %s, nice: %d\n"
+		"CPU time: %s, MEM size: %s\n"
+		"tty: %s\n"
+		,
+		p->pid, p->ppid,
+		p->uid, p->unam, p->gid, p->gnam,
 #ifdef __FreeBSD__
-					 p->jid,
+		p->jid,
 #endif
-					 proc_state_str(p), p->nice,
-					 format_seconds(p->cputime), format_kbytes(p->memsize),
-					 p->tty);
+		proc_state_str(p), p->nice,
+		format_seconds(p->cputime), format_kbytes(p->memsize),
+		p->tty);
 
 	if(p->argv)
 		for(i = 0; p->argv[i]; i++)

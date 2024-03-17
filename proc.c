@@ -66,8 +66,8 @@ static void proc_rm_child(struct myproc *parent, struct myproc *p)
 		n--; /* gone */
 
 		/*memmove(parent->children + idx,
-		 parent->children + idx + 1,
-		 n * sizeof *parent->children);*/
+		parent->children + idx + 1,
+		n * sizeof *parent->children);*/
 		size_t i;
 		for(i = idx; i < n; i++)
 			parent->children[i] = parent->children[i + 1];
