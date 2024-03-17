@@ -117,9 +117,16 @@ void gui_term()
 	endwin();
 }
 
+static void unfold(struct myproc *p, struct myproc **procs)
+{
+	for(; p; p = proc_get(procs, p->ppid))
+		p->folded = 0;
+}
+
 static int search_proc_to_idx(int *y, struct myproc **procs)
 {
 	*y = 0;
+	unfold(search_proc, procs);
 	return proc_to_idx(procs, search_proc, y);
 }
 
@@ -167,6 +174,7 @@ static void goto_proc(struct myproc **procs, struct myproc *p)
 		return;
 
 	int y = 0;
+	unfold(p, procs);
 	if(proc_to_idx(procs, p, &y))
 		position(y, procs);
 }
@@ -687,8 +695,8 @@ static void gui_search(int ch, struct myproc **procs)
 		}else if(ch == LOCK_CHAR){
 			goto lock_proc;
 		}else if(ch == '\r' && search_proc){
-			int y = 0;
-			if(proc_to_idx(procs, search_proc, &y))
+			int y;
+			if(search_proc_to_idx(&y, procs))
 				position(y, procs);
 		}
 
@@ -785,8 +793,10 @@ static void refocus(struct myproc **procs)
 
 	if(track && track->ppid == current.ppid){
 		int y = 0;
-		if(proc_to_idx(procs, track, &y))
+		unfold(track, procs);
+		if(proc_to_idx(procs, track, &y)){
 			position(y, procs);
+		}
 
 	}else{
 		current.pid = 0; /* cancel */
