@@ -127,7 +127,8 @@ static void unfold(struct myproc *p, struct myproc **procs)
 static int search_proc_to_idx(int *y, struct myproc **procs)
 {
 	*y = 0;
-	unfold(search_proc, procs);
+	if(search_proc)
+		unfold(search_proc, procs);
 	return proc_to_idx(procs, search_proc, y);
 }
 
