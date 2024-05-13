@@ -4,7 +4,7 @@ LDFLAGS = -g -lncurses
 LDFLAGS_STATIC = -static ${LDFLAGS} -ltinfo
 PREFIX  = /usr/local
 OBJ     = main.o proc.o gui.o util.o machine.o
-VERSION = 0.10.0
+VERSION = 0.10.1
 
 .PHONY: clean install uninstall deps
 
