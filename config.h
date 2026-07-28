@@ -78,7 +78,7 @@ typedef void proc_handler(struct myproc *, struct myproc **);
 
 proc_handler delete, renice, lsof, strace, gdb, shell;
 
-struct
+extern struct
 {
 	proc_handler *handler;
 	char ch;

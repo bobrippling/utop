@@ -1,4 +1,4 @@
-CFLAGS  = -g -Wall -Wextra -pedantic -std=c99 -DFLOAT_SUPPORT
+CFLAGS  = -g -Wall -Wextra -pedantic -std=c99 -DFLOAT_SUPPORT -D_POSIX_SOURCE -D _POSIX_C_SOURCE=200112L
 
 LDFLAGS = -g -lncurses
 LDFLAGS_STATIC = -static ${LDFLAGS} -ltinfo

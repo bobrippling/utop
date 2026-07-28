@@ -26,7 +26,7 @@
 #endif
 
 /* these are for detailing the memory statistics */
-const char *memorynames[] = {
+static const char *memorynames[] = {
 	"Active, ", "Inact, ", "Wired, ", "Cache, ", "Buf, ",
 	"Free", NULL
 };
