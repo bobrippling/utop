@@ -72,6 +72,13 @@ static void gui_text_entry(int on)
 	curs_set(on);
 }
 
+static void gui_getnstr(char *buf, size_t len)
+{
+	gui_text_entry(1);
+	getnstr(buf, len);
+	gui_text_entry(0);
+}
+
 void gui_init()
 {
 	static int init = 0;
@@ -390,9 +397,7 @@ static const char *confirm_read(const char *fmt, va_list l, unsigned maxlen)
 	vwprintw(stdscr, fmt, l);
 	clrtoeol();
 
-	gui_text_entry(1);
-	getnstr(buf, maxlen);
-	gui_text_entry(0);
+	gui_getnstr(buf, maxlen);
 
 	return buf;
 }
@@ -428,9 +433,7 @@ void delete(struct myproc *p, struct myproc **ps)
 		return;
 
 	STATUS(0, 0, "kill %d (%s) with: ", p->pid, p->argv0_basename);
-	gui_text_entry(1);
-	getnstr(sig, sizeof sig);
-	gui_text_entry(0);
+	gui_getnstr(sig, sizeof sig);
 
 	if(!*sig)
 		return;
@@ -476,9 +479,7 @@ void renice(struct myproc *p, struct myproc **ps)
 	(void)ps;
 
 	STATUS(0, 0, "renice %d (%s) with [-20:20]: ", p->pid, p->argv0_basename);
-	gui_text_entry(1);
-	getnstr(increment, sizeof increment);
-	gui_text_entry(0);
+	gui_getnstr(increment, sizeof increment);
 
 	if(!*increment)
 		return;
