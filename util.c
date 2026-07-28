@@ -38,7 +38,7 @@ char *ustrdup(const char *s)
 	return r;
 }
 
-long mstime()
+unsigned long mstime()
 {
 	struct timeval t;
 	gettimeofday(&t, NULL);

@@ -817,7 +817,7 @@ static void refocus(struct myproc **procs)
 void gui_run(struct myproc **procs)
 {
 	struct sysinfo info;
-	long last_update = mstime() - WAIT_TIME - 1;
+	unsigned long last_update = mstime() - WAIT_TIME - 1;
 	int fin = 0;
 
 	memset(&info, 0, sizeof info);
@@ -825,7 +825,7 @@ void gui_run(struct myproc **procs)
 	proc_update(procs, &info);
 
 	do{
-		const long now = mstime();
+		const unsigned long now = mstime();
 		int ch;
 
 		if(!frozen && last_update + WAIT_TIME < now){
