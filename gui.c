@@ -75,7 +75,9 @@ static void gui_text_entry(int on)
 static void gui_getnstr(char *buf, size_t len)
 {
 	gui_text_entry(1);
+	getch_delay(0);
 	getnstr(buf, len);
+	getch_delay(1);
 	gui_text_entry(0);
 }
 
