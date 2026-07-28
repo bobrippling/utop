@@ -71,7 +71,11 @@ static void ps_update(void)
 		free(ps_list);
 	}
 
-	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,state,nice,tty,command";
+	static const char *ps_cmd = "ps -e -o pid,ppid,uid,gid,"
+#ifdef FLOAT_SUPPORT
+		"%cpu,"
+#endif
+		"state,nice,tty,command";
 	ps_list = pipe_in(ps_cmd, &ps_n, 1);
 }
 
@@ -122,9 +126,18 @@ int machine_update_proc(struct myproc *p, struct sysinfo *info)
 
 	/*                                       /[ \n\t]*(.*)/ */
 	if(l && sscanf(l, " %d %d %d %d "
+#ifdef FLOAT_SUPPORT
+				"%f "
 				"%7s %d %15s%*[ \n\t]%255c",
 				&pid, &ppid, &uid, &gid,
-				stat, &nice, tty, cmd) == 8)
+				&p->cpu_pct,
+				stat, &nice, tty, cmd) == 9
+#else
+				"%7s %d %15s%*[ \n\t]%255c",
+				&pid, &ppid, &uid, &gid,
+				stat, &nice, tty, cmd) == 8
+#endif
+				)
 	{
 		p->uid = uid;
 		p->gid = gid;
@@ -143,12 +156,7 @@ int machine_update_proc(struct myproc *p, struct sysinfo *info)
 		p->state = proc_state_parse(stat[0]);
 
 		machine_update_unam_gnam(p, p->uid, p->gid);
-		/*
-			 double pc_cpu;
-			 unsigned long utime, stime, cutime, cstime;
-			 unsigned long cputime;
-			 unsigned long memsize;
-		*/
+
 		return 0;
 	}
 
@@ -175,7 +183,7 @@ void machine_proc_get_more(struct myproc **procs)
 			p->ppid = ppid;
 
 			proc_addto(procs, p);
-			machine_update_proc(p);
+			machine_update_proc(p, NULL);
 		}else{
 			//fprintf(stderr, "couldn't sscanf(\"%s\")\n", ps[i]);
 		}
@@ -218,7 +226,7 @@ const char *machine_format_memory(struct sysinfo *si)
 const char *machine_format_cpu_pct(struct sysinfo *si)
 {
 	(void)si;
-	return "xyz??";
+	return "??"; /* PS backend doesn't track system-wide CPU */
 }
 
 
