@@ -36,8 +36,13 @@ struct myproc
 
 	unsigned char folded;
 
-	double pc_cpu;
+#ifdef FLOAT_SUPPORT
+	float cpu_pct;
+#else
+	unsigned cpu_pct;
+#endif
 	unsigned long utime, stime, cutime, cstime;
+	unsigned long prev_total_ticks;
 	unsigned long cputime;
 	unsigned long memsize;
 
@@ -76,6 +81,15 @@ struct sysinfo
 	int ncpus;
 
 	struct timeval boottime;
+
+	/* user, nice, system, idle, iowait, irq, softirq, steal */
+	unsigned long prev_cpu_ticks[8];
+	unsigned long cpu_ticks[8];
+#ifdef FLOAT_SUPPORT
+	float total_cpu_pct;
+#else
+	unsigned total_cpu_pct;
+#endif
 };
 
 #endif

@@ -109,9 +109,10 @@ int machine_proc_exists(struct myproc *p)
 	return !!ps_find(p->pid);
 }
 
-int machine_update_proc(struct myproc *p)
+int machine_update_proc(struct myproc *p, struct sysinfo *info)
 {
 	const char *l = ps_find(p->pid);
+	(void)info;
 	pid_t pid, ppid;
 	uid_t uid, gid;
 	char stat[8] = { 0 };

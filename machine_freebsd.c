@@ -328,10 +328,11 @@ void argv_dup(struct myproc *proc, char **argv)
 }
 
 /* Returns 0 on success, -1 on error */
-int machine_update_proc(struct myproc *proc)
+int machine_update_proc(struct myproc *proc, struct sysinfo *info)
 {
 	int n = 0;
 	struct kinfo_proc *pp;
+	(void)info;
 
 #ifdef __NetBSD__
 	pp = kvm_getprocs2(kd, KERN_PROC_PID, proc->pid, sizeof(*pp), &n);

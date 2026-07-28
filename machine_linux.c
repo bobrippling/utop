@@ -150,8 +150,50 @@ Key:     val kB
 
 static void get_cpu_stats(struct sysinfo *info)
 {
-	// TODO
-	(void)info;
+	FILE *f;
+	char buf[128];
+	unsigned long total_busy, total_all, idle_delta;
+	int i;
+
+	for(i = 0; i < 8; i++)
+		info->prev_cpu_ticks[i] = info->cpu_ticks[i];
+
+	if((f = fopen("/proc/stat", "r"))){
+		if(fgets(buf, sizeof buf - 1, f)){
+			int n = sscanf(buf, "cpu %lu %lu %lu %lu %lu %lu %lu %lu",
+				&info->cpu_ticks[0], &info->cpu_ticks[1], &info->cpu_ticks[2], &info->cpu_ticks[3],
+				&info->cpu_ticks[4], &info->cpu_ticks[5], &info->cpu_ticks[6], &info->cpu_ticks[7]);
+
+			/* old kernel without steal time */
+			if(n == 7)
+				info->cpu_ticks[7] = 0;
+			else if(n == 8)
+				; /* fine */
+			else
+				return; /* couldn't read stats */
+		}
+		fclose(f);
+	}
+
+	idle_delta = info->cpu_ticks[3] - info->prev_cpu_ticks[3];
+	total_all = 0;
+
+	for(i = 0; i < 8; i++){
+		unsigned long delta = info->cpu_ticks[i] - info->prev_cpu_ticks[i];
+		total_all += delta;
+	}
+
+	total_busy = total_all - idle_delta;
+
+	if(total_all > 0){
+#ifdef FLOAT_SUPPORT
+		info->total_cpu_pct = total_busy * 100.0f / total_all;
+#else
+		info->total_cpu_pct = total_busy * 100 / total_all;
+#endif
+	}else{
+		info->total_cpu_pct = 0;
+	}
 }
 
 void machine_update(struct sysinfo *info)
@@ -251,7 +293,7 @@ fin:
 	free(cmd);
 }
 
-int machine_update_proc(struct myproc *proc)
+int machine_update_proc(struct myproc *proc, struct sysinfo *info)
 {
 	char *buf;
 	char path[64];
@@ -298,6 +340,28 @@ int machine_update_proc(struct myproc *proc)
 		}
 
 		machine_read_argv(proc);
+
+		{
+			unsigned long proc_total_ticks = proc->utime + proc->stime;
+			unsigned long delta_ticks = proc_total_ticks - proc->prev_total_ticks;
+			unsigned long total_cpu_delta = 0;
+
+			for(i = 0; i < 8; i++)
+				total_cpu_delta += info->cpu_ticks[i] - info->prev_cpu_ticks[i];
+
+			proc->prev_total_ticks = proc_total_ticks;
+
+			if(total_cpu_delta > 0){
+#ifdef FLOAT_SUPPORT
+				proc->cpu_pct = (double)delta_ticks * 100.0 / total_cpu_delta;
+#else
+				proc->cpu_pct = delta_ticks * 100 / total_cpu_delta;
+#endif
+			}else{
+				proc->cpu_pct = 0;
+			}
+		}
+
 		return 0;
 	}else{
 		return -1;
@@ -372,8 +436,13 @@ const char *machine_format_memory(struct sysinfo *info)
 
 const char *machine_format_cpu_pct(struct sysinfo *info)
 {
-	(void)info;
-	return "todo: linux cpu pct";
+	static char buf[32];
+#ifdef FLOAT_SUPPORT
+	snprintf(buf, sizeof buf, "%.1f%%", info->total_cpu_pct);
+#else
+	snprintf(buf, sizeof buf, "%d%%", info->total_cpu_pct);
+#endif
+	return buf;
 }
 
 const char *machine_proc_display_line(struct myproc *p)
