@@ -819,6 +819,7 @@ void gui_run(struct myproc **procs)
 	struct sysinfo info;
 	unsigned long last_update = 0;
 	int fin = 0;
+	const pid_t pid_me = getpid();
 
 	memset(&info, 0, sizeof info);
 	machine_init(&info);
@@ -833,6 +834,13 @@ void gui_run(struct myproc **procs)
 			proc_update(procs, &info);
 			refocus(procs);
 			machine_update(&info);
+
+			if(info.total_cpu_pct >= 100){
+				struct myproc *me = proc_get(procs, pid_me);
+
+				if(me->cpu_pct > 0)
+					info.total_cpu_pct -= me->cpu_pct;
+			}
 		}
 
 		showprocs(procs, &info);
