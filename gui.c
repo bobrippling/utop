@@ -58,7 +58,7 @@ static struct
 static void getch_delay(int on)
 {
 	if(on)
-		halfdelay(HALF_DELAY_TIME); /* x/10s of a second wait */
+		halfdelay(KEY_WAIT_TIME); /* x/10s of a second wait */
 	else
 		cbreak();
 }
@@ -828,7 +828,7 @@ void gui_run(struct myproc **procs)
 		const unsigned long now = mstime();
 		int ch;
 
-		if(!frozen && last_update + WAIT_TIME < now){
+		if(!frozen && last_update + PROC_POLL_DELAY < now){
 			last_update = now;
 			proc_update(procs, &info);
 			refocus(procs);

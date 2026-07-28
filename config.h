@@ -2,12 +2,8 @@
 #define _CONFIG_H_
 
 
-#define HALF_DELAY_TIME 10
-
-/* 1000ms */
-#define WAIT_TIME (HALF_DELAY_TIME * 100)
-/* 60s */
-#define FULL_WAIT_TIME (WAIT_TIME * 60)
+#define KEY_WAIT_TIME 10
+#define PROC_POLL_DELAY 1000
 
 #define SPACE_CMDLINE 4
 #define SPACE_INDENT  4
