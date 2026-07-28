@@ -62,15 +62,15 @@ const char *machine_proc_display_line_default(struct myproc *p)
 {
 	static char buf[64];
 
+#ifdef FLOAT_SUPPORT
+#  define CPU_FMT "%5.1f"           // 5
+#else
+#  define CPU_FMT "% 5d"           // 5
+#endif
 	snprintf(buf, sizeof buf,
 			"% 11d %-1s " // 22
 			"%-*s %-*s "      // max_unam_len + max_gnam_len + 1
-#ifdef FLOAT_SUPPORT
-			"%5.1f"           // 5
-#else
-			"% 5d"           // 5
-#endif
-			,
+			CPU_FMT,
 			p->ppid, proc_state_str(p),
 			max_unam_len, p->unam,
 			max_gnam_len, p->gnam,
