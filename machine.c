@@ -60,7 +60,7 @@ void machine_update_unam_gnam(struct myproc *this, uid_t uid, uid_t gid)
 
 const char *machine_proc_display_line_default(struct myproc *p)
 {
-	static char buf[64];
+	static char buf[128];
 
 #ifdef FLOAT_SUPPORT
 #  define CPU_FMT "%5.1f"           // 5
