@@ -96,7 +96,9 @@ void gui_init()
 		gui_text_entry(0);
 #endif
 
-		if(has_colors()){
+		const char *nocol = getenv("NO_COLOR");
+		int disabled = nocol && nocol[0];
+		if(has_colors() && !disabled){
 			start_color();
 			use_default_colors();
 
