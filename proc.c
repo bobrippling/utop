@@ -142,7 +142,7 @@ void proc_addto(struct myproc **procs, struct myproc *p)
 }
 
 // initialize hash table
-struct myproc **proc_init()
+struct myproc **proc_init(void)
 {
 	return umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
 }

@@ -80,7 +80,7 @@ const char *machine_proc_display_line_default(struct myproc *p)
 	return buf;
 }
 
-int machine_proc_display_width_default()
+int machine_proc_display_width_default(void)
 {
 	return 11 + max_unam_len + max_gnam_len + 1 + 5;
 }
