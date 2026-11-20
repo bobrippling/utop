@@ -106,6 +106,7 @@ static void proc_free(struct myproc *p, struct myproc **procs)
 	argv_free(p->argc, p->argv);
 
 	free(p->tty);
+	free(p->children);
 
 	free(p);
 }
