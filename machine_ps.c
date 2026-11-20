@@ -102,7 +102,8 @@ static char **ps_parse_argv(char *cmd, size_t *pargc)
 		argv[argc - 1] = ustrdup(s);
 	}
 
-	argv[argc] = NULL;
+	if(argc > 0)
+		argv[argc] = NULL;
 
 	*pargc = argc;
 	return argv;
@@ -145,8 +146,12 @@ int machine_update_proc(struct myproc *p, struct sysinfo *info)
 		argv_free(p->argc, p->argv);
 		p->argv = ps_parse_argv(cmd, &p->argc);
 
-		char *slash = strrchr(p->argv[0], '/');
-		p->argv0_basename = slash ? slash + 1 : p->argv[0];
+		if(p->argv && p->argv[0]){
+			char *slash = strrchr(p->argv[0], '/');
+			p->argv0_basename = slash ? slash + 1 : p->argv[0];
+		}else{
+			p->argv0_basename = NULL;
+		}
 
 		if(!p->tty || strcmp(p->tty, tty))
 			free(p->tty), p->tty = ustrdup(tty);
