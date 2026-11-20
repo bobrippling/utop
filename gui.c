@@ -498,13 +498,12 @@ void renice(struct myproc *p, struct myproc **ps)
 		wait = 1;
 	}else{
 		if( (i < -20) || (i > 20) ){
-			i = -1;
 			STATUS(0, 0, "not a valid nice increment");
 			wait = 1;
 		}
 	}
 
-	if(!wait && i != -1)
+	if(!wait)
 		if((setpriority(PRIO_PROCESS, p->pid, i)) != 0){
 			STATUS(0, 0, "renice: %s", strerror(errno));
 			wait = 1;
