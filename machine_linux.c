@@ -81,8 +81,8 @@ static void get_load_average(struct sysinfo *info)
 			}
 			break;
 		}
+		fclose(f);
 	}
-	fclose(f);
 #else
 	(void)info;
 #endif
@@ -144,8 +144,8 @@ Key:     val kB
 				}
 			}
 		}
+		fclose(f);
 	}
-	fclose(f);
 }
 
 static void get_cpu_stats(struct sysinfo *info)
