@@ -184,8 +184,26 @@ void machine_proc_get_more(struct myproc **procs)
 		}
 
 		struct myproc *p = proc_get(procs, pid);
-		if(p)
+		if(p){
+			if(p->ppid == PARENT_UNKNOWN){
+				p->ppid = ppid;
+
+				/*
+				struct myproc *parent = proc_get(procs, ppid);
+				if(!parent && ppid > 0){
+					parent = umalloc(sizeof *parent);
+					parent->pid  = ppid;
+					parent->ppid = PARENT_UNKNOWN;
+					proc_addto(procs, parent);
+				}
+				if(parent)
+					proc_add_child(parent, p);
+				*/
+
+				machine_update_proc(p, NULL);
+			}
 			continue;
+		}
 
 		p = umalloc(sizeof *p);
 

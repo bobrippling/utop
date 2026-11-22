@@ -29,7 +29,7 @@
 
 */
 
-static void proc_add_child(struct myproc *parent, struct myproc *child)
+void proc_add_child(struct myproc *parent, struct myproc *child)
 {
 	size_t n = 0;
 	struct myproc **i;
@@ -126,6 +126,7 @@ struct myproc *proc_get(struct myproc **procs, pid_t pid)
 // Add a struct myproc pointer to the hash table
 void proc_addto(struct myproc **procs, struct myproc *p)
 {
+	// precondition: `p` is not in `procs`
 	struct myproc *last = procs[p->pid % HASH_TABLE_SIZE];
 
 	if(last){
@@ -138,6 +139,14 @@ void proc_addto(struct myproc **procs, struct myproc *p)
 	p->hash_next = NULL;
 
 	struct myproc *parent = proc_get(procs, p->ppid);
+	if(!parent && p->ppid > 0){
+		/* Parent not yet in the table, stub it.
+		 * proc_update_single() will fill it in */
+		parent = umalloc(sizeof *parent);
+		parent->pid = p->ppid;
+		parent->ppid = PARENT_UNKNOWN;
+		proc_addto(procs, parent);
+	}
 	if(parent)
 		proc_add_child(parent, p);
 }

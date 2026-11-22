@@ -22,6 +22,7 @@ struct myproc  *proc_from_idx(struct myproc **procs, int *idx);
 
 struct myproc  *proc_first(     struct myproc **procs);
 struct myproc  *proc_first_next(struct myproc **procs);
+void            proc_add_child(struct myproc *parent, struct myproc *child);
 void            proc_unmark(struct myproc **procs);
 void            proc_mark_kernel(struct myproc **procs);
 
@@ -30,6 +31,8 @@ void proc_dump(struct myproc **ps, FILE *f);
 enum proc_state proc_state_parse(char c);
 
 #define HASH_TABLE_SIZE 128
+
+#define PARENT_UNKNOWN (-1)
 
 #define ITER_PROC_HEADS(ty, p, procs)  \
 	for(ty p = proc_first(procs);        \
