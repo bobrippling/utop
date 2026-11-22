@@ -199,6 +199,10 @@ static void proc_update_single(
 		info->procs_in_state[proc->state]++;
 
 		if(oldppid != proc->ppid){
+			struct myproc *old_parent = proc_get(procs, oldppid);
+			if(old_parent)
+				proc_rm_child(old_parent, proc);
+
 			struct myproc *parent = proc_get(procs, proc->ppid);
 
 			if(parent){
