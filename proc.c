@@ -225,6 +225,15 @@ static void proc_update_single(
 		if(oldppid != proc->ppid)
 			reparent(proc, procs, oldppid);
 
+		for(struct myproc **i = proc->children; i && *i; ){
+			struct myproc *child = *i;
+			if(child->ppid != proc->pid){
+				proc_rm_child(proc, child);
+				continue;
+			}
+			i++;
+		}
+
 		proc_create_shell_cmd(proc);
 	}else{
 		proc_free(proc, procs);

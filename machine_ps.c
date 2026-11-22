@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "util.h"
 #include "structs.h"
@@ -142,6 +143,13 @@ int machine_update_proc(struct myproc *p, struct sysinfo *info)
 	{
 		p->uid = uid;
 		p->gid = gid;
+
+		assert(p->pid == pid);
+		if(p->ppid != ppid){
+			// reparent? leave for proc_update_single() ?
+
+			p->ppid = ppid; // set here, hope something reparents
+		}
 
 		argv_free(p->argc, p->argv);
 		p->argv = ps_parse_argv(cmd, &p->argc);
