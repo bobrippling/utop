@@ -179,6 +179,21 @@ void proc_create_shell_cmd(struct myproc *this)
 		cmd += sprintf(cmd, "%s ", this->argv[i]);
 }
 
+static void reparent(struct myproc *p, struct myproc **procs, pid_t oldppid)
+{
+	struct myproc *old_parent = proc_get(procs, oldppid);
+	if(old_parent)
+		proc_rm_child(old_parent, p);
+
+	struct myproc *parent = proc_get(procs, p->ppid);
+
+	if(parent){
+		proc_add_child(parent, p);
+	}else{
+		/* TODO: reparent to init? */
+	}
+}
+
 static void proc_update_single(
 		struct myproc *proc,
 		struct myproc **procs,
@@ -198,19 +213,8 @@ static void proc_update_single(
 			info->owned++;
 		info->procs_in_state[proc->state]++;
 
-		if(oldppid != proc->ppid){
-			struct myproc *old_parent = proc_get(procs, oldppid);
-			if(old_parent)
-				proc_rm_child(old_parent, proc);
-
-			struct myproc *parent = proc_get(procs, proc->ppid);
-
-			if(parent){
-				proc_add_child(parent, proc);
-			}else{
-				/* TODO: reparent to init? */
-			}
-		}
+		if(oldppid != proc->ppid)
+			reparent(proc, procs, oldppid);
 
 		proc_create_shell_cmd(proc);
 	}else{
