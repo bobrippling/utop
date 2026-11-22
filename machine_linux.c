@@ -109,7 +109,7 @@ Key:     val kB
 			c = strchr(buf, ':'); // find ':' seperator
 
 			if(!c)
-				break;
+				continue;
 
 			key = buf; // pointer to the beginning of the line
 			mem = c+1; // mem points to char after ':'
