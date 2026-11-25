@@ -178,20 +178,23 @@ void machine_proc_get_more(struct myproc **procs)
 	for(size_t i = 0; i < ps_n; i++){
 		pid_t pid, ppid;
 
-		if(sscanf(ps_list[i], " %d %d ", &pid, &ppid) == 2
-		&& !proc_get(procs, pid))
-		{
-			struct myproc *p = umalloc(sizeof *p);
-
-			/* bare minimum - rest is done in _update */
-			p->pid  = pid;
-			p->ppid = ppid;
-
-			proc_addto(procs, p);
-			machine_update_proc(p, NULL);
-		}else{
+		if(sscanf(ps_list[i], " %d %d ", &pid, &ppid) != 2){
 			//fprintf(stderr, "couldn't sscanf(\"%s\")\n", ps[i]);
+			continue;
 		}
+
+		struct myproc *p = proc_get(procs, pid);
+		if(p)
+			continue;
+
+		p = umalloc(sizeof *p);
+
+		/* bare minimum - rest is done in _update */
+		p->pid  = pid;
+		p->ppid = ppid;
+
+		proc_addto(procs, p);
+		machine_update_proc(p, NULL);
 	}
 }
 
