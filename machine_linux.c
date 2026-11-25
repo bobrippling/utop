@@ -81,8 +81,8 @@ static void get_load_average(struct sysinfo *info)
 			}
 			break;
 		}
+		fclose(f);
 	}
-	fclose(f);
 #else
 	(void)info;
 #endif
@@ -109,7 +109,7 @@ Key:     val kB
 			c = strchr(buf, ':'); // find ':' seperator
 
 			if(!c)
-				break;
+				continue;
 
 			key = buf; // pointer to the beginning of the line
 			mem = c+1; // mem points to char after ':'
@@ -144,8 +144,8 @@ Key:     val kB
 				}
 			}
 		}
+		fclose(f);
 	}
-	fclose(f);
 }
 
 static void get_cpu_stats(struct sysinfo *info)

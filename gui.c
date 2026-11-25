@@ -81,7 +81,7 @@ static void gui_getnstr(char *buf, size_t len)
 	gui_text_entry(0);
 }
 
-void gui_init()
+void gui_init(void)
 {
 	static int init = 0;
 
@@ -105,7 +105,9 @@ void gui_init()
 		gui_text_entry(0);
 #endif
 
-		if(has_colors()){
+		const char *nocol = getenv("NO_COLOR");
+		int disabled = nocol && nocol[0];
+		if(has_colors() && !disabled){
 			start_color();
 			use_default_colors();
 
@@ -121,7 +123,7 @@ void gui_init()
 	}
 }
 
-void gui_term()
+void gui_term(void)
 {
 	endwin();
 }
@@ -340,18 +342,23 @@ static void showprocs(struct myproc **procs, struct sysinfo *info)
 	}else{
 		int width;
 
+#ifdef FLOAT_SUPPORT
 		STATUS(0, 0, "%d processes, %d running, "
 				"%d owned, %d kernel, %d zombies, "
-#ifdef FLOAT_SUPPORT
 				"load averages: %.2f, %.2f, %.2f, "
-#endif
 				"uptime: %s",
 				info->count, info->procs_in_state[PROC_STATE_RUN],
 				info->owned, info->count_kernel, info->procs_in_state[PROC_STATE_ZOMBIE],
-#ifdef FLOAT_SUPPORT
 				info->loadavg[0], info->loadavg[1], info->loadavg[2],
-#endif
 				uptime_from_boottime(info->boottime.tv_sec));
+#else
+		STATUS(0, 0, "%d processes, %d running, "
+				"%d owned, %d kernel, %d zombies, "
+				"uptime: %s",
+				info->count, info->procs_in_state[PROC_STATE_RUN],
+				info->owned, info->count_kernel, info->procs_in_state[PROC_STATE_ZOMBIE],
+				uptime_from_boottime(info->boottime.tv_sec));
+#endif
 
 		STATUS(1, 0, "Mem: %s", machine_format_memory(info));
 		STATUS(2, 0, "CPU: %s%s", machine_format_cpu_pct(info), frozen ? " [FROZEN]" : "");
@@ -369,7 +376,7 @@ static void showprocs(struct myproc **procs, struct sysinfo *info)
 	}
 }
 
-static int waitgetch()
+static int waitgetch(void)
 {
 	int ret;
 	gui_text_entry(1);
@@ -491,13 +498,12 @@ void renice(struct myproc *p, struct myproc **ps)
 		wait = 1;
 	}else{
 		if( (i < -20) || (i > 20) ){
-			i = -1;
 			STATUS(0, 0, "not a valid nice increment");
 			wait = 1;
 		}
 	}
 
-	if(!wait && i != -1)
+	if(!wait)
 		if((setpriority(PRIO_PROCESS, p->pid, i)) != 0){
 			STATUS(0, 0, "renice: %s", strerror(errno));
 			wait = 1;

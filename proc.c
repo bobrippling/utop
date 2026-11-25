@@ -106,6 +106,7 @@ static void proc_free(struct myproc *p, struct myproc **procs)
 	argv_free(p->argc, p->argv);
 
 	free(p->tty);
+	free(p->children);
 
 	free(p);
 }
@@ -142,7 +143,7 @@ void proc_addto(struct myproc **procs, struct myproc *p)
 }
 
 // initialize hash table
-struct myproc **proc_init()
+struct myproc **proc_init(void)
 {
 	return umalloc(HASH_TABLE_SIZE * sizeof *proc_init());
 }
@@ -178,6 +179,21 @@ void proc_create_shell_cmd(struct myproc *this)
 		cmd += sprintf(cmd, "%s ", this->argv[i]);
 }
 
+static void reparent(struct myproc *p, struct myproc **procs, pid_t oldppid)
+{
+	struct myproc *old_parent = proc_get(procs, oldppid);
+	if(old_parent)
+		proc_rm_child(old_parent, p);
+
+	struct myproc *parent = proc_get(procs, p->ppid);
+
+	if(parent){
+		proc_add_child(parent, p);
+	}else{
+		/* TODO: reparent to init? */
+	}
+}
+
 static void proc_update_single(
 		struct myproc *proc,
 		struct myproc **procs,
@@ -197,15 +213,8 @@ static void proc_update_single(
 			info->owned++;
 		info->procs_in_state[proc->state]++;
 
-		if(oldppid != proc->ppid){
-			struct myproc *parent = proc_get(procs, proc->ppid);
-
-			if(parent){
-				proc_add_child(parent, proc);
-			}else{
-				/* TODO: reparent to init? */
-			}
-		}
+		if(oldppid != proc->ppid)
+			reparent(proc, procs, oldppid);
 
 		proc_create_shell_cmd(proc);
 	}else{
@@ -443,6 +452,28 @@ struct myproc *proc_first_next(struct myproc **procs)
 			return p;
 
 	return NULL;
+}
+
+void proc_link_orphans(struct myproc **procs)
+{
+	int i;
+	struct myproc *p;
+
+	ITER_PROCS(i, p, procs) {
+		struct myproc *parent = proc_get(procs, p->ppid);
+		if(!parent) continue;
+
+		int found = 0;
+		for(struct myproc **ci = parent->children; ci && *ci; ci++){
+			if(*ci == p){
+				found = 1;
+				break;
+			}
+		}
+
+		if(!found)
+			proc_add_child(parent, p);
+	}
 }
 
 void proc_unmark(struct myproc **procs)

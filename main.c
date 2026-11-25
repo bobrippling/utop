@@ -20,7 +20,7 @@ int ps_from_file;
 
 static struct myproc **proclist;
 
-static void extra_init()
+static void extra_init(void)
 {
 	globals.uid = getuid();
 
