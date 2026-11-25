@@ -1,5 +1,5 @@
 with import <nixpkgs> {};
-let version = "0.11.0"; in stdenv.mkDerivation {
+let version = "0.12.0"; in stdenv.mkDerivation {
   name = "utop-${version}";
   version = version;
 
