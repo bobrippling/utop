@@ -454,28 +454,6 @@ struct myproc *proc_first_next(struct myproc **procs)
 	return NULL;
 }
 
-void proc_link_orphans(struct myproc **procs)
-{
-	int i;
-	struct myproc *p;
-
-	ITER_PROCS(i, p, procs) {
-		struct myproc *parent = proc_get(procs, p->ppid);
-		if(!parent) continue;
-
-		int found = 0;
-		for(struct myproc **ci = parent->children; ci && *ci; ci++){
-			if(*ci == p){
-				found = 1;
-				break;
-			}
-		}
-
-		if(!found)
-			proc_add_child(parent, p);
-	}
-}
-
 void proc_unmark(struct myproc **procs)
 {
 	struct myproc *p;

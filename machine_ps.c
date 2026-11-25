@@ -196,9 +196,6 @@ void machine_proc_get_more(struct myproc **procs)
 		proc_addto(procs, p);
 		machine_update_proc(p, NULL);
 	}
-
-	/* repair parent->child links for late arriving parents */
-	proc_link_orphans(procs);
 }
 
 /* TODO */
